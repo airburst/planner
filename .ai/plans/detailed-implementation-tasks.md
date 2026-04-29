@@ -14,6 +14,8 @@ Goal: provide an execution-ready engineering backlog for Planner on Electron + S
 ## Phase 0: Foundation and repository readiness
 
 ### P0-T1: Finalize baseline project scripts and structure
+Status: Completed (2026-04-29)
+
 Objective:
 - Ensure all expected scripts and folder conventions exist and are stable.
 
@@ -64,6 +66,8 @@ Dependencies:
 ## Phase 1: Database and domain schema
 
 ### P1-T1: Create Planner v1 schema
+Status: Completed (2026-04-29)
+
 Objective:
 - Implement first-pass schema matching Planner core entities.
 
@@ -91,6 +95,8 @@ Dependencies:
 - P0-T1, P0-T2
 
 ### P1-T2: Generate initial migration and verify safety
+Status: Completed (2026-04-29)
+
 Objective:
 - Produce migration SQL and ensure no destructive operations.
 
@@ -108,6 +114,8 @@ Dependencies:
 - P1-T1
 
 ### P1-T3: Build DB entrypoint and connection lifecycle
+Status: In progress (2026-04-29)
+
 Objective:
 - Provide stable SQLite initialization for app and tests.
 
@@ -126,6 +134,8 @@ Dependencies:
 ## Phase 2: IPC and preload surface
 
 ### P2-T1: Implement plan and people IPC handlers
+Status: Completed (2026-04-29)
+
 Objective:
 - Enable CRUD for foundational planning entities.
 
@@ -147,6 +157,8 @@ Dependencies:
 - P1-T1, P1-T3
 
 ### P2-T2: Implement accounts and income streams IPC handlers
+Status: Completed (2026-04-29)
+
 Objective:
 - Enable key retirement inputs for balances and phased income.
 
@@ -162,6 +174,8 @@ Dependencies:
 - P2-T1
 
 ### P2-T3: Expose preload API and types for all phase-2 handlers
+Status: Completed (2026-04-29)
+
 Objective:
 - Provide typed renderer access to IPC channels.
 

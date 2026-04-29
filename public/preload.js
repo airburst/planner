@@ -17,5 +17,25 @@ contextBridge.exposeInMainWorld("api", {
   createPerson: (data) => ipcRenderer.invoke("people:create", data),
   updatePerson: (id, data) => ipcRenderer.invoke("people:update", id, data),
   deletePerson: (id) => ipcRenderer.invoke("people:delete", id),
-  deletePeopleByPlan: (planId) => ipcRenderer.invoke("people:deleteByPlan", planId)
+  deletePeopleByPlan: (planId) => ipcRenderer.invoke("people:deleteByPlan", planId),
+
+  getAccounts: () => ipcRenderer.invoke("accounts:getAll"),
+  getAccount: (id) => ipcRenderer.invoke("accounts:getById", id),
+  getAccountsByPlan: (planId) => ipcRenderer.invoke("accounts:getByPlan", planId),
+  createAccount: (data) => ipcRenderer.invoke("accounts:create", data),
+  updateAccount: (id, data) => ipcRenderer.invoke("accounts:update", id, data),
+  deleteAccount: (id) => ipcRenderer.invoke("accounts:delete", id),
+
+  getIncomeStreams: () => ipcRenderer.invoke("income-streams:getAll"),
+  getIncomeStream: (id) => ipcRenderer.invoke("income-streams:getById", id),
+  getIncomeStreamsByPlan: (planId) =>
+    ipcRenderer.invoke("income-streams:getByPlan", planId),
+  getIncomeStreamsByPerson: (personId) =>
+    ipcRenderer.invoke("income-streams:getByPerson", personId),
+  getIncomeStreamsByPlanAndPerson: (planId, personId) =>
+    ipcRenderer.invoke("income-streams:getByPlanAndPerson", planId, personId),
+  createIncomeStream: (data) => ipcRenderer.invoke("income-streams:create", data),
+  updateIncomeStream: (id, data) =>
+    ipcRenderer.invoke("income-streams:update", id, data),
+  deleteIncomeStream: (id) => ipcRenderer.invoke("income-streams:delete", id)
 });

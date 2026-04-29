@@ -3,6 +3,8 @@ const path = require("node:path");
 const { setupDatabase, schema } = require("./db");
 const registerPlansHandlers = require("./ipc/plans");
 const registerPeopleHandlers = require("./ipc/people");
+const registerAccountsHandlers = require("./ipc/accounts");
+const registerIncomeStreamsHandlers = require("./ipc/income-streams");
 
 const isDev = !app.isPackaged;
 let mainWindow;
@@ -45,6 +47,8 @@ app.whenReady().then(() => {
   const { db } = setupDatabase();
   registerPlansHandlers(ipcMain, db, schema);
   registerPeopleHandlers(ipcMain, db, schema);
+  registerAccountsHandlers(ipcMain, db, schema);
+  registerIncomeStreamsHandlers(ipcMain, db, schema);
 
   createWindow();
 
