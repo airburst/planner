@@ -6,21 +6,21 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-    calculateAgeInYear,
-    calculateGrowth,
-    calculateIncomeForStream,
-    calculatePersonalTax,
-    isIncomeStreamActive,
-    projectPersonYear,
-    runProjection,
+  calculateAgeInYear,
+  calculateGrowth,
+  calculateIncomeForStream,
+  calculatePersonalTax,
+  isIncomeStreamActive,
+  projectPersonYear,
+  runProjection,
 } from "./index";
 import {
-    AccountContext,
-    AssumptionSet,
-    IncomeStreamContext,
-    PersonContext,
-    SpendingAssumption,
-    WithdrawalStrategy,
+  AccountContext,
+  AssumptionSet,
+  IncomeStreamContext,
+  PersonContext,
+  SpendingAssumption,
+  WithdrawalStrategy,
 } from "./types";
 
 describe("Core Simulation Engine", () => {
@@ -260,7 +260,8 @@ describe("Core Simulation Engine", () => {
       expect(year.age).toBe(66);
       expect(year.totalIncome).toBe(0); // No income yet
       expect(year.totalWithdrawals).toBeGreaterThan(0); // Must draw to meet spending
-      expect(year.totalHouseholdAssets > 0).toBe(true); // Should still have assets
+      const totalClosing = Array.from(year.closingBalances.values()).reduce((a, b) => a + b, 0);
+      expect(totalClosing > 0).toBe(true); // Should still have assets
     });
 
     it("projects year with active income", () => {
@@ -344,7 +345,9 @@ describe("Core Simulation Engine", () => {
 
       expect(year1.totalWithdrawals).toBe(year2.totalWithdrawals);
       expect(year1.taxDue).toBe(year2.taxDue);
-      expect(year1.totalHouseholdAssets).toBe(year2.totalHouseholdAssets); // Note: would be calculated differently in full projection
+      const total1 = Array.from(year1.closingBalances.values()).reduce((a, b) => a + b, 0);
+      const total2 = Array.from(year2.closingBalances.values()).reduce((a, b) => a + b, 0);
+      expect(total1).toBe(total2); // Deterministic closing balances
     });
   });
 
