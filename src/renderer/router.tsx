@@ -1,3 +1,5 @@
+import { HomePage } from "@/pages";
+import { PlanDetailPage } from "@/pages/plan/[id]";
 import {
     Link,
     Outlet,
@@ -6,8 +8,6 @@ import {
     createRoute,
     createRouter
 } from "@tanstack/react-router";
-import { HomePage } from "../pages";
-import { PlanDetailPage } from "../pages/plan/[id]";
 
 function RootLayout() {
   return (

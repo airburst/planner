@@ -1,10 +1,10 @@
+import { Button } from "@/components/ui/button";
+import { useAccountsByPlan, useCreateAccount } from "@/renderer/hooks/use-accounts";
+import { useCreateIncomeStream, useIncomeStreamsByPlan } from "@/renderer/hooks/use-income-streams";
+import { useCreatePerson, usePeopleByPlan } from "@/renderer/hooks/use-people";
+import { usePlans } from "@/renderer/hooks/use-plans";
 import { useParams } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Button } from "../../../components/ui/button";
-import { useAccountsByPlan, useCreateAccount } from "../../../renderer/hooks/use-accounts";
-import { useCreateIncomeStream, useIncomeStreamsByPlan } from "../../../renderer/hooks/use-income-streams";
-import { useCreatePerson, usePeopleByPlan } from "../../../renderer/hooks/use-people";
-import { usePlans } from "../../../renderer/hooks/use-plans";
 
 export function PlanDetailPage() {
   const params = useParams({ from: "/plan/$planId" });
