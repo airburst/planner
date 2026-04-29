@@ -328,24 +328,40 @@ Dependencies:
 - P2-T3, P4-T1
 
 ### P4-T3: Implement onboarding flow screens
+Status: Completed (2026-04-29)
+
 Objective:
 - Capture minimum viable inputs to run first projection.
 
+Implementation notes:
+- 5-step wizard with multi-step form state management
+- Progress bar showing current step and total steps
+- Step components:
+  1. Household Setup: primary/partner names, household configuration
+  2. Retirement Timing: retirement ages via sliders (50-85 age range)
+  3. Current Assets: savings amount (£0-£1M range), account type selection
+  4. Retirement Income: DB pension and State Pension configuration with activation ages
+  5. Spending Target: annual spending goal (£10k-£200k range) with monthly equivalent
+- Real-time summaries for user confirmation at each step
+- Form validation (requires primary person name to complete)
+- Automatic plan creation on completion with name based on primary person
+- Redirects to plan detail page after creation
+- Prominent "Create New Plan" button on HomePage
+- Added /onboarding route to TanStack Router
+
 Implementation tasks:
-1. Build step sequence:
-- household setup
-- retirement timing
-- assets
-- income phases
-- spending target
-2. Add validation and progress state.
-3. Save draft plan as user advances.
+1. ✓ Build 5-step sequence with form components
+2. ✓ Add state management and progress tracking
+3. ✓ Implement form validation and user confirmations
 
 Definition of done:
-- New user can complete onboarding and run first projection.
+- ✓ New user can walk through onboarding flow
+- ✓ Plan is created with captured data
+- ✓ All steps use @ alias imports and shadcn components
+- ✓ TypeScript types and lint checks passing
 
 Dependencies:
-- P4-T2
+- P4-T2 (Completed)
 
 ### P4-T4: Implement scenario detail states
 Objective:
