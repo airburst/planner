@@ -1,10 +1,21 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("node:path");
 
+const isDev = !app.isPackaged;
+let mainWindow;
+
 function createWindow() {
-  const win = new BrowserWindow({
-    width: 1280,
-    height: 840,
+  mainWindow = new BrowserWindow({
+    width: 1440,
+    height: 1080,
+    minWidth: 960,
+    minHeight: 600,
+    center: true,
+    ...(process.platform === "darwin" ? { titleBarStyle: "hidden" } : {}),
+    ...(process.platform !== "darwin" ? { titleBarOverlay: true } : {}),
+    ...(process.platform === "darwin"
+      ? { trafficLightPosition: { x: 16, y: 16 } }
+      : {}),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -12,18 +23,26 @@ function createWindow() {
     }
   });
 
-  if (!app.isPackaged) {
-    win.loadURL("http://localhost:3000");
-  } else {
-    win.loadFile(path.join(__dirname, "..", "build", "index.html"));
+  mainWindow.loadURL(
+    isDev
+      ? "http://localhost:3000"
+      : `file://${path.join(app.getAppPath(), "build/index.html")}`
+  );
+
+  if (isDev) {
+    mainWindow.webContents.openDevTools({ mode: "detach" });
   }
+
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
 }
 
 app.whenReady().then(() => {
   createWindow();
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    if (mainWindow === null) {
       createWindow();
     }
   });
