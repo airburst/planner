@@ -1,0 +1,85 @@
+{
+  "name": "planner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first retirement and long-term financial planning desktop app.",
+  "main": "public/electron.js",
+  "author": "",
+  "scripts": {
+    "start": "concurrently \"vite\" \"bun run electron-start\"",
+    "electron-start": "wait-on http://localhost:3000 && bun run vite build --config vite.main.config.ts && electron .",
+    "build": "bun run vite build && bun run vite build --config vite.main.config.ts && electron-builder",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "prepare": "husky",
+    "db:migrate": "drizzle-kit generate",
+    "changeset": "changeset",
+    "version": "changeset version"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.90.3",
+    "@tanstack/react-start": "^1.132.27",
+    "better-sqlite3": "^12.4.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.44.6",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "shadcn": "^4.5.0",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.7",
+    "@electron/rebuild": "^4.0.1",
+    "@eslint/js": "^9.38.0",
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/node": "^24.9.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.0",
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.1",
+    "drizzle-kit": "^0.31.6",
+    "electron": "^38.3.0",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9.38.0",
+    "globals": "^16.4.0",
+    "husky": "^9.1.7",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.14",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
+    "vite": "^7.1.12",
+    "vitest": "^3.2.4",
+    "wait-on": "^8.0.5"
+  },
+  "build": {
+    "appId": "com.markfairhurst.planner",
+    "productName": "Planner",
+    "files": [
+      "build/**/*",
+      "public/electron.js",
+      "public/preload.js",
+      "public/db.js",
+      "public/ipc/**/*",
+      "src/main/db/migrations/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "out"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "airburst",
+      "repo": "planner"
+    },
+    "mac": {
+      "category": "public.app-category.finance",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    }
+  }
+}
