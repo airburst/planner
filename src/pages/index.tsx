@@ -18,19 +18,31 @@ export function HomePage() {
     <main className="mx-auto max-w-5xl space-y-6 p-6">
       <h1 className="text-3xl font-semibold tracking-tight">Planner</h1>
       <p className="text-muted-foreground">
-        Renderer hooks are now connected to IPC-backed TanStack Query data flows.
+        Long-term retirement and financial planning
       </p>
 
+      {/* Create new plan section */}
+      <section className="rounded-lg border bg-primary/5 p-6 text-card-foreground">
+        <h2 className="mb-3 text-lg font-semibold">Get Started</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Create a new plan and walk through our guided setup process.
+        </p>
+        <Button onClick={() => navigate({ to: "/onboarding" })}>
+          Create New Plan
+        </Button>
+      </section>
+
+      {/* Existing plans section */}
       <section className="rounded-lg border bg-card p-4 text-card-foreground">
-        <h2 className="mb-3 text-lg font-semibold">Plans</h2>
+        <h2 className="mb-3 text-lg font-semibold">Your Plans</h2>
         <div className="mb-4 flex flex-wrap gap-3">
           <Button onClick={createSamplePlan} disabled={createPlan.isPending}>
-            Add Plan
+            {createPlan.isPending ? "Creating..." : "Add Plan (Quick)"}
           </Button>
         </div>
 
         {plans.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No plans yet. Create your first plan.</p>
+          <p className="text-sm text-muted-foreground">No plans yet. Start with the guided setup above.</p>
         ) : (
           <ul className="space-y-2">
             {plans.map((plan) => (

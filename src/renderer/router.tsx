@@ -1,4 +1,5 @@
 import { HomePage } from "@/pages";
+import { OnboardingPage } from "@/pages/onboarding";
 import { PlanDetailPage } from "@/pages/plan/[id]";
 import {
     Link,
@@ -41,7 +42,13 @@ const planRoute = createRoute({
   component: PlanDetailPage
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, planRoute]);
+const onboardingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/onboarding",
+  component: OnboardingPage
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, onboardingRoute, planRoute]);
 
 export const router = createRouter({ routeTree });
 
