@@ -6,15 +6,14 @@
  */
 
 import {
-  AccountContext,
-  AssumptionSet,
-  HouseholdYearState,
-  IncomeStreamContext,
-  PersonContext,
-  PersonYearState,
-  ProjectionRun,
-  SpendingAssumption,
-  WithdrawalStrategy,
+    AccountContext,
+    AssumptionSet,
+    HouseholdYearState,
+    IncomeStreamContext,
+    PersonContext,
+    PersonYearState,
+    SpendingAssumption,
+    WithdrawalStrategy
 } from "./types";
 
 /**
@@ -98,7 +97,6 @@ export function calculatePersonalTax(
   tax += basicRateTaxable * basicRate;
 
   // Higher rate (40%)
-  if (taxableIncome > basicRateBand - personalAllowance) {
   if (taxableIncome > basicRateBand - effectivePersonalAllowance) {
     const higherRateTaxable = Math.min(
       taxableIncome - (basicRateBand - effectivePersonalAllowance),
