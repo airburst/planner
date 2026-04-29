@@ -14,6 +14,9 @@ export default [
       globals: {
         ...globals.node
       }
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off"
     }
   },
   {

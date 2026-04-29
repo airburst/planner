@@ -1,5 +1,8 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
+const { setupDatabase, schema } = require("./db");
+const registerPlansHandlers = require("./ipc/plans");
+const registerPeopleHandlers = require("./ipc/people");
 
 const isDev = !app.isPackaged;
 let mainWindow;
@@ -39,6 +42,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  const { db } = setupDatabase();
+  registerPlansHandlers(ipcMain, db, schema);
+  registerPeopleHandlers(ipcMain, db, schema);
+
   createWindow();
 
   app.on("activate", () => {

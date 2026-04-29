@@ -5,6 +5,6 @@ export default defineConfig({
   out: "./src/main/db/migrations",
   dialect: "sqlite",
   dbCredentials: {
-    url: "sqlite.db"
+    url: "planner.db"
   }
 });
