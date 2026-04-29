@@ -2,17 +2,17 @@
  * Unit Tests for Phased Income Module (P3-T2)
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
-  getActiveIncomeStreamsForYear,
-  calculatePersonIncomePhase,
-  generatePersonIncomeReport,
-  analyzeIncomePhases,
-  arePhaseSequencesEquivalent,
-  projectHouseholdIncomePhases,
-  detectIncomeTransitions,
+    analyzeIncomePhases,
+    arePhaseSequencesEquivalent,
+    calculatePersonIncomePhase,
+    detectIncomeTransitions,
+    generatePersonIncomeReport,
+    getActiveIncomeStreamsForYear,
+    projectHouseholdIncomePhases,
 } from "./phased-income";
-import { PersonContext, IncomeStreamContext } from "./types";
+import { IncomeStreamContext, PersonContext } from "./types";
 
 describe("Phased Income Module (P3-T2)", () => {
   let person: PersonContext;

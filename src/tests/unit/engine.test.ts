@@ -1,26 +1,26 @@
 /**
  * Unit Tests for Core Simulation Engine
- * 
+ *
  * Tests all calculation functions with deterministic, verifiable scenarios
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
-  calculateAgeInYear,
-  isIncomeStreamActive,
-  calculateIncomeForStream,
-  calculateGrowth,
-  calculatePersonalTax,
-  projectPersonYear,
-  runProjection,
+    calculateAgeInYear,
+    calculateGrowth,
+    calculateIncomeForStream,
+    calculatePersonalTax,
+    isIncomeStreamActive,
+    projectPersonYear,
+    runProjection,
 } from "./index";
 import {
-  PersonContext,
-  AccountContext,
-  IncomeStreamContext,
-  AssumptionSet,
-  SpendingAssumption,
-  WithdrawalStrategy,
+    AccountContext,
+    AssumptionSet,
+    IncomeStreamContext,
+    PersonContext,
+    SpendingAssumption,
+    WithdrawalStrategy,
 } from "./types";
 
 describe("Core Simulation Engine", () => {
@@ -206,7 +206,7 @@ describe("Core Simulation Engine", () => {
       const pa = 12570;
       const basicBand = 50270;
       const tax = calculatePersonalTax(income, pa, basicBand, 125140, 0.2, 0.4, 0.45);
-      
+
       const basicRateTaxable = basicBand - pa; // £37,700
       const higherRateTaxable = income - basicBand; // £9,730
       const expected = Math.round(basicRateTaxable * 0.2 + higherRateTaxable * 0.4);
@@ -219,7 +219,7 @@ describe("Core Simulation Engine", () => {
       const basicBand = 50270;
       const higherBand = 125140;
       const tax = calculatePersonalTax(income, pa, basicBand, higherBand, 0.2, 0.4, 0.45);
-      
+
       const basicRateTaxable = basicBand - pa;
       const higherRateTaxable = higherBand - basicBand;
       const additionalRateTaxable = income - higherBand;
@@ -352,7 +352,7 @@ describe("Core Simulation Engine", () => {
     it("projects 30-year retirement scenario", () => {
       const startYear = 2026;
       const endYear = 2055; // 30 years
-      
+
       const years = runProjection(
         [person],
         accounts,
@@ -418,7 +418,7 @@ describe("Core Simulation Engine", () => {
 
       const firstYearAssets = years[0].totalHouseholdAssets;
       const lastYearAssets = years[years.length - 1].totalHouseholdAssets;
-      
+
       expect(lastYearAssets).toBeLessThan(firstYearAssets);
     });
 
@@ -437,7 +437,7 @@ describe("Core Simulation Engine", () => {
       for (const year of years) {
         expect(typeof year.canSustainSpending).toBe("boolean");
         expect(typeof year.spendingCoverage).toBe("number");
-        
+
         // Sustainability should correlate with positive deficit/surplus or remaining assets
         if (year.totalHouseholdAssets > 0 || year.deficitOrSurplus >= 0) {
           expect(year.canSustainSpending).toBe(true);
@@ -486,7 +486,7 @@ describe("Core Simulation Engine", () => {
 
       for (const year of years) {
         expect(year.people.size).toBe(2); // Both people
-        
+
         // Household total should be sum of individuals
         let sumIncome = 0;
         for (const personYear of year.people.values()) {

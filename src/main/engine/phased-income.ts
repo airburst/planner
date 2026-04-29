@@ -1,6 +1,6 @@
 /**
  * Phased Income Module (P3-T2)
- * 
+ *
  * Handles complex multi-stream income activation patterns:
  * - Concurrent income streams (e.g., DB pension + State Pension + part-time work)
  * - Age-based activation logic
@@ -9,9 +9,8 @@
  */
 
 import {
-  IncomeStreamContext,
-  PersonContext,
-  PersonYearState,
+    IncomeStreamContext,
+    PersonContext
 } from "./types";
 
 /**
@@ -296,7 +295,7 @@ export function detectIncomeTransitions(
 
   for (const phase of report.years) {
     const currentStreams = new Set(phase.streams.map((s) => s.streamId));
-    
+
     // Check for new activations
     for (const stream of phase.streams) {
       if (!previousStreams.has(stream.streamId)) {
@@ -322,7 +321,7 @@ export function detectIncomeTransitions(
           e.personId === report.personId &&
           e.event === "activation"
       );
-      
+
       if (!existing && phase.streams.length === previousStreams.size) {
         events.push({
           year: phase.year,
