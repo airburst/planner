@@ -114,7 +114,7 @@ Dependencies:
 - P1-T1
 
 ### P1-T3: Build DB entrypoint and connection lifecycle
-Status: In progress (2026-04-29)
+Status: Completed (2026-04-29)
 
 Objective:
 - Provide stable SQLite initialization for app and tests.
@@ -351,6 +351,8 @@ Dependencies:
 ## Phase 5: Testing and quality gates
 
 ### P5-T1: Build integration test harness for IPC + DB
+Status: Completed (2026-04-29)
+
 Objective:
 - Test handlers against in-memory SQLite and real schema.
 
