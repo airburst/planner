@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Button } from "../../components/ui/button";
-import { useCreatePlan, usePlans } from "../../renderer/hooks/use-plans";
+import { Button } from "../components/ui/button";
+import { useCreatePlan, usePlans } from "../renderer/hooks/use-plans";
 
 export function HomePage() {
   const navigate = useNavigate();
