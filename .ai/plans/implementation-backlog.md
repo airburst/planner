@@ -4,6 +4,9 @@ Date: 2026-04-29
 Scope: UK consumer retirement-planning app, based on the agreed v1 cut.
 Planning style: stack-agnostic epics and tickets, sequenced to reduce rework and keep the financial engine auditable.
 
+Detailed engineering task breakdown:
+- See .ai/plans/detailed-implementation-tasks.md for phase-by-phase implementation tickets with dependencies and definition of done.
+
 ## Delivery principles
 1. Build the calculation core before UI sophistication.
 2. Keep rules and assumptions table-driven.

@@ -1,3 +1,4 @@
+import { builtinModules } from "node:module";
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
 
@@ -11,7 +12,12 @@ export default defineConfig({
     outDir: "public",
     emptyOutDir: false,
     rollupOptions: {
-      external: ["better-sqlite3", "drizzle-orm"]
+      external: (id) =>
+        id === "electron" ||
+        id === "better-sqlite3" ||
+        id.startsWith("drizzle-orm") ||
+        builtinModules.includes(id) ||
+        builtinModules.includes(id.replace("node:", ""))
     }
   }
 });

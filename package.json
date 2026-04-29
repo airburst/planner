@@ -8,12 +8,13 @@
   "scripts": {
     "start": "concurrently \"vite\" \"bun run electron-start\"",
     "electron-start": "wait-on http://localhost:3000 && bun run vite build --config vite.main.config.ts && electron .",
-    "build": "bun run vite build && bun run vite build --config vite.main.config.ts && electron-builder",
+    "build": "electron-rebuild -f -w better-sqlite3 && bun run vite build && bun run vite build --config vite.main.config.ts && electron-builder",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "npm rebuild better-sqlite3 && vitest run",
     "prepare": "husky",
-    "db:migrate": "drizzle-kit generate",
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
+    "db:migrate": "drizzle-kit generate --config drizzle.config.ts",
     "changeset": "changeset",
     "version": "changeset version"
   },

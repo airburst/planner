@@ -64,6 +64,9 @@ npm rebuild better-sqlite3
 
 ## Database & Migration Rules
 
+Planner is Drizzle-first for schema management. All schema changes must be authored in Drizzle
+schema files and turned into migrations before they are considered part of the SQLite model.
+
 When adding or changing tables:
 
 1. Update schema in `src/main/db/schema.ts`
@@ -83,6 +86,7 @@ bun run vite build --config vite.main.config.ts
 
 ### Safety rules
 
+- Do not make direct SQLite schema edits outside the Drizzle schema + migration flow.
 - Never apply destructive migrations that drop financial data.
 - Prefer additive migrations (`ALTER TABLE ... ADD COLUMN`) and explicit backfills.
 - Use SQL defaults for created timestamps, not JS runtime defaults.

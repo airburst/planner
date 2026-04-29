@@ -67,6 +67,7 @@ Important domain rule:
 ## 5) Persistence Layer
 
 SQLite + WAL mode for local durability and responsiveness.
+Drizzle ORM is the source of truth for schema definitions.
 
 Recommended structure:
 
@@ -84,6 +85,11 @@ Migration workflow:
 2. `bun run db:migrate`
 3. inspect generated SQL (no destructive drops for financial data)
 4. rebuild DB bundle (`bun run vite build --config vite.main.config.ts`)
+
+Rule:
+
+- All schema evolution must start in Drizzle schema files and be materialized through generated
+  migrations before committing SQLite changes.
 
 ## 6) Renderer Composition
 
