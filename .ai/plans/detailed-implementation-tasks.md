@@ -279,6 +279,8 @@ Dependencies:
 ## Phase 4: Renderer app and query integration
 
 ### P4-T1: Create route structure and shell layout
+Status: In progress (2026-04-29)
+
 Objective:
 - Establish navigable app skeleton for onboarding and scenarios.
 
@@ -299,6 +301,8 @@ Dependencies:
 - P0-T2
 
 ### P4-T2: Add query hooks and mutation hooks for core entities
+Status: Completed (2026-04-29)
+
 Objective:
 - Standardize renderer data access via TanStack Query.
 

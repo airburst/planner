@@ -1,12 +1,12 @@
 export {};
 
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import type {
-  accounts,
-  householdPlans,
-  incomeStreams,
-  people
-} from "../main/db/schema";
+    import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+    import type {
+        accounts,
+        householdPlans,
+        incomeStreams,
+        people
+    } from "../main/db/schema";
 
 type HouseholdPlan = InferSelectModel<typeof householdPlans>;
 type NewHouseholdPlan = InferInsertModel<typeof householdPlans>;
