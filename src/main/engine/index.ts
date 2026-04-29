@@ -1,6 +1,6 @@
 /**
  * Core Simulation Engine
- * 
+ *
  * Implements deterministic year-by-year projection of retirement savings
  * and income streams.
  */
@@ -78,33 +78,41 @@ export function calculatePersonalTax(
   higherRate: number,
   additionalRate: number
 ): number {
-  const taxableIncome = Math.max(0, incomeSubjectToTax - personalAllowance);
-  
+  // High income personal allowance withdrawal (tax trap)
+  // For every £2 over £100k, allowance is reduced by £1
+  const highIncomeThreshold = 100000;
+  const effectivePersonalAllowance = incomeSubjectToTax > highIncomeThreshold
+    ? Math.max(0, personalAllowance - Math.floor((incomeSubjectToTax - highIncomeThreshold) / 2))
+    : personalAllowance;
+
+  const taxableIncome = Math.max(0, incomeSubjectToTax - effectivePersonalAllowance);
+
   if (taxableIncome === 0) {
     return 0;
   }
 
   let tax = 0;
-  
+
   // Basic rate (20%)
-  const basicRateTaxable = Math.min(taxableIncome, basicRateBand - personalAllowance);
+  const basicRateTaxable = Math.min(taxableIncome, basicRateBand - effectivePersonalAllowance);
   tax += basicRateTaxable * basicRate;
-  
+
   // Higher rate (40%)
   if (taxableIncome > basicRateBand - personalAllowance) {
+  if (taxableIncome > basicRateBand - effectivePersonalAllowance) {
     const higherRateTaxable = Math.min(
-      taxableIncome - (basicRateBand - personalAllowance),
+      taxableIncome - (basicRateBand - effectivePersonalAllowance),
       higherRateBand - basicRateBand
     );
     tax += higherRateTaxable * higherRate;
   }
-  
+
   // Additional rate (45%)
-  if (taxableIncome > higherRateBand - personalAllowance) {
-    const additionalRateTaxable = taxableIncome - (higherRateBand - personalAllowance);
+  if (taxableIncome > higherRateBand - effectivePersonalAllowance) {
+    const additionalRateTaxable = taxableIncome - (higherRateBand - effectivePersonalAllowance);
     tax += additionalRateTaxable * additionalRate;
   }
-  
+
   return Math.round(tax);
 }
 
@@ -124,7 +132,7 @@ export function projectPersonYear(
 ): PersonYearState {
   const age = calculateAgeInYear(person, year);
   const yearsFromBase = year - baseYear;
-  
+
   // Initialize opening balances
   const openingBalances = new Map(previousYearBalances);
   let totalOpeningBalance = 0;
@@ -135,7 +143,7 @@ export function projectPersonYear(
   // Calculate active income
   const incomeByStream = new Map<number, number>();
   let totalIncome = 0;
-  
+
   for (const stream of incomeStreams) {
     if (stream.personId === person.id && isIncomeStreamActive(stream, person, year)) {
       const amount = calculateIncomeForStream(
@@ -153,9 +161,9 @@ export function projectPersonYear(
   const adjustedSpending = spending.isIndexed
     ? Math.round(spending.annualSpendingTarget * Math.pow(1 + assumptions.inflationRate, yearsFromBase))
     : spending.annualSpendingTarget;
-  
+
   const deficit = Math.max(0, adjustedSpending - totalIncome);
-  
+
   const withdrawalsByAccount = new Map<number, number>();
   const withdrawalDetails = [];
   let totalWithdrawals = 0;
@@ -163,7 +171,7 @@ export function projectPersonYear(
   // Simple withdrawal strategy: take from cash first, then ISA, then SIPP
   if (deficit > 0) {
     let remainingDeficit = deficit;
-    
+
     // Prioritize withdrawal order
     for (const accountType of withdrawalStrategy.accountTypeOrder) {
       for (const account of accounts) {
@@ -174,10 +182,10 @@ export function projectPersonYear(
         ) {
           const currentBalance = openingBalances.get(account.id) || 0;
           const withdrawal = Math.min(remainingDeficit, currentBalance);
-          
+
           if (withdrawal > 0) {
             withdrawalsByAccount.set(account.id, withdrawal);
-            
+
             // Track withdrawal details for tax purposes
             const taxableComponent = account.type === "isa" ? 0 : withdrawal;
             withdrawalDetails.push({
@@ -187,7 +195,7 @@ export function projectPersonYear(
               taxableComponent,
               taxFreeComponent: withdrawal - taxableComponent,
             });
-            
+
             totalWithdrawals += withdrawal;
             remainingDeficit -= withdrawal;
           }
@@ -231,7 +239,7 @@ export function projectPersonYear(
       const proRataGrowth = opening > 0 && totalOpeningBalance > 0
         ? Math.round((opening / totalOpeningBalance) * growthOnBalances)
         : 0;
-      
+
       const closing = opening - withdrawal + proRataGrowth - (opening > 0 ? Math.round((opening / totalOpeningBalance) * taxDue) : 0);
       closingBalances.set(account.id, Math.max(0, closing));
       totalClosing += Math.max(0, closing);
@@ -272,7 +280,7 @@ export function runProjection(
   endYear: number
 ): HouseholdYearState[] {
   const years: HouseholdYearState[] = [];
-  
+
   // Track balances by person
   const balancesByPerson = new Map<number, Map<number, number>>();
   for (const person of people) {
@@ -303,7 +311,7 @@ export function runProjection(
     // Project each person
     for (const person of people) {
       const personBalances = balancesByPerson.get(person.id) || new Map();
-      
+
       const personYear = projectPersonYear(
         person,
         accounts,
@@ -335,7 +343,7 @@ export function runProjection(
     const adjustedSpending = spending.isIndexed
       ? Math.round(spending.annualSpendingTarget * Math.pow(1 + assumptions.inflationRate, year - startYear))
       : spending.annualSpendingTarget;
-    
+
     householdYear.deficitOrSurplus = householdYear.totalHouseholdIncome - adjustedSpending;
     householdYear.canSustainSpending = householdYear.totalHouseholdAssets > 0 || householdYear.deficitOrSurplus >= 0;
     householdYear.spendingCoverage = householdYear.totalHouseholdIncome / Math.max(1, adjustedSpending);
