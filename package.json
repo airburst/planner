@@ -19,7 +19,9 @@
     "version": "changeset version"
   },
   "dependencies": {
+    "@base-ui/react": "^1.4.1",
     "@tanstack/react-query": "^5.90.3",
+    "@tanstack/react-router": "^1.168.25",
     "@tanstack/react-start": "^1.132.27",
     "better-sqlite3": "^12.4.1",
     "class-variance-authority": "^0.7.1",

@@ -148,6 +148,12 @@ UI stack:
 - shadcn component registry (Base UI variants where applicable)
 - Tailwind CSS tokens and utility styling
 
+Styling rules:
+
+- React UI styling must use Tailwind utility classes via `className`.
+- Avoid inline `style` props for component styling.
+- Theme behavior should derive from shared light/dark design tokens.
+
 Design requirements:
 
 - progressive disclosure for advanced modeling

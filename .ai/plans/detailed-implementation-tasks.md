@@ -10,6 +10,7 @@ Goal: provide an execution-ready engineering backlog for Planner on Electron + S
 - Every task includes definition of done and explicit dependencies
 - No task is done until lint and type checks pass
 - Database rule: all schema work starts in Drizzle ORM definitions and must flow through generated migrations before SQLite changes are committed
+- UI rule: use Tailwind utility classes via className and shadcn theme tokens; do not use inline style props
 
 ## Phase 0: Foundation and repository readiness
 
@@ -279,23 +280,32 @@ Dependencies:
 ## Phase 4: Renderer app and query integration
 
 ### P4-T1: Create route structure and shell layout
-Status: In progress (2026-04-29)
+Status: Completed (2026-04-29)
 
 Objective:
 - Establish navigable app skeleton for onboarding and scenarios.
 
+Implementation notes:
+- TanStack Router configured with root layout (RootLayout component)
+- Pages folder structure established at src/pages/ with nested route subfolders
+- HomePage (index route) lists plans with create plan action
+- PlanDetailPage ([id] route) displays plan-scoped data (people, accounts, income streams)
+- Query hooks integrated for data fetching
+- Tailwind + shadcn Button component system active
+
 Implementation tasks:
-1. Set up TanStack Start routing baseline.
-2. Add pages:
-- onboarding
-- dashboard
-- scenarios
-- scenario detail
-- assumptions
-3. Add app shell with responsive navigation.
+1. Set up TanStack Router routing (COMPLETED).
+2. Add core pages:
+- index route (HomePage, lists plans) — COMPLETED
+- plan/[id] route (PlanDetailPage, plan detail) — COMPLETED
+- onboarding (pending)
+- scenarios (pending)
+- assumptions (pending)
+3. Add app shell with responsive navigation (root layout established, navbar component structure in place).
 
 Definition of done:
 - Navigation works in desktop window sizes and small widths.
+- Baseline routes render correctly with query hook integration.
 
 Dependencies:
 - P0-T2

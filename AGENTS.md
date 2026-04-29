@@ -138,6 +138,9 @@ Use shadcn component registry primitives (Base UI variants preferred where avail
 
 - Add missing primitives via `bunx shadcn@latest add <component-name>`
 - Do not hand-roll existing primitives (dialog/select/popover/tooltip/etc.)
+- Use Tailwind CSS utility classes via `className` for styling React elements.
+- Do not use inline `style` props for UI styling.
+- Respect base light/dark theme tokens when composing UI.
 
 ---
 
