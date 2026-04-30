@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { runProjection } from "./index";
 import {
-  defaultGoldenAssumptions,
-  defaultGoldenWithdrawalStrategy,
-  goldenProjectionFixtures,
+    defaultGoldenAssumptions,
+    defaultGoldenWithdrawalStrategy,
+    goldenProjectionFixtures,
 } from "./fixtures/golden-projections";
+import { runProjection } from "./index";
 
 describe("Golden projection fixtures", () => {
   it("covers benchmark personas required by P5-T2", () => {

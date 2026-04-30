@@ -1,10 +1,10 @@
 import type {
-  AccountContext,
-  AssumptionSet,
-  IncomeStreamContext,
-  PersonContext,
-  SpendingAssumption,
-  WithdrawalStrategy,
+    AccountContext,
+    AssumptionSet,
+    IncomeStreamContext,
+    PersonContext,
+    SpendingAssumption,
+    WithdrawalStrategy,
 } from "../types";
 
 export interface GoldenProjectionRow {
