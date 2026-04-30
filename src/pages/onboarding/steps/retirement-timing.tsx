@@ -1,3 +1,4 @@
+import { Slider } from "@/components/ui/slider";
 import { OnboardingState } from "../types";
 
 interface Props {
@@ -41,15 +42,12 @@ export function OnboardingRetirementTimingStep({ state, onChange }: Props) {
             </div>
             <span className="text-lg font-semibold text-primary">{state.primaryRetirementAge}</span>
           </div>
-          <input
-            id="primary-retire-age"
-            type="range"
-            min="50"
-            max="85"
-            step="1"
-            value={state.primaryRetirementAge}
-            onChange={(e) => onChange({ primaryRetirementAge: Number(e.target.value) })}
-            className="w-full"
+          <Slider
+            value={[state.primaryRetirementAge]}
+            onValueChange={([v]) => onChange({ primaryRetirementAge: v })}
+            min={50}
+            max={85}
+            step={1}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>50</span>
@@ -75,15 +73,12 @@ export function OnboardingRetirementTimingStep({ state, onChange }: Props) {
                 {state.partnerRetirementAge ?? state.primaryRetirementAge}
               </span>
             </div>
-            <input
-              id="partner-retire-age"
-              type="range"
-              min="50"
-              max="85"
-              step="1"
-              value={state.partnerRetirementAge ?? state.primaryRetirementAge}
-              onChange={(e) => onChange({ partnerRetirementAge: Number(e.target.value) })}
-              className="w-full"
+            <Slider
+              value={[state.partnerRetirementAge ?? state.primaryRetirementAge]}
+              onValueChange={([v]) => onChange({ partnerRetirementAge: v })}
+              min={50}
+              max={85}
+              step={1}
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>50</span>

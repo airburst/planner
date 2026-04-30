@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { useCreateExpenseProfile, useExpenseProfileByPlan, useUpdateExpenseProfile } from "@/hooks/use-expense-profiles";
 import { useState } from "react";
 
@@ -70,14 +71,12 @@ export function SpendingPanel({ planId }: Props) {
               </div>
               <span className="text-base font-semibold text-primary">{fmt(essential)}</span>
             </div>
-            <input
-              type="range"
+            <Slider
+              value={[essential]}
+              onValueChange={([v]) => setEssential(v)}
               min={0}
               max={200000}
               step={500}
-              value={essential}
-              onChange={(e) => setEssential(Number(e.target.value))}
-              className="w-full"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>£0</span><span>£200k</span>
@@ -93,14 +92,12 @@ export function SpendingPanel({ planId }: Props) {
               </div>
               <span className="text-base font-semibold text-primary">{fmt(discretionary)}</span>
             </div>
-            <input
-              type="range"
+            <Slider
+              value={[discretionary]}
+              onValueChange={([v]) => setDiscretionary(v)}
               min={0}
               max={200000}
               step={500}
-              value={discretionary}
-              onChange={(e) => setDiscretionary(Number(e.target.value))}
-              className="w-full"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>£0</span><span>£200k</span>

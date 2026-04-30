@@ -1,3 +1,4 @@
+import { Slider } from "@/components/ui/slider";
 import { OnboardingState } from "../types";
 
 interface Props {
@@ -34,15 +35,12 @@ export function OnboardingAssetsStep({ state, onChange }: Props) {
               {formatCurrency(state.currentSavings)}
             </span>
           </div>
-          <input
-            id="savings"
-            type="range"
-            min="0"
-            max="1000000"
-            step="5000"
-            value={state.currentSavings}
-            onChange={(e) => onChange({ currentSavings: Number(e.target.value) })}
-            className="w-full"
+          <Slider
+            value={[state.currentSavings]}
+            onValueChange={([v]) => onChange({ currentSavings: v })}
+            min={0}
+            max={1000000}
+            step={5000}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>£0</span>

@@ -1,3 +1,4 @@
+import { Slider } from "@/components/ui/slider";
 import { OnboardingState } from "../types";
 
 interface Props {
@@ -13,7 +14,6 @@ export function OnboardingSpendingTargetStep({ state, onChange }: Props) {
   const discretionary = state.annualSpendingTarget - essential;
 
   const handleTotalChange = (total: number) => {
-    // Keep essential capped at new total
     onChange({
       annualSpendingTarget: total,
       essentialAnnual: Math.min(state.essentialAnnual, total),
@@ -33,22 +33,17 @@ export function OnboardingSpendingTargetStep({ state, onChange }: Props) {
         {/* Total annual spending */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label htmlFor="spending" className="text-sm font-medium">
-              Total Annual Spending
-            </label>
+            <label className="text-sm font-medium">Total Annual Spending</label>
             <span className="text-lg font-semibold text-primary">
               {fmt(state.annualSpendingTarget)}
             </span>
           </div>
-          <input
-            id="spending"
-            type="range"
-            min="10000"
-            max="200000"
-            step="1000"
-            value={state.annualSpendingTarget}
-            onChange={(e) => handleTotalChange(Number(e.target.value))}
-            className="w-full"
+          <Slider
+            value={[state.annualSpendingTarget]}
+            onValueChange={([v]) => handleTotalChange(v)}
+            min={10000}
+            max={200000}
+            step={1000}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>£10k</span>
@@ -60,20 +55,17 @@ export function OnboardingSpendingTargetStep({ state, onChange }: Props) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <label htmlFor="essential" className="text-sm font-medium">Essential Spending</label>
+              <label className="text-sm font-medium">Essential Spending</label>
               <p className="text-xs text-muted-foreground mt-0.5">Housing, food, utilities, healthcare</p>
             </div>
             <span className="text-lg font-semibold text-primary">{fmt(essential)}</span>
           </div>
-          <input
-            id="essential"
-            type="range"
-            min="0"
+          <Slider
+            value={[essential]}
+            onValueChange={([v]) => onChange({ essentialAnnual: v })}
+            min={0}
             max={state.annualSpendingTarget}
-            step="500"
-            value={essential}
-            onChange={(e) => onChange({ essentialAnnual: Number(e.target.value) })}
-            className="w-full"
+            step={500}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>£0</span>

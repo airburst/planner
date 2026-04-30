@@ -1,3 +1,4 @@
+import { Slider } from "@/components/ui/slider";
 import { OnboardingState } from "../types";
 
 interface Props {
@@ -39,15 +40,12 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
                 </label>
                 <span className="text-lg font-semibold text-primary">{state.dbPensionAge || 60}</span>
               </div>
-              <input
-                id="db-age"
-                type="range"
-                min="55"
-                max="75"
-                step="1"
-                value={state.dbPensionAge || 60}
-                onChange={(e) => onChange({ dbPensionAge: Number(e.target.value) })}
-                className="w-full"
+              <Slider
+                value={[state.dbPensionAge || 60]}
+                onValueChange={([v]) => onChange({ dbPensionAge: v })}
+                min={55}
+                max={75}
+                step={1}
               />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>55</span>
@@ -62,15 +60,12 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
                   {formatCurrency(state.dbPensionAnnualAmount ?? 0)}
                 </span>
               </div>
-              <input
-                id="db-amount"
-                type="range"
-                min="0"
-                max="60000"
-                step="500"
-                value={state.dbPensionAnnualAmount ?? 0}
-                onChange={(e) => onChange({ dbPensionAnnualAmount: Number(e.target.value) })}
-                className="w-full"
+              <Slider
+                value={[state.dbPensionAnnualAmount ?? 0]}
+                onValueChange={([v]) => onChange({ dbPensionAnnualAmount: v })}
+                min={0}
+                max={60000}
+                step={500}
               />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>£0</span>
@@ -100,15 +95,12 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
                 </label>
                 <span className="text-lg font-semibold text-primary">{state.statePensionAge || 67}</span>
               </div>
-              <input
-                id="sp-age"
-                type="range"
-                min="60"
-                max="75"
-                step="1"
-                value={state.statePensionAge || 67}
-                onChange={(e) => onChange({ statePensionAge: Number(e.target.value) })}
-                className="w-full"
+              <Slider
+                value={[state.statePensionAge || 67]}
+                onValueChange={([v]) => onChange({ statePensionAge: v })}
+                min={60}
+                max={75}
+                step={1}
               />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>60</span>

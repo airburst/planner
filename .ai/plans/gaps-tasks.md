@@ -85,7 +85,64 @@ Unit test: `calculatePersonalTax()` parametrised with an assumption set read fro
 
 ---
 
-### G2-T2: State Pension forecast input
+### G2-T7: One-off income / windfalls
+**Why**: Users may receive a lump-sum inheritance, property sale proceeds, or bonus at
+a specific age/year. There is currently no way to model this. Without it, plans that
+depend on a windfall to bridge a gap are significantly under-projected.
+
+**Approach**: New `one_off_incomes` table: `planId`, `personId` (optional), `name`,
+`year` (calendar year), `amount`, `taxable` (boolean).
+
+**Files**:
+- Schema: add `oneOffIncomes` table with migration
+- `public/ipc/one-off-incomes.js` — CRUD handlers: `getByPlan`, `create`, `update`,
+  `delete`
+- `public/electron.js` + `public/preload.js` — register handlers and expose to
+  renderer
+- `src/types/electron.d.ts` — add `OneOffIncome` type and IPC method signatures
+- `src/hooks/use-one-off-incomes.ts` — `useOneOffIncomesByPlan`, `useCreateOneOffIncome`,
+  `useUpdateOneOffIncome`, `useDeleteOneOffIncome`; all mutations invalidate projection
+- `src/pages/plan/[id]/OneOffIncomesPanel.tsx` — list + add/edit/delete inline form;
+  fields: name, year (number input), amount (£), taxable toggle
+- `src/pages/plan/[id]/index.tsx` — render in Setup section
+- Engine `public/ipc/projections.js` — in each projection year, add any `oneOffIncomes`
+  where `income.year === currentYear` to household income before tax; if `taxable`,
+  include in taxable income; if not, add directly to spendable cash
+
+**DoD**: User can enter "Inheritance, 2031, £80,000, non-taxable"; projection shows
+a cash injection in that year reducing drawdown from savings.
+
+---
+
+### G2-T8: One-off expenditures at specific dates
+**Why**: Large one-off withdrawals (new car, home renovation, care costs, gifting)
+break the assumption of constant annual spending. Without them, plans that include
+known future costs are over-optimistic.
+
+*Supersedes G4-T4 (promoted from deferred to high priority).*
+
+**Approach**: New `one_off_expenses` table: `planId`, `name`, `year`, `amount`,
+`description` (optional).
+
+**Files**:
+- Schema: add `oneOffExpenses` table with migration
+- `public/ipc/one-off-expenses.js` — CRUD handlers: `getByPlan`, `create`, `update`,
+  `delete`
+- `public/electron.js` + `public/preload.js` — register and expose
+- `src/types/electron.d.ts` — add `OneOffExpense` type and IPC method signatures
+- `src/hooks/use-one-off-expenses.ts` — `useOneOffExpensesByPlan`, `useCreateOneOffExpense`,
+  `useUpdateOneOffExpense`, `useDeleteOneOffExpense`; all mutations invalidate projection
+- `src/pages/plan/[id]/OneOffExpensesPanel.tsx` — list + add/edit/delete inline form;
+  fields: name, year, amount (£), optional description
+- `src/pages/plan/[id]/index.tsx` — render in Setup section
+- Engine `public/ipc/projections.js` — in each projection year, add any `oneOffExpenses`
+  where `expense.year === currentYear` to total spending before drawdown calculation
+- `ProjectionTable.tsx` — consider surfacing one-off events as row annotations
+
+**DoD**: User can enter "New car, 2028, £25,000"; projection shows a spike in that
+year's drawdown with remaining years unaffected.
+
+---
 **Why**: State Pension is hardcoded to £11,502 (2024/25 full new SP). Most people
 have a different forecast. The error compounds every year of projection.
 
@@ -363,15 +420,8 @@ household figure. Unit test verifies the transfer mechanism.
 
 ---
 
-### G4-T4: One-off expenses / life events
-**Why**: Large one-off withdrawals (home purchase, gift, care costs) break the
-assumption of constant annual spending.
-
-**Approach**: Add `one_off_expenses` table: `planId`, `year`, `amount`,
-`description`. Engine adds these to spending in the relevant year.
-
-**DoD**: A user can enter "New car, 2031, £25,000" and the projection shows a spike
-in that year's drawdown.
+### G4-T4: ~~One-off expenses / life events~~ → promoted to G2-T8
+*See G2-T8 above.*
 
 ---
 
@@ -419,8 +469,8 @@ projection data.
 ### Sprint 1 — Make existing plans usable ✅ COMPLETE
 ~~G1-T1~~, ~~G1-T2~~, ~~G1-T3a~~, ~~G1-T3b~~, ~~G1-T3c~~, ~~G1-T3d~~, ~~G3-T5~~
 
-### Sprint 2 — Tax and assumption management
-G2-T1, G1-T4 (expense profiles), G2-T2 (SP forecast)
+### Sprint 2 — Tax, assumptions, and life events
+G2-T1, G2-T2 (SP forecast), G2-T7 (windfalls), G2-T8 (one-off expenses)
 
 ### Sprint 3 — Richer onboarding data
 G2-T3 (multi-account), G2-T4 (partner income), G3-T8 (end dates), G3-T4 (employment income)
