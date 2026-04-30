@@ -5,6 +5,7 @@ import { usePeopleByPlan } from "@/hooks/use-people";
 import { usePlans } from "@/hooks/use-plans";
 import { useProjection } from "@/hooks/use-projection";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { IncomePhaseChart } from "./IncomePhaseChart";
 import { ProjectionError } from "./ProjectionError";
 import { ProjectionSummary } from "./ProjectionSummary";
 import { ProjectionTable } from "./ProjectionTable";
@@ -99,6 +100,10 @@ export function PlanDetailPage() {
             years={projectionQuery.data.years}
             startYear={projectionQuery.data.startYear}
             endYear={projectionQuery.data.endYear}
+          />
+          <IncomePhaseChart
+            years={projectionQuery.data.years}
+            incomeStreams={incomeStreams}
           />
           <RecommendationPanel recommendations={projectionQuery.data.recommendations} />
           <ProjectionTable years={projectionQuery.data.years} />

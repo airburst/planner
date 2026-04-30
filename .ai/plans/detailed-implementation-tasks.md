@@ -453,6 +453,7 @@ Implementation:
 - badge.tsx: Badge component with high/medium/low/success/muted variants
 - PlanDetailPage rewritten with per-file component extraction:
   - ProjectionSummary: sustainability status, end assets, total tax, total drawdown
+  - IncomePhaseChart: stacked area visualisation of annual income by stream (recharts)
   - RecommendationPanel: priority-sorted recommendation cards with Badge and rationale
   - ProjectionTable: scrollable year-by-year table (income/tax/eff-rate/drawdown/assets/status)
   - ProjectionError: error state with retry button
@@ -654,8 +655,8 @@ src/
   pages/
     index.tsx       HomePage
     onboarding/     5-step wizard (index.tsx + steps/ + types.ts + constants.ts)
-    plan/[id]/      PlanDetailPage + ProjectionSummary, RecommendationPanel,
-                    ProjectionTable, ProjectionError, utils.ts
+    plan/[id]/      PlanDetailPage + ProjectionSummary, IncomePhaseChart,
+            RecommendationPanel, ProjectionTable, ProjectionError, utils.ts
   router.tsx
   main.tsx
   index.css
@@ -678,6 +679,5 @@ public/
 
 ### Next priorities
 
-1. **P4-T4 follow-on** — Income phase visualisation (stacked area chart)
-2. **P6-T1** — Verify electron-builder packaging with updated `src/services/db/migrations` path
-3. **UI depth** — Edit flows for people, accounts, and income streams within plan detail
+1. **P6-T1** — Verify electron-builder packaging with updated `src/services/db/migrations` path
+2. **UI depth** — Edit flows for people, accounts, and income streams within plan detail
