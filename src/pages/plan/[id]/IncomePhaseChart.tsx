@@ -257,9 +257,13 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
               if (typeof state?.activeLabel !== "number") {
                 return;
               }
-              const payload = state.activePayload || [];
-              const total = payload.reduce((sum, item) => sum + Number(item.value || 0), 0);
-              setHoverSummary({ year: state.activeLabel, total });
+              const activeYear = state.activeLabel;
+              const row = data.find((item) => item.year === activeYear);
+              if (!row) {
+                setHoverSummary(null);
+                return;
+              }
+              setHoverSummary({ year: activeYear, total: row.total });
             }}
             onMouseLeave={() => setHoverSummary(null)}
           >
@@ -298,10 +302,11 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
                 boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
               }}
               labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
-              formatter={(value: number, name: string) => {
-                const streamId = Number(name.replace("stream_", ""));
+              formatter={(value, name) => {
+                const numericValue = Number(Array.isArray(value) ? value[0] : value ?? 0);
+                const streamId = Number(String(name ?? "").replace("stream_", ""));
                 const meta = streamMeta.get(streamId);
-                return [fmt(value), meta?.label || `Stream ${streamId}`];
+                return [fmt(numericValue), meta?.label || `Stream ${streamId}`];
               }}
               labelFormatter={(label) => `Year ${label}`}
             />
