@@ -114,7 +114,6 @@ export function HomePage() {
               <li
                 key={plan.id}
                 className="flex items-center justify-between rounded-md border p-3 transition-colors hover:bg-muted/40 cursor-pointer"
-                role="button"
                 tabIndex={0}
                 onClick={(event) => {
                   if (isInteractiveTarget(event.target)) {
