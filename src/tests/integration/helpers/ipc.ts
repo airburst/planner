@@ -34,4 +34,5 @@ export function registerPlannerHandlers(ipcMain: IpcMain, db: unknown, schema: u
   require("../../../../public/ipc/people.js")(ipcMain, db, schema);
   require("../../../../public/ipc/accounts.js")(ipcMain, db, schema);
   require("../../../../public/ipc/income-streams.js")(ipcMain, db, schema);
+  require("../../../../public/ipc/projections.js")(ipcMain, db, schema);
 }
