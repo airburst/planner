@@ -15,10 +15,10 @@ interface BadgeProps {
 
 const variantClasses: Record<BadgeVariant, string> = {
   default: "bg-primary/10 text-primary",
-  high: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  high: "bg-sw-error-container text-sw-on-error-container dark:bg-destructive/20 dark:text-destructive",
   medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  low: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  success: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  low: "bg-sw-teal-container/30 text-sw-on-teal-container dark:bg-primary/20 dark:text-primary",
+  success: "bg-sw-teal-container/30 text-sw-on-teal-container dark:bg-primary/20 dark:text-primary",
   muted: "bg-muted text-muted-foreground",
 };
 

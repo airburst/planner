@@ -3,50 +3,360 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ─────────────────────────────────────────────
+   Serene Wealth — design tokens
+   Light mode
+───────────────────────────────────────────── */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.15 0.01 45);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.01 45);
-  --border: oklch(0.92 0.01 45);
-  --primary: oklch(0.52 0.16 255);
-  --primary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.96 0.01 45);
-  --muted-foreground: oklch(0.5 0.02 45);
-  --radius: 0.5rem;
+  /* Surface scale */
+  --sw-surface:                   #f8f9ff;
+  --sw-surface-dim:               #cbdbf5;
+  --sw-surface-bright:            #f8f9ff;
+  --sw-surface-container-lowest:  #ffffff;
+  --sw-surface-container-low:     #eff4ff;
+  --sw-surface-container:         #e5eeff;
+  --sw-surface-container-high:    #dce9ff;
+  --sw-surface-container-highest: #d3e4fe;
+
+  /* On-surface */
+  --sw-on-surface:         #0b1c30;
+  --sw-on-surface-variant: #45464d;
+  --sw-inverse-surface:    #213145;
+  --sw-inverse-on-surface: #eaf1ff;
+
+  /* Outline */
+  --sw-outline:         #76777d;
+  --sw-outline-variant: #c6c6cd;
+
+  /* Brand — teal is the primary action / "growth" colour */
+  --sw-teal:           #006b5f;
+  --sw-teal-container: #6df5e1;
+  --sw-on-teal:        #ffffff;
+  --sw-on-teal-container: #006f64;
+
+  /* Semantic */
+  --sw-error:              #ba1a1a;
+  --sw-on-error:           #ffffff;
+  --sw-error-container:    #ffdad6;
+  --sw-on-error-container: #93000a;
+
+  /* ── ShadCN / Tailwind semantic tokens ── */
+  --background:          #f8f9ff;
+  --foreground:          #0b1c30;
+
+  --card:                #ffffff;
+  --card-foreground:     #0b1c30;
+
+  --popover:             #ffffff;
+  --popover-foreground:  #0b1c30;
+
+  /* Primary = teal (action / CTA colour) */
+  --primary:             #006b5f;
+  --primary-foreground:  #ffffff;
+
+  /* Secondary = soft blue-tinted surface */
+  --secondary:           #eff4ff;
+  --secondary-foreground: #0b1c30;
+
+  /* Muted = mid-level container */
+  --muted:               #e5eeff;
+  --muted-foreground:    #45464d;
+
+  /* Accent = stronger container */
+  --accent:              #dce9ff;
+  --accent-foreground:   #0b1c30;
+
+  /* Destructive */
+  --destructive:         #ba1a1a;
+  --destructive-foreground: #ffffff;
+
+  /* Chrome */
+  --border:  #c6c6cd;
+  --input:   #c6c6cd;
+  --ring:    #006b5f;
+
+  /* Border radius — 8px base rhythm */
+  --radius-sm:   0.25rem;   /* 4px  */
+  --radius:      0.5rem;    /* 8px  — buttons, inputs */
+  --radius-md:   0.75rem;   /* 12px — tags, pills */
+  --radius-lg:   1rem;      /* 16px — smaller cards */
+  --radius-xl:   1.5rem;    /* 24px — dashboard cards, panels */
+  --radius-full: 9999px;
 }
 
+/* ─────────────────────────────────────────────
+   Dark mode
+───────────────────────────────────────────── */
 .dark {
-  --background: oklch(0.16 0.01 45);
-  --foreground: oklch(0.97 0 0);
-  --card: oklch(0.21 0.01 45);
-  --card-foreground: oklch(0.97 0 0);
-  --border: oklch(0.32 0.01 45);
-  --primary: oklch(0.68 0.14 255);
-  --primary-foreground: oklch(0.1 0 0);
-  --muted: oklch(0.25 0.01 45);
-  --muted-foreground: oklch(0.77 0.01 45);
+  --background:           #111c2b;
+  --foreground:           #eaf1ff;
+
+  --card:                 #1a2a3d;
+  --card-foreground:      #eaf1ff;
+
+  --popover:              #1a2a3d;
+  --popover-foreground:   #eaf1ff;
+
+  --primary:              #4fdbc8;
+  --primary-foreground:   #00201c;
+
+  --secondary:            #253347;
+  --secondary-foreground: #c8daee;
+
+  --muted:                #1e2e42;
+  --muted-foreground:     #8fa8c0;
+
+  --accent:               #253347;
+  --accent-foreground:    #eaf1ff;
+
+  --destructive:          #ff8a80;
+  --destructive-foreground: #1a0000;
+
+  --border:               #2e4257;
+  --input:                #2e4257;
+  --ring:                 #4fdbc8;
 }
 
+/* ─────────────────────────────────────────────
+   Tailwind v4 @theme — maps tokens to utilities
+───────────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-border: var(--border);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --radius-md: var(--radius);
+  /* Colour utilities */
+  --color-background:           var(--background);
+  --color-foreground:           var(--foreground);
+  --color-card:                 var(--card);
+  --color-card-foreground:      var(--card-foreground);
+  --color-popover:              var(--popover);
+  --color-popover-foreground:   var(--popover-foreground);
+  --color-primary:              var(--primary);
+  --color-primary-foreground:   var(--primary-foreground);
+  --color-secondary:            var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:                var(--muted);
+  --color-muted-foreground:     var(--muted-foreground);
+  --color-accent:               var(--accent);
+  --color-accent-foreground:    var(--accent-foreground);
+  --color-destructive:          var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border:               var(--border);
+  --color-input:                var(--input);
+  --color-ring:                 var(--ring);
+
+  /* Surface palette — available as bg-sw-* / text-sw-* etc. */
+  --color-sw-surface:                   var(--sw-surface);
+  --color-sw-surface-dim:               var(--sw-surface-dim);
+  --color-sw-surface-container-lowest:  var(--sw-surface-container-lowest);
+  --color-sw-surface-container-low:     var(--sw-surface-container-low);
+  --color-sw-surface-container:         var(--sw-surface-container);
+  --color-sw-surface-container-high:    var(--sw-surface-container-high);
+  --color-sw-surface-container-highest: var(--sw-surface-container-highest);
+  --color-sw-on-surface:                var(--sw-on-surface);
+  --color-sw-on-surface-variant:        var(--sw-on-surface-variant);
+  --color-sw-outline:                   var(--sw-outline);
+  --color-sw-outline-variant:           var(--sw-outline-variant);
+  --color-sw-teal:                      var(--sw-teal);
+  --color-sw-teal-container:            var(--sw-teal-container);
+  --color-sw-on-teal:                   var(--sw-on-teal);
+  --color-sw-error:                     var(--sw-error);
+  --color-sw-error-container:           var(--sw-error-container);
+  --color-sw-on-error-container:        var(--sw-on-error-container);
+
+  /* Typography */
+  --font-sans:    'Inter', system-ui, sans-serif;
+  --font-display: 'Manrope', system-ui, sans-serif;
+
+  /* Border radius */
+  --radius-sm:   var(--radius-sm);
+  --radius-md:   var(--radius-md);
+  --radius-lg:   var(--radius-lg);
+  --radius-xl:   var(--radius-xl);
+  --radius-full: var(--radius-full);
 }
 
+/* ─────────────────────────────────────────────
+   Base layer
+───────────────────────────────────────────── */
 @layer base {
   * {
     @apply border-border;
   }
 
+  html {
+    /* Smooth anti-aliasing */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    /* Tabular numbers everywhere — financial app default */
+    font-feature-settings: 'tnum' 1, 'kern' 1;
+  }
+
+  /* Display font for all headings */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  h1 { font-size: 2rem;    line-height: 2.5rem;  font-weight: 700; letter-spacing: -0.02em; }
+  h2 { font-size: 1.5rem;  line-height: 2rem;    font-weight: 600; }
+  h3 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; }
+}
+
+/* ─────────────────────────────────────────────
+   Utility layer — Serene Wealth typography scale
+───────────────────────────────────────────── */
+@layer utilities {
+  /* Display */
+  .text-display-lg {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    line-height: 3.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  /* Headlines */
+  .text-headline-md {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    line-height: 2.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .text-headline-sm {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 600;
+  }
+
+  /* Body */
+  .text-body-lg {
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 400;
+  }
+
+  .text-body-md {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 400;
+  }
+
+  .text-body-sm {
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 400;
+  }
+
+  /* Labels */
+  .text-label-md {
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  .text-label-sm {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
+  /* Tabular numbers — use on all financial figures */
+  .tabular-nums {
+    font-feature-settings: 'tnum' 1;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Component layer — Serene Wealth card & slider
+───────────────────────────────────────────── */
+@layer components {
+  /* Serene card — white surface, soft border, rounded-xl, generous padding */
+  .sw-card {
+    @apply bg-card rounded-xl border border-border p-6;
+    box-shadow: none;
+    transition: box-shadow 150ms ease;
+  }
+
+  .sw-card:hover {
+    box-shadow: 0 4px 24px 0 rgba(11, 28, 48, 0.06);
+  }
+
+  /* Primary button gradient — 10% tonal variance per spec */
+  .btn-primary-gradient {
+    background-image: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--primary) 110%, transparent),
+      var(--primary)
+    );
+  }
+
+  /* Custom range slider — thick track, large tactile thumb */
+  input[type='range'] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--sw-outline-variant);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-full);
+    background: var(--primary);
+    border: 3px solid var(--sw-surface-container-lowest);
+    box-shadow: 0 1px 4px rgba(0, 107, 95, 0.35);
+    cursor: pointer;
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-full);
+    background: var(--primary);
+    border: 3px solid var(--sw-surface-container-lowest);
+    box-shadow: 0 1px 4px rgba(0, 107, 95, 0.35);
+    cursor: pointer;
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+
+  input[type='range']::-webkit-slider-thumb:hover {
+    transform: scale(1.12);
+    box-shadow: 0 2px 8px rgba(0, 107, 95, 0.45);
+  }
+
+  input[type='range']::-moz-range-thumb:hover {
+    transform: scale(1.12);
+    box-shadow: 0 2px 8px rgba(0, 107, 95, 0.45);
+  }
+
+  /* Filled track portion (WebKit) */
+  input[type='range']::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: var(--radius-full);
+  }
+
+  /* Focus ring */
+  input[type='range']:focus-visible::-webkit-slider-thumb {
+    outline: 3px solid color-mix(in srgb, var(--ring) 40%, transparent);
+    outline-offset: 1px;
   }
 }

@@ -53,11 +53,11 @@ export function OnboardingSpendingTargetStep({ state, onChange }: Props) {
         </div>
 
         {/* Monthly breakdown */}
-        <div className="rounded-md bg-blue-50 dark:bg-blue-950 p-4 space-y-2">
-          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+        <div className="rounded-md bg-sw-surface-container-low p-4 space-y-2">
+          <p className="text-sm font-medium text-foreground">
             Monthly equivalent: {formatCurrency(monthlyAmount)}
           </p>
-          <p className="text-xs text-blue-800 dark:text-blue-200">
+          <p className="text-xs text-muted-foreground">
             This is an average; actual spending may vary by month.
           </p>
         </div>
