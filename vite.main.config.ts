@@ -7,8 +7,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: {
-        db: resolve(__dirname, "src/main/db/index.ts"),
-        engine: resolve(__dirname, "src/main/engine/runtime.ts")
+        db: resolve(__dirname, "src/services/db/index.ts"),
+        engine: resolve(__dirname, "src/services/engine/runtime.ts")
       },
       formats: ["cjs"],
       fileName: (_, entryName) => `${entryName}.js`

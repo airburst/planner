@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import type { Recommendation } from "@/main/engine/types";
+import type { Recommendation } from "@/services/engine/types";
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
 

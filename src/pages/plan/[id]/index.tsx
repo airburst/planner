@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { useAccountsByPlan } from "@/renderer/hooks/use-accounts";
-import { useIncomeStreamsByPlan } from "@/renderer/hooks/use-income-streams";
-import { usePeopleByPlan } from "@/renderer/hooks/use-people";
-import { usePlans } from "@/renderer/hooks/use-plans";
-import { useProjection } from "@/renderer/hooks/use-projection";
+import { useAccountsByPlan } from "@/hooks/use-accounts";
+import { useIncomeStreamsByPlan } from "@/hooks/use-income-streams";
+import { usePeopleByPlan } from "@/hooks/use-people";
+import { usePlans } from "@/hooks/use-plans";
+import { useProjection } from "@/hooks/use-projection";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { ProjectionError } from "./ProjectionError";
 import { ProjectionSummary } from "./ProjectionSummary";

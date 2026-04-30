@@ -68,7 +68,7 @@
       "public/db.js",
       "public/engine.js",
       "public/ipc/**/*",
-      "src/main/db/migrations/**/*",
+      "src/services/db/migrations/**/*",
       "package.json"
     ],
     "directories": {

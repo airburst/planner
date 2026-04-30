@@ -69,7 +69,7 @@ schema files and turned into migrations before they are considered part of the S
 
 When adding or changing tables:
 
-1. Update schema in `src/main/db/schema.ts`
+1. Update schema in `src/services/db/schema.ts`
 2. Generate migration:
 
 ```

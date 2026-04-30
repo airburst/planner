@@ -1,4 +1,4 @@
-import type { HouseholdYearState } from "@/main/engine/types";
+import type { HouseholdYearState } from "@/services/engine/types";
 import { fmt } from "./utils";
 
 interface ProjectionSummaryProps {

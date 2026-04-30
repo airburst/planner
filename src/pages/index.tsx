@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useCreatePlan, usePlans } from "@/renderer/hooks/use-plans";
+import { useCreatePlan, usePlans } from "@/hooks/use-plans";
 import { useNavigate } from "@tanstack/react-router";
 
 export function HomePage() {

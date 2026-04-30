@@ -6,8 +6,8 @@ export {};
         householdPlans,
         incomeStreams,
         people
-    } from "../main/db/schema";
-    import type { HouseholdYearState, Recommendation } from "../main/engine/types";
+    } from "../services/db/schema";
+    import type { HouseholdYearState, Recommendation } from "../services/engine/types";
 
 type HouseholdPlan = InferSelectModel<typeof householdPlans>;
 type NewHouseholdPlan = InferInsertModel<typeof householdPlans>;

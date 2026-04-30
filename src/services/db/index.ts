@@ -13,7 +13,7 @@ export function setupDatabase(customDbPath?: string) {
 	sqlite.pragma("journal_mode = WAL");
 
 	const db = drizzle(sqlite, { schema });
-	const migrationsPath = path.join(app.getAppPath(), "src/main/db/migrations");
+	const migrationsPath = path.join(app.getAppPath(), "src/services/db/migrations");
 	migrate(db, { migrationsFolder: migrationsPath });
 
 	return { db, sqlite, dbPath };

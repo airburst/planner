@@ -1,8 +1,8 @@
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
-  schema: "./src/main/db/schema.ts",
-  out: "./src/main/db/migrations",
+  schema: "./src/services/db/schema.ts",
+  out: "./src/services/db/migrations",
   dialect: "sqlite",
   dbCredentials: {
     url: "planner.db"

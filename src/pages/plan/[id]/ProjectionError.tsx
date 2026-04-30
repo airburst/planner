@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { queryKeys } from "@/renderer/hooks/query-keys";
+import { queryKeys } from "@/hooks/query-keys";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function ProjectionError({ planId, message }: { planId: number; message: string }) {
