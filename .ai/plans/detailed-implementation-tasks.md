@@ -683,3 +683,4 @@ public/
 2. **P0-T3** — Add baseline CI workflow for lint, typecheck, and tests on pull requests
 3. **P6-T1** — Verify electron-builder packaging with updated `src/services/db/migrations` path
 4. **UI depth** — Edit flows for people, accounts, and income streams within plan detail
+5. **Packaging** - Add icon and setup CI release workflow
