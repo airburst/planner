@@ -1,4 +1,4 @@
-# Gap Tasks — 2026-04-30
+# Gap Tasks — updated 2026-04-30
 
 Prioritised engineering backlog derived from `gaps.md`. Tasks are ordered by impact on
 usability. Each task is self-contained: it states what to build, why it matters, what
@@ -11,98 +11,41 @@ Priority tiers: P1 = critical path, P2 = high value, P3 = medium, P4 = low/defer
 
 ## Priority 1 — Critical path (app is not usable without these)
 
-### G1-T1: Capture date of birth in onboarding
-**Why**: `PersonContext.dateOfBirth` is required by the engine. Currently absent from
-onboarding; the engine will fail or produce wrong ages for any plan created through
-the UI. Retirement age is collected but cannot substitute for DOB in multi-year
-projections.
-
-**Files**:
-- `src/pages/onboarding/types.ts` — add `dateOfBirth: string` (ISO date)
-- `src/pages/onboarding/steps/household.tsx` — add date-of-birth input (date picker or
-  three-field day/month/year)
-- `src/pages/onboarding/steps/retirement-timing.tsx` — derive and display current age
-  as a read-only hint once DOB is known
-- `src/pages/onboarding/index.tsx` — pass `dateOfBirth` to `createPerson.mutateAsync`
-- `public/ipc/projections.js` — ensure `dateOfBirth` from DB row is parsed to `Date`
-  before being passed to engine
-
-**DoD**: A plan created through onboarding has a persisted `date_of_birth` on the
-person row. The engine receives a valid `Date` object. Tests that previously relied on
-DOB being present pass without mocking.
+### ~~G1-T1: Capture date of birth in onboarding~~ ✅ DONE
+Added `primaryDateOfBirth` / `partnerDateOfBirth` to `OnboardingState`. Date inputs
+added to `steps/household.tsx`. `retirement-timing.tsx` shows "Currently X — retiring
+in Y years" hint. `onboarding/index.tsx` passes DOB to `createPerson.mutateAsync`.
 
 ---
 
-### G1-T2: Surface onboarding errors to the user
-**Why**: `handleComplete` in `onboarding/index.tsx` catches all errors and only logs
-to console. If any IPC call fails (e.g. person creation fails) the user is silently
-navigated to a blank plan or left on the last step with no feedback.
-
-**Files**:
-- `src/pages/onboarding/index.tsx` — add `error` state; display an inline error
-  banner when `handleComplete` throws; keep user on current step
-
-**DoD**: If any mutation inside `handleComplete` rejects, the user sees a readable
-error message and the button re-enables. No silent swallowing.
+### ~~G1-T2: Surface onboarding errors to the user~~ ✅ DONE
+`handleComplete` now has a `submitError` state. Inline error banner displayed below
+the step card on any mutation failure; button re-enables.
 
 ---
 
-### G1-T3: Plan editing — people, accounts, income streams
-**Why**: The plan detail page is entirely read-only. There is no way to correct or
-extend data after onboarding. This is the most critical missing piece for making the
-app usable day-to-day.
+### ~~G1-T3: Plan editing — people, accounts, income streams~~ ✅ DONE
+All four sub-tasks complete:
 
-**Scope** (can be split into sub-tasks per entity type):
+- **G1-T3a** — `PeoplePanel.tsx`: inline edit for name, DOB, retirement age, SP age.
+- **G1-T3b** — `AccountsPanel.tsx`: add/edit/delete with name, type, balance,
+  contribution, owner. `useDeleteAccount` added to `use-accounts.ts`.
+- **G1-T3c** — `IncomeStreamsPanel.tsx`: add/edit/delete with all fields including
+  inflation-linked and taxable toggles. `useDeleteIncomeStream` added.
+- **G1-T3d** — `SpendingPanel.tsx`: create/edit expense profile with essential and
+  discretionary sliders.
 
-**G1-T3a: Edit people**
-- Route or modal: edit primary person name, DOB, retirement age, State Pension age
-- Mutation: `useUpdatePerson` already exists
-- DoD: User can fix their name or change retirement age and projection re-runs
-
-**G1-T3b: Add / edit / delete accounts**
-- Panel on plan detail: list accounts with edit inline or modal
-- Mutations: `useCreateAccount`, `useUpdateAccount`, `useDeleteAccount` (delete hook
-  needs adding)
-- Fields: name, wrapper type, current balance, annual contribution
-- DoD: User can add a second account (e.g. ISA alongside SIPP) and see it in the
-  projection
-
-**G1-T3c: Add / edit / delete income streams**
-- Panel on plan detail: list income streams with add / edit / delete
-- Mutations: `useCreateIncomeStream`, `useUpdateIncomeStream`, `useDeleteIncomeStream`
-  (delete hook needs adding)
-- Fields: name, stream type, person assignment, start age, end age, annual amount,
-  inflation-linked toggle, taxable toggle
-- DoD: User can add a DB pension that was missed during onboarding; projection updates
-
-**G1-T3d: Edit spending target**
-- Simple inline edit on plan detail for annual spending, essential/discretionary split
-- Requires creating/updating an `expense_profiles` row per plan
-- IPC: `expense-profiles` handlers need creating if not present
-- DoD: Spending target editable; both essential and discretionary values persisted
+All four panels rendered in a "Setup" grid section in `plan/[id]/index.tsx`. All
+mutations invalidate `projection.forPlan(planId)`.
 
 ---
 
-### G1-T4: Persist essential/discretionary spending split
-**Why**: The spending step in onboarding shows an essential/discretionary concept but
-only saves a single `annualSpendingTarget` to the plan name. The `expense_profiles`
-table exists but is never written to.
-
-**Files**:
-- `src/pages/onboarding/steps/spending-target.tsx` — add essential/discretionary
-  sliders (or a split ratio slider); the two values should sum to the total target
-- `src/pages/onboarding/types.ts` — add `essentialAnnual`, `discretionaryAnnual`
-- `src/pages/onboarding/index.tsx` — call `createExpenseProfile.mutateAsync` after
-  person and accounts are created
-- `public/ipc/expense-profiles.js` — add if missing: `expense-profiles:create`,
-  `expense-profiles:getByPlan`, `expense-profiles:update`
-- `src/hooks/use-expense-profiles.ts` — new hook file
-- Engine: `SpendingAssumption` currently uses `annualSpendingTarget`; extend to carry
-  `essentialAnnual` and `discretionaryAnnual` so the engine can protect essential
-  spending in shortfall scenarios
-
-**DoD**: Expense profile row created during onboarding. Engine uses essential amount
-as the floor in sustainability calculation.
+### ~~G1-T4: Persist essential/discretionary spending split~~ ✅ DONE
+`spending-target.tsx` rewritten with total + essential sliders; discretionary is
+derived. `onboarding/index.tsx` calls `createExpenseProfile.mutateAsync`. IPC handlers
+in `public/ipc/expense-profiles.js` created. `src/hooks/use-expense-profiles.ts`
+created with `useExpenseProfileByPlan`, `useCreateExpenseProfile`,
+`useUpdateExpenseProfile`.
 
 ---
 
@@ -321,17 +264,9 @@ distinct band until their retirement age.
 
 ---
 
-### G3-T5: Add delete hooks for accounts and income streams
-**Why**: `useDeleteAccount` and `useDeleteIncomeStream` do not exist. The G1-T3 edit
-panels cannot offer a delete action without them.
-
-**Files**:
-- `src/hooks/use-accounts.ts` — add `useDeleteAccount`
-- `src/hooks/use-income-streams.ts` — add `useDeleteIncomeStream`
-- IPC handlers `accounts:delete` and `income-streams:delete` already exist
-
-**DoD**: Both hooks exported; delete buttons in edit panels are functional; query
-cache invalidated on success.
+### ~~G3-T5: Add delete hooks for accounts and income streams~~ ✅ DONE
+`useDeleteAccount` and `useDeleteIncomeStream` added to their respective hook files.
+Both accept `{ id, planId }` and invalidate the projection query on success.
 
 ---
 
@@ -481,8 +416,8 @@ projection data.
 
 ## Implementation order (suggested sprints)
 
-### Sprint 1 — Make existing plans usable
-G1-T1, G1-T2, G1-T3a, G1-T3b, G1-T3c, G1-T3d, G3-T5
+### Sprint 1 — Make existing plans usable ✅ COMPLETE
+~~G1-T1~~, ~~G1-T2~~, ~~G1-T3a~~, ~~G1-T3b~~, ~~G1-T3c~~, ~~G1-T3d~~, ~~G3-T5~~
 
 ### Sprint 2 — Tax and assumption management
 G2-T1, G1-T4 (expense profiles), G2-T2 (SP forecast)

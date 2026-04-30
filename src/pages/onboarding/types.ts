@@ -8,8 +8,10 @@ export type OnboardingStepKey =
 export interface OnboardingState {
   // Household
   primaryPersonName: string;
+  primaryDateOfBirth: string;   // ISO date "YYYY-MM-DD"
   hasPartner: boolean;
   partnerName?: string;
+  partnerDateOfBirth?: string;
 
   // Retirement timing
   primaryRetirementAge: number;
@@ -28,4 +30,5 @@ export interface OnboardingState {
 
   // Spending target
   annualSpendingTarget: number;
+  essentialAnnual: number;       // subset of annualSpendingTarget
 }

@@ -5,16 +5,20 @@ interface Props {
   onChange: (updates: Partial<OnboardingState>) => void;
 }
 
-export function OnboardingSpendingTargetStep({ state, onChange }: Props) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency: "GBP",
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+const fmt = (value: number) =>
+  new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(value);
 
-  const monthlyAmount = state.annualSpendingTarget / 12;
+export function OnboardingSpendingTargetStep({ state, onChange }: Props) {
+  const essential = Math.min(state.essentialAnnual, state.annualSpendingTarget);
+  const discretionary = state.annualSpendingTarget - essential;
+
+  const handleTotalChange = (total: number) => {
+    // Keep essential capped at new total
+    onChange({
+      annualSpendingTarget: total,
+      essentialAnnual: Math.min(state.essentialAnnual, total),
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -26,14 +30,14 @@ export function OnboardingSpendingTargetStep({ state, onChange }: Props) {
       </div>
 
       <div className="space-y-6">
-        {/* Annual spending */}
+        {/* Total annual spending */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label htmlFor="spending" className="text-sm font-medium">
-              Annual Spending Target
+              Total Annual Spending
             </label>
             <span className="text-lg font-semibold text-primary">
-              {formatCurrency(state.annualSpendingTarget)}
+              {fmt(state.annualSpendingTarget)}
             </span>
           </div>
           <input
@@ -43,7 +47,7 @@ export function OnboardingSpendingTargetStep({ state, onChange }: Props) {
             max="200000"
             step="1000"
             value={state.annualSpendingTarget}
-            onChange={(e) => onChange({ annualSpendingTarget: Number(e.target.value) })}
+            onChange={(e) => handleTotalChange(Number(e.target.value))}
             className="w-full"
           />
           <div className="flex justify-between text-xs text-muted-foreground">
@@ -52,31 +56,59 @@ export function OnboardingSpendingTargetStep({ state, onChange }: Props) {
           </div>
         </div>
 
-        {/* Monthly breakdown */}
+        {/* Essential spending */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <label htmlFor="essential" className="text-sm font-medium">Essential Spending</label>
+              <p className="text-xs text-muted-foreground mt-0.5">Housing, food, utilities, healthcare</p>
+            </div>
+            <span className="text-lg font-semibold text-primary">{fmt(essential)}</span>
+          </div>
+          <input
+            id="essential"
+            type="range"
+            min="0"
+            max={state.annualSpendingTarget}
+            step="500"
+            value={essential}
+            onChange={(e) => onChange({ essentialAnnual: Number(e.target.value) })}
+            className="w-full"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>£0</span>
+            <span>{fmt(state.annualSpendingTarget)}</span>
+          </div>
+        </div>
+
+        {/* Split summary */}
         <div className="rounded-md bg-sw-surface-container-low p-4 space-y-2">
-          <p className="text-sm font-medium text-foreground">
-            Monthly equivalent: {formatCurrency(monthlyAmount)}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            This is an average; actual spending may vary by month.
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Essential</span>
+            <span className="font-medium">{fmt(essential)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Discretionary</span>
+            <span className="font-medium">{fmt(discretionary)}</span>
+          </div>
+          <div className="h-px bg-border my-1" />
+          <div className="flex justify-between text-sm font-semibold">
+            <span>Total</span>
+            <span>{fmt(state.annualSpendingTarget)}</span>
+          </div>
+          <p className="text-xs text-muted-foreground pt-1">
+            Monthly equivalent: {fmt(state.annualSpendingTarget / 12)}
           </p>
         </div>
       </div>
 
-      <div className="rounded-md bg-muted p-4">
-        <p className="text-sm text-muted-foreground">
-          You're planning for {formatCurrency(state.annualSpendingTarget)} per year ({formatCurrency(monthlyAmount)} per month) in retirement.
-        </p>
-      </div>
-
-      {/* Summary */}
-      <div className="rounded-md border p-4 space-y-3 bg-card/50">
+      {/* Plan summary */}
+      <div className="rounded-md border p-4 space-y-2 bg-card/50">
         <h3 className="font-semibold text-sm">Your Plan Summary</h3>
         <ul className="text-sm space-y-1 text-muted-foreground">
-          <li>• Planning for: {state.primaryPersonName} {state.hasPartner && `and ${state.partnerName}`}</li>
-          <li>• Retirement at: {state.primaryRetirementAge} {state.hasPartner && `and ${state.partnerRetirementAge}`}</li>
-          <li>• Current savings: {formatCurrency(state.currentSavings)}</li>
-          <li>• Annual spending: {formatCurrency(state.annualSpendingTarget)}</li>
+          <li>• Planning for: {state.primaryPersonName}{state.hasPartner && ` and ${state.partnerName}`}</li>
+          <li>• Retirement at: {state.primaryRetirementAge}{state.hasPartner && `, ${state.partnerRetirementAge ?? state.primaryRetirementAge}`}</li>
+          <li>• Annual spending: {fmt(state.annualSpendingTarget)} ({fmt(essential)} essential)</li>
         </ul>
       </div>
     </div>

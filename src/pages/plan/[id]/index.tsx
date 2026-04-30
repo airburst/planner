@@ -5,11 +5,15 @@ import { usePeopleByPlan } from "@/hooks/use-people";
 import { usePlans } from "@/hooks/use-plans";
 import { useProjection } from "@/hooks/use-projection";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { AccountsPanel } from "./AccountsPanel";
 import { IncomePhaseChart } from "./IncomePhaseChart";
+import { IncomeStreamsPanel } from "./IncomeStreamsPanel";
+import { PeoplePanel } from "./PeoplePanel";
 import { ProjectionError } from "./ProjectionError";
 import { ProjectionSummary } from "./ProjectionSummary";
 import { ProjectionTable } from "./ProjectionTable";
 import { RecommendationPanel } from "./RecommendationPanel";
+import { SpendingPanel } from "./SpendingPanel";
 
 export function PlanDetailPage() {
   const params = useParams({ from: "/plan/$planId" });
@@ -71,6 +75,17 @@ export function PlanDetailPage() {
         <div className="rounded-lg border bg-card p-4 text-card-foreground">
           <p className="text-xs text-muted-foreground">Income streams</p>
           <p className="mt-1 text-2xl font-semibold">{incomeStreams.length}</p>
+        </div>
+      </section>
+
+      {/* Setup panels */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold tracking-tight">Setup</h2>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <PeoplePanel people={people} />
+          <SpendingPanel planId={planId} />
+          <AccountsPanel planId={planId} accounts={accounts} people={people} />
+          <IncomeStreamsPanel planId={planId} incomeStreams={incomeStreams} people={people} />
         </div>
       </section>
 

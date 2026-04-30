@@ -25,9 +25,8 @@ export function useCreatePerson() {
     mutationFn: (data: NewPerson) => getElectronApi().createPerson(data),
     onSuccess: (person) => {
       if (person?.planId) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.people.byPlan(person.planId)
-        });
+        queryClient.invalidateQueries({ queryKey: queryKeys.people.byPlan(person.planId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.projection.forPlan(person.planId) });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.people.all });
     }
@@ -42,9 +41,8 @@ export function useUpdatePerson() {
       getElectronApi().updatePerson(id, data),
     onSuccess: (person) => {
       if (person?.planId) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.people.byPlan(person.planId)
-        });
+        queryClient.invalidateQueries({ queryKey: queryKeys.people.byPlan(person.planId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.projection.forPlan(person.planId) });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.people.all });
     }

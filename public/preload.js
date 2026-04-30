@@ -41,5 +41,14 @@ contextBridge.exposeInMainWorld("api", {
 ,
 
   runProjectionForPlan: (planId, options) =>
-    ipcRenderer.invoke("projections:runForPlan", planId, options)
+    ipcRenderer.invoke("projections:runForPlan", planId, options),
+
+  getExpenseProfileByPlan: (planId) =>
+    ipcRenderer.invoke("expense-profiles:getByPlan", planId),
+  createExpenseProfile: (data) =>
+    ipcRenderer.invoke("expense-profiles:create", data),
+  updateExpenseProfile: (id, data) =>
+    ipcRenderer.invoke("expense-profiles:update", id, data),
+  deleteExpenseProfile: (id) =>
+    ipcRenderer.invoke("expense-profiles:delete", id),
 });

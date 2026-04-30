@@ -27,9 +27,8 @@ export function useCreateIncomeStream() {
     mutationFn: (data: NewIncomeStream) => getElectronApi().createIncomeStream(data),
     onSuccess: (incomeStream) => {
       if (incomeStream?.planId) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.incomeStreams.byPlan(incomeStream.planId)
-        });
+        queryClient.invalidateQueries({ queryKey: queryKeys.incomeStreams.byPlan(incomeStream.planId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.projection.forPlan(incomeStream.planId) });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.incomeStreams.all });
     }
@@ -44,11 +43,24 @@ export function useUpdateIncomeStream() {
       getElectronApi().updateIncomeStream(id, data),
     onSuccess: (incomeStream) => {
       if (incomeStream?.planId) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.incomeStreams.byPlan(incomeStream.planId)
-        });
+        queryClient.invalidateQueries({ queryKey: queryKeys.incomeStreams.byPlan(incomeStream.planId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.projection.forPlan(incomeStream.planId) });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.incomeStreams.all });
+    }
+  });
+}
+
+export function useDeleteIncomeStream() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id }: { id: number; planId: number }) =>
+      getElectronApi().deleteIncomeStream(id),
+    onSuccess: (_, { planId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.incomeStreams.byPlan(planId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.incomeStreams.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projection.forPlan(planId) });
     }
   });
 }

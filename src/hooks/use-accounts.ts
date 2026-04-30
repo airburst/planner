@@ -25,9 +25,8 @@ export function useCreateAccount() {
     mutationFn: (data: NewAccount) => getElectronApi().createAccount(data),
     onSuccess: (account) => {
       if (account?.planId) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.accounts.byPlan(account.planId)
-        });
+        queryClient.invalidateQueries({ queryKey: queryKeys.accounts.byPlan(account.planId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.projection.forPlan(account.planId) });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.accounts.all });
     }
@@ -42,11 +41,24 @@ export function useUpdateAccount() {
       getElectronApi().updateAccount(id, data),
     onSuccess: (account) => {
       if (account?.planId) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.accounts.byPlan(account.planId)
-        });
+        queryClient.invalidateQueries({ queryKey: queryKeys.accounts.byPlan(account.planId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.projection.forPlan(account.planId) });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.accounts.all });
+    }
+  });
+}
+
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id }: { id: number; planId: number }) =>
+      getElectronApi().deleteAccount(id),
+    onSuccess: (_, { planId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.accounts.byPlan(planId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.accounts.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projection.forPlan(planId) });
     }
   });
 }

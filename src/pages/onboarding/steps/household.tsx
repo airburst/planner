@@ -31,6 +31,21 @@ export function OnboardingHouseholdStep({ state, onChange }: Props) {
           />
         </div>
 
+        {/* Primary person DOB */}
+        <div className="space-y-2">
+          <label htmlFor="primary-dob" className="text-sm font-medium">
+            Your Date of Birth
+          </label>
+          <input
+            id="primary-dob"
+            type="date"
+            value={state.primaryDateOfBirth}
+            max={new Date().toISOString().split("T")[0]}
+            onChange={(e) => onChange({ primaryDateOfBirth: e.target.value })}
+            className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
         {/* Has partner */}
         <div className="space-y-2">
           <label htmlFor="has-partner" className="flex items-center gap-2 cursor-pointer">
@@ -45,20 +60,35 @@ export function OnboardingHouseholdStep({ state, onChange }: Props) {
           </label>
         </div>
 
-        {/* Partner name (conditional) */}
         {state.hasPartner && (
-          <div className="space-y-2">
-            <label htmlFor="partner-name" className="text-sm font-medium">
-              Partner's Name
-            </label>
-            <input
-              id="partner-name"
-              type="text"
-              placeholder="e.g., Jane Smith"
-              value={state.partnerName || ""}
-              onChange={(e) => onChange({ partnerName: e.target.value })}
-              className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+          <div className="space-y-4 pl-4 border-l-2 border-border">
+            <div className="space-y-2">
+              <label htmlFor="partner-name" className="text-sm font-medium">
+                Partner's Name
+              </label>
+              <input
+                id="partner-name"
+                type="text"
+                placeholder="e.g., Jane Smith"
+                value={state.partnerName || ""}
+                onChange={(e) => onChange({ partnerName: e.target.value })}
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="partner-dob" className="text-sm font-medium">
+                Partner's Date of Birth
+              </label>
+              <input
+                id="partner-dob"
+                type="date"
+                value={state.partnerDateOfBirth || ""}
+                max={new Date().toISOString().split("T")[0]}
+                onChange={(e) => onChange({ partnerDateOfBirth: e.target.value })}
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
           </div>
         )}
       </div>
@@ -66,8 +96,8 @@ export function OnboardingHouseholdStep({ state, onChange }: Props) {
       <div className="rounded-md bg-muted p-4">
         <p className="text-sm text-muted-foreground">
           {state.hasPartner
-            ? `We'll model ${state.primaryPersonName} and ${state.partnerName || "your partner"}'s retirement together.`
-            : `We'll model ${state.primaryPersonName}'s retirement independently.`}
+            ? `We'll model ${state.primaryPersonName || "you"} and ${state.partnerName || "your partner"}'s retirement together.`
+            : `We'll model ${state.primaryPersonName || "your"} retirement.`}
         </p>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useCreateAccount } from "@/hooks/use-accounts";
+import { useCreateExpenseProfile } from "@/hooks/use-expense-profiles";
 import { useCreateIncomeStream } from "@/hooks/use-income-streams";
 import { useCreatePerson } from "@/hooks/use-people";
 import { useCreatePlan } from "@/hooks/use-plans";
@@ -19,9 +20,13 @@ export function OnboardingPage() {
   const createPerson = useCreatePerson();
   const createAccount = useCreateAccount();
   const createIncomeStream = useCreateIncomeStream();
+  const createExpenseProfile = useCreateExpenseProfile();
+
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [state, setState] = useState<OnboardingState>({
     primaryPersonName: "",
+    primaryDateOfBirth: "",
     hasPartner: false,
     primaryRetirementAge: 65,
     currentSavings: 0,
@@ -29,7 +34,8 @@ export function OnboardingPage() {
     hasDbPension: false,
     hasStatePension: true,
     statePensionAge: 67,
-    annualSpendingTarget: 50000,
+    annualSpendingTarget: 30000,
+    essentialAnnual: 21000,   // 70% default
   });
 
   const currentStep = STEPS[currentStepIndex];
@@ -38,47 +44,51 @@ export function OnboardingPage() {
   const handleNext = () => {
     if (currentStepIndex < STEPS.length - 1) {
       setCurrentStepIndex(currentStepIndex + 1);
+      setSubmitError(null);
     }
   };
 
   const handlePrevious = () => {
     if (currentStepIndex > 0) {
       setCurrentStepIndex(currentStepIndex - 1);
+      setSubmitError(null);
     }
   };
 
   const handleComplete = async () => {
+    setSubmitError(null);
     try {
+      // 1. Plan
       const planName = `${state.primaryPersonName}'s Plan`;
       const plan = await createPlan.mutateAsync({
         name: planName,
         description: `Created via onboarding flow on ${new Date().toLocaleDateString()}`,
       });
-
       if (!plan) throw new Error("Plan creation returned no result");
 
-      // Create primary person
+      // 2. Primary person
       const primaryPerson = await createPerson.mutateAsync({
         planId: plan.id,
         role: "primary",
         firstName: state.primaryPersonName,
+        dateOfBirth: state.primaryDateOfBirth || null,
         retirementAge: state.primaryRetirementAge,
         statePensionAge: state.statePensionAge,
       });
+      if (!primaryPerson) throw new Error("Failed to create primary person");
 
-      if (!primaryPerson) throw new Error("Person creation returned no result");
-
-      // Create partner if applicable
+      // 3. Partner
       if (state.hasPartner && state.partnerName) {
         await createPerson.mutateAsync({
           planId: plan.id,
           role: "partner",
           firstName: state.partnerName,
+          dateOfBirth: state.partnerDateOfBirth || null,
           retirementAge: state.partnerRetirementAge ?? state.primaryRetirementAge,
         });
       }
 
-      // Create account — map "mixed" to "sipp" as the primary retirement wrapper
+      // 4. Account
       const wrapperTypeMap = { cash: "cash", isa: "isa", sipp: "sipp", mixed: "sipp" } as const;
       const accountNameMap = { cash: "Cash Savings", isa: "ISA", sipp: "SIPP", mixed: "SIPP" };
       await createAccount.mutateAsync({
@@ -90,7 +100,7 @@ export function OnboardingPage() {
         annualContribution: 0,
       });
 
-      // Create income streams
+      // 5. Income streams
       if (state.hasStatePension) {
         await createIncomeStream.mutateAsync({
           planId: plan.id,
@@ -98,7 +108,7 @@ export function OnboardingPage() {
           streamType: "state_pension",
           name: "State Pension",
           startAge: state.statePensionAge ?? 67,
-          annualAmount: 11502, // UK full new state pension (2024/25)
+          annualAmount: state.statePensionAnnualAmount ?? 11502,
           inflationLinked: true,
           taxable: true,
         });
@@ -117,15 +127,34 @@ export function OnboardingPage() {
         });
       }
 
+      // 6. Expense profile
+      const essential = Math.min(state.essentialAnnual, state.annualSpendingTarget);
+      await createExpenseProfile.mutateAsync({
+        planId: plan.id,
+        name: "Retirement spending",
+        essentialAnnual: essential,
+        discretionaryAnnual: state.annualSpendingTarget - essential,
+        inflationLinked: true,
+      });
+
       navigate({ to: "/plan/$planId", params: { planId: String(plan.id) } });
     } catch (error) {
-      console.error("Failed to create plan:", error);
+      setSubmitError(
+        error instanceof Error ? error.message : "Something went wrong. Please try again."
+      );
     }
   };
 
   const handleStateChange = (updates: Partial<OnboardingState>) => {
     setState((prev) => ({ ...prev, ...updates }));
   };
+
+  const isSubmitting =
+    createPlan.isPending ||
+    createPerson.isPending ||
+    createAccount.isPending ||
+    createIncomeStream.isPending ||
+    createExpenseProfile.isPending;
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-6 py-12">
@@ -167,27 +196,29 @@ export function OnboardingPage() {
         )}
       </div>
 
+      {/* Error banner */}
+      {submitError && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {submitError}
+        </div>
+      )}
+
       {/* Navigation */}
       <div className="flex justify-between gap-3">
         <Button
           variant="outline"
           onClick={handlePrevious}
-          disabled={currentStepIndex === 0}
+          disabled={currentStepIndex === 0 || isSubmitting}
         >
           Previous
         </Button>
 
         {currentStepIndex === STEPS.length - 1 ? (
-          <Button
-            onClick={handleComplete}
-            disabled={!state.primaryPersonName || createPlan.isPending || createPerson.isPending || createAccount.isPending || createIncomeStream.isPending}
-          >
-            {(createPlan.isPending || createPerson.isPending || createAccount.isPending || createIncomeStream.isPending) ? "Creating..." : "Complete & Create Plan"}
+          <Button onClick={handleComplete} disabled={!state.primaryPersonName || isSubmitting}>
+            {isSubmitting ? "Creating…" : "Complete & Create Plan"}
           </Button>
         ) : (
-          <Button onClick={handleNext}>
-            Next
-          </Button>
+          <Button onClick={handleNext}>Next</Button>
         )}
       </div>
     </main>

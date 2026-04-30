@@ -3,6 +3,7 @@ export {};
     import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
     import type {
         accounts,
+        expenseProfiles,
         householdPlans,
         incomeStreams,
         people
@@ -17,6 +18,8 @@ type Account = InferSelectModel<typeof accounts>;
 type NewAccount = InferInsertModel<typeof accounts>;
 type IncomeStream = InferSelectModel<typeof incomeStreams>;
 type NewIncomeStream = InferInsertModel<typeof incomeStreams>;
+type ExpenseProfile = InferSelectModel<typeof expenseProfiles>;
+type NewExpenseProfile = InferInsertModel<typeof expenseProfiles>;
 type ProjectionResult = {
   planId: number;
   scenarioId: number | null;
@@ -75,6 +78,11 @@ declare global {
         data: Partial<NewIncomeStream>
       ) => Promise<IncomeStream | null>;
       deleteIncomeStream: (id: number) => Promise<{ success: boolean }>;
+
+      getExpenseProfileByPlan: (planId: number) => Promise<ExpenseProfile | null>;
+      createExpenseProfile: (data: NewExpenseProfile) => Promise<ExpenseProfile | null>;
+      updateExpenseProfile: (id: number, data: Partial<NewExpenseProfile>) => Promise<ExpenseProfile | null>;
+      deleteExpenseProfile: (id: number) => Promise<{ success: boolean }>;
 
       runProjectionForPlan: (
         planId: number,
