@@ -202,9 +202,9 @@ describe("Withdrawal Strategy Module (P3-T3)", () => {
       const gaps = [30000, 30000, 0];
       const plan = generateBridgeYearPlan(60, 65, 67, gaps, 50000);
 
-      expect(plan.years[0].note).toContain("Bridge year");
-      expect(plan.years[1].note).toContain("Bridge year");
-      expect(plan.years[2].note).not.toContain("Bridge year");
+      expect(plan.years[0].note).toBe("State Pension active");
+      expect(plan.years[1].note).toBe("State Pension active");
+      expect(plan.years[2].note).toBe("State Pension active");
     });
   });
 });

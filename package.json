@@ -66,6 +66,7 @@
       "public/electron.js",
       "public/preload.js",
       "public/db.js",
+      "public/engine.js",
       "public/ipc/**/*",
       "src/main/db/migrations/**/*",
       "package.json"

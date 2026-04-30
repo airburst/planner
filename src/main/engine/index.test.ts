@@ -8,8 +8,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   calculateAgeInYear,
   calculateGrowth,
+  calculateHouseholdTaxResult,
   calculateIncomeForStream,
   calculatePersonalTax,
+  calculatePersonTaxResult,
   isIncomeStreamActive,
   projectPersonYear,
   runProjection,
@@ -115,94 +117,6 @@ describe("Core Simulation Engine", () => {
       optimizeForTaxEfficiency: true,
       sippWithdrawalApproach: "flexible",
     };
-
-      it("handles high income personal allowance withdrawal (tax trap) at £100k", () => {
-        // At exactly £100,000 income, personal allowance should still be full £12,570
-        const tax100k = calculatePersonalTax(100000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
-
-        // Basic rate: (50270 - 12570) = £37,700 @ 20% = £7,540
-        // Higher rate: (100000 - 50270) = £49,730 @ 40% = £19,892
-        const expected100k = Math.round(37700 * 0.2 + 49730 * 0.4);
-        expect(tax100k).toBe(expected100k);
-      });
-
-      it("reduces personal allowance for income above £100k (£1 per £2)", () => {
-        // At £102,000 income:
-        // - Excess over threshold: £2,000
-        // - Allowance reduction: £2,000 / 2 = £1,000
-        // - Effective PA: £12,570 - £1,000 = £11,570
-        const income = 102000;
-        const tax = calculatePersonalTax(income, 12570, 50270, 125140, 0.2, 0.4, 0.45);
-
-        // Basic rate: (50270 - 11570) = £38,700 @ 20% = £7,740
-        // Higher rate: (102000 - 50270) = £51,730 @ 40% = £20,692
-        const expected = Math.round(38700 * 0.2 + 51730 * 0.4);
-        expect(tax).toBe(expected);
-      });
-
-      it("creates 60% marginal rate in tax trap bracket (40% + 20% allowance withdrawal)", () => {
-        // Marginal rate in £100k-£125,140 bracket:
-        // - 40% higher rate tax
-        // - Plus 20% effective rate from allowance withdrawal (£1 allowance per £2 income)
-        // = 60% marginal rate
-
-        // Compare tax at £105k vs £107k (£2k difference)
-        const tax105k = calculatePersonalTax(105000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
-        const tax107k = calculatePersonalTax(107000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
-
-        const taxDifference = tax107k - tax105k;
-        const marginalRate = taxDifference / 2000; // Difference per £1 earned
-
-        // Should be approximately 0.60 (60%)
-        expect(marginalRate).toBeCloseTo(0.60, 1);
-      });
-
-      it("personal allowance reaches zero at £125,140", () => {
-        // At £125,140: excess = £125,140 - £100,000 = £25,140
-        // Reduction = £25,140 / 2 = £12,570 (exactly the PA amount)
-        // Effective PA = £12,570 - £12,570 = £0
-        const income = 125140;
-        const tax = calculatePersonalTax(income, 12570, 50270, 125140, 0.2, 0.4, 0.45);
-
-        // All income taxed:
-        // Basic: £37,700 @ 20% = £7,540
-        // Higher: £75,140 @ 40% = £30,056
-        // Additional: £12,300 @ 45% = £5,535
-        const expected = Math.round(37700 * 0.2 + 75140 * 0.4 + 12300 * 0.45);
-        expect(tax).toBe(expected);
-      });
-
-      it("handles income above £125,140 with zero personal allowance", () => {
-        // Above £125,140, allowance stays at zero
-        const income = 150000;
-        const tax = calculatePersonalTax(income, 12570, 50270, 125140, 0.2, 0.4, 0.45);
-
-        // All income taxed:
-        // Basic: £37,700 @ 20% = £7,540
-        // Higher: £75,140 @ 40% = £30,056
-        // Additional: £37,160 @ 45% = £16,722
-        const expected = Math.round(37700 * 0.2 + 75140 * 0.4 + 37160 * 0.45);
-        expect(tax).toBe(expected);
-      });
-
-      it("tax trap creates significant tax increase compared to £99,999", () => {
-        // Just below threshold
-        const tax99k = calculatePersonalTax(99999, 12570, 50270, 125140, 0.2, 0.4, 0.45);
-
-        // Just above threshold
-        const tax100k = calculatePersonalTax(100000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
-
-        // Moving from £99,999 to £100,000 (£1 increase)
-        // adds approximately £0.40 in tax (40% rate)
-        const taxIncrease = tax100k - tax99k;
-
-        // At £110k vs £100k (£10k increase)
-        const tax110k = calculatePersonalTax(110000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
-        const tax110kIncrease = tax110k - tax100k;
-
-        // £10k × 60% = £6,000
-        expect(tax110kIncrease).toBeCloseTo(6000, 0);
-      });
   });
 
   describe("calculateAgeInYear", () => {
@@ -309,7 +223,7 @@ describe("Core Simulation Engine", () => {
       const tax = calculatePersonalTax(income, pa, basicBand, higherBand, 0.2, 0.4, 0.45);
 
       const basicRateTaxable = basicBand - pa;
-      const higherRateTaxable = higherBand - basicBand;
+      const higherRateTaxable = higherBand - basicRateTaxable;
       const additionalRateTaxable = income - higherBand;
       const expected = Math.round(
         basicRateTaxable * 0.2 + higherRateTaxable * 0.4 + additionalRateTaxable * 0.45
@@ -323,6 +237,184 @@ describe("Core Simulation Engine", () => {
       const taxableIncome = 40000 - 12570; // £27,430
       const expected = Math.round(taxableIncome * 0.2); // £5,486
       expect(tax).toBe(expected);
+    });
+
+    it("keeps the full personal allowance at exactly £100k", () => {
+      const tax = calculatePersonalTax(100000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
+      const expected = Math.round(37700 * 0.2 + 49730 * 0.4);
+      expect(tax).toBe(expected);
+    });
+
+    it("reduces personal allowance by £1 per £2 above £100k", () => {
+      const tax = calculatePersonalTax(102000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
+      const expected = Math.round(37700 * 0.2 + 52730 * 0.4);
+      expect(tax).toBe(expected);
+    });
+
+    it("creates an effective 60% marginal rate inside the tax trap bracket", () => {
+      const tax105k = calculatePersonalTax(105000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
+      const tax107k = calculatePersonalTax(107000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
+      expect((tax107k - tax105k) / 2000).toBeCloseTo(0.6, 1);
+    });
+
+    it("reduces the personal allowance to zero at £125,140", () => {
+      const tax = calculatePersonalTax(125140, 12570, 50270, 125140, 0.2, 0.4, 0.45);
+      const expected = Math.round(37700 * 0.2 + (125140 - 37700) * 0.4);
+      expect(tax).toBe(expected);
+    });
+
+    it("keeps personal allowance at zero above £125,140", () => {
+      const tax = calculatePersonalTax(150000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
+      const expected = Math.round(37700 * 0.2 + (125140 - 37700) * 0.4 + (150000 - 125140) * 0.45);
+      expect(tax).toBe(expected);
+    });
+
+    it("adds about £6k of extra tax between £100k and £110k", () => {
+      const tax100k = calculatePersonalTax(100000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
+      const tax110k = calculatePersonalTax(110000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
+      expect(tax110k - tax100k).toBeCloseTo(6000, 0);
+    });
+  });
+
+  describe("per-person tax pipeline", () => {
+    it("builds a detailed person tax result from stream income and taxable SIPP withdrawals", () => {
+      const taxResult = calculatePersonTaxResult(
+        person.id,
+        2027,
+        [
+          {
+            id: 11,
+            planId: 1,
+            personId: person.id,
+            name: "Salary",
+            type: "salary",
+            activationAge: 18,
+            annualAmount: 30000,
+            isIndexed: false,
+          },
+          {
+            id: 12,
+            planId: 1,
+            personId: person.id,
+            name: "DB Pension",
+            type: "db_pension",
+            activationAge: 60,
+            annualAmount: 10000,
+            isIndexed: false,
+          },
+        ],
+        new Map([
+          [11, 30000],
+          [12, 10000],
+        ]),
+        [
+          {
+            accountType: "sipp",
+            taxableComponent: 5000,
+          },
+        ],
+        assumptions
+      );
+
+      expect(taxResult.tradingIncome).toBe(30000);
+      expect(taxResult.pensionIncome).toBe(10000);
+      expect(taxResult.sippWithdrawals).toBe(5000);
+      expect(taxResult.totalIncome).toBe(45000);
+      expect(taxResult.totalTax).toBe(calculatePersonalTax(45000, 12570, 50270, 125140, 0.2, 0.4, 0.45));
+    });
+
+    it("keeps partner-mode tax separate before summing household totals", () => {
+      const primary: PersonContext = {
+        id: 1,
+        planId: 1,
+        role: "primary",
+        name: "Alex",
+        dateOfBirth: new Date("1960-01-01"),
+      };
+      const secondary: PersonContext = {
+        id: 2,
+        planId: 1,
+        role: "partner",
+        name: "Sam",
+        dateOfBirth: new Date("1962-01-01"),
+      };
+      const salaryStreams: IncomeStreamContext[] = [
+        {
+          id: 21,
+          planId: 1,
+          personId: 1,
+          name: "Primary Salary",
+          type: "salary",
+          activationAge: 18,
+          annualAmount: 10000,
+          isIndexed: false,
+        },
+        {
+          id: 22,
+          planId: 1,
+          personId: 2,
+          name: "Partner Salary",
+          type: "salary",
+          activationAge: 18,
+          annualAmount: 80000,
+          isIndexed: false,
+        },
+      ];
+      const zeroSpending: SpendingAssumption = {
+        ...spending,
+        annualSpendingTarget: 0,
+        isIndexed: false,
+      };
+
+      const [year] = runProjection(
+        [primary, secondary],
+        [],
+        salaryStreams,
+        assumptions,
+        zeroSpending,
+        withdrawalStrategy,
+        2026,
+        2026
+      );
+
+      const primaryTax = year.taxBreakdown.people.get(primary.id);
+      const secondaryTax = year.taxBreakdown.people.get(secondary.id);
+      expect(primaryTax?.totalTax).toBe(0);
+      expect(secondaryTax?.totalTax).toBe(calculatePersonalTax(80000, 12570, 50270, 125140, 0.2, 0.4, 0.45));
+      expect(year.taxBreakdown.totalTax).toBe((primaryTax?.totalTax || 0) + (secondaryTax?.totalTax || 0));
+
+      const pooledTax = calculatePersonalTax(90000, 12570, 50270, 125140, 0.2, 0.4, 0.45);
+      expect(year.taxBreakdown.totalTax).toBeLessThan(pooledTax);
+    });
+
+    it("aggregates household tax from person-year states", () => {
+      const taxOne = calculatePersonTaxResult(
+        1,
+        2026,
+        [],
+        new Map(),
+        [{ accountType: "sipp", taxableComponent: 20000 }],
+        assumptions
+      );
+      const taxTwo = calculatePersonTaxResult(
+        2,
+        2026,
+        [],
+        new Map(),
+        [{ accountType: "sipp", taxableComponent: 40000 }],
+        assumptions
+      );
+      const household = calculateHouseholdTaxResult(
+        2026,
+        new Map([
+          [1, { taxBreakdown: taxOne } as unknown as import("./types").PersonYearState],
+          [2, { taxBreakdown: taxTwo } as unknown as import("./types").PersonYearState],
+        ])
+      );
+
+      expect(household.totalTax).toBe(taxOne.totalTax + taxTwo.totalTax);
+      expect(household.people.get(1)?.totalTax).toBe(taxOne.totalTax);
+      expect(household.people.get(2)?.totalTax).toBe(taxTwo.totalTax);
     });
   });
 
@@ -396,7 +488,7 @@ describe("Core Simulation Engine", () => {
       );
 
       // ISA withdrawals should have zero taxable component
-      const isaWithdrawal = year.withdrawalDetails.find((w: any) => w.accountType === "isa");
+      const isaWithdrawal = year.withdrawalDetails.find((w) => w.accountType === "isa");
       if (isaWithdrawal) {
         expect(isaWithdrawal.taxFreeComponent).toBe(isaWithdrawal.amountWithdrawn);
         expect(isaWithdrawal.taxableComponent).toBe(0);

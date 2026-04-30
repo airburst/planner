@@ -38,4 +38,8 @@ contextBridge.exposeInMainWorld("api", {
   updateIncomeStream: (id, data) =>
     ipcRenderer.invoke("income-streams:update", id, data),
   deleteIncomeStream: (id) => ipcRenderer.invoke("income-streams:delete", id)
+,
+
+  runProjectionForPlan: (planId, options) =>
+    ipcRenderer.invoke("projections:runForPlan", planId, options)
 });

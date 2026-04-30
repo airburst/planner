@@ -4,13 +4,13 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-    analyzeIncomePhases,
-    arePhaseSequencesEquivalent,
-    calculatePersonIncomePhase,
-    detectIncomeTransitions,
-    generatePersonIncomeReport,
-    getActiveIncomeStreamsForYear,
-    projectHouseholdIncomePhases,
+  analyzeIncomePhases,
+  arePhaseSequencesEquivalent,
+  calculatePersonIncomePhase,
+  detectIncomeTransitions,
+  generatePersonIncomeReport,
+  getActiveIncomeStreamsForYear,
+  projectHouseholdIncomePhases,
 } from "./phased-income";
 import { IncomeStreamContext, PersonContext } from "./types";
 
@@ -123,7 +123,6 @@ describe("Phased Income Module (P3-T2)", () => {
 
     it("handles different people's streams separately", () => {
       const streams = getActiveIncomeStreamsForYear(person, incomeStreams, 2027, 2026, 0.02);
-      const personIds = streams.map((s) => ({ streamId: s.streamId }));
 
       // Should only contain person 1's streams
       for (const stream of streams) {

@@ -4,7 +4,7 @@ import tseslint from "typescript-eslint";
 
 export default [
   {
-    ignores: ["build/**", "out/**", "node_modules/**"]
+    ignores: ["build/**", "out/**", "node_modules/**", "public/db.js", "public/engine.js"]
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

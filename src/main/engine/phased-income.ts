@@ -69,7 +69,7 @@ export function getActiveIncomeStreamsForYear(
   inflationRate: number
 ): ActiveIncomeStream[] {
   const age = year - person.dateOfBirth.getFullYear();
-  const yearsFromBase = year - baseYear;
+  const yearsFromBase = Math.max(0, year - baseYear);
   const active: ActiveIncomeStream[] = [];
 
   for (const stream of streams) {

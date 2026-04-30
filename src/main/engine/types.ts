@@ -101,6 +101,7 @@ export interface PersonYearState {
   incomeSubjectToTax: number; // After personal allowance
   taxDue: number;
   effectiveTaxRate: number;
+  taxBreakdown: PersonTaxResult;
 
   // Investment returns
   growthOnBalances: number;
@@ -134,6 +135,7 @@ export interface HouseholdYearState {
   totalHouseholdGrowth: number;
   totalHouseholdTax: number;
   totalHouseholdAssets: number; // Sum of all closing balances
+  taxBreakdown: HouseholdTaxResult;
 
   // Sustainability
   canSustainSpending: boolean;

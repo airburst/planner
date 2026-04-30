@@ -8,9 +8,11 @@
 import {
     AccountContext,
     AssumptionSet,
+    HouseholdTaxResult,
     HouseholdYearState,
     IncomeStreamContext,
     PersonContext,
+    PersonTaxResult,
     PersonYearState,
     SpendingAssumption,
     WithdrawalStrategy
@@ -66,7 +68,20 @@ export function calculateGrowth(
 }
 
 /**
- * Tax computation for a person in a year (simplified UK 2026 rules)
+ * Calculate the effective personal allowance after high-income tapering.
+ */
+export function calculateEffectivePersonalAllowance(
+  incomeSubjectToTax: number,
+  personalAllowance: number
+): number {
+  const highIncomeThreshold = 100000;
+  return incomeSubjectToTax > highIncomeThreshold
+    ? Math.max(0, personalAllowance - Math.floor((incomeSubjectToTax - highIncomeThreshold) / 2))
+    : personalAllowance;
+}
+
+/**
+ * Tax computation for a person in a year (UK 2026 rules)
  */
 export function calculatePersonalTax(
   incomeSubjectToTax: number,
@@ -77,12 +92,12 @@ export function calculatePersonalTax(
   higherRate: number,
   additionalRate: number
 ): number {
-  // High income personal allowance withdrawal (tax trap)
-  // For every £2 over £100k, allowance is reduced by £1
-  const highIncomeThreshold = 100000;
-  const effectivePersonalAllowance = incomeSubjectToTax > highIncomeThreshold
-    ? Math.max(0, personalAllowance - Math.floor((incomeSubjectToTax - highIncomeThreshold) / 2))
-    : personalAllowance;
+  const effectivePersonalAllowance = calculateEffectivePersonalAllowance(
+    incomeSubjectToTax,
+    personalAllowance
+  );
+  const basicRateTaxableBand = basicRateBand - personalAllowance;
+  const additionalRateThreshold = higherRateBand - effectivePersonalAllowance;
 
   const taxableIncome = Math.max(0, incomeSubjectToTax - effectivePersonalAllowance);
 
@@ -93,25 +108,129 @@ export function calculatePersonalTax(
   let tax = 0;
 
   // Basic rate (20%)
-  const basicRateTaxable = Math.min(taxableIncome, basicRateBand - effectivePersonalAllowance);
+  const basicRateTaxable = Math.min(taxableIncome, basicRateTaxableBand);
   tax += basicRateTaxable * basicRate;
 
   // Higher rate (40%)
-  if (taxableIncome > basicRateBand - effectivePersonalAllowance) {
+  if (taxableIncome > basicRateTaxableBand) {
     const higherRateTaxable = Math.min(
-      taxableIncome - (basicRateBand - effectivePersonalAllowance),
-      higherRateBand - basicRateBand
+      taxableIncome - basicRateTaxableBand,
+      additionalRateThreshold - basicRateTaxableBand
     );
     tax += higherRateTaxable * higherRate;
   }
 
   // Additional rate (45%)
-  if (taxableIncome > higherRateBand - effectivePersonalAllowance) {
-    const additionalRateTaxable = taxableIncome - (higherRateBand - effectivePersonalAllowance);
+  if (taxableIncome > additionalRateThreshold) {
+    const additionalRateTaxable = taxableIncome - additionalRateThreshold;
     tax += additionalRateTaxable * additionalRate;
   }
 
   return Math.round(tax);
+}
+
+/**
+ * Build a detailed tax result for a person in a year.
+ */
+export function calculatePersonTaxResult(
+  personId: number,
+  year: number,
+  incomeStreams: IncomeStreamContext[],
+  incomeByStream: Map<number, number>,
+  withdrawalDetails: Array<{ accountType: string; taxableComponent: number }>,
+  assumptions: AssumptionSet
+): PersonTaxResult {
+  let tradingIncome = 0;
+  let investmentIncome = 0;
+  let pensionIncome = 0;
+
+  for (const stream of incomeStreams) {
+    const amount = incomeByStream.get(stream.id) || 0;
+    if (amount === 0) {
+      continue;
+    }
+
+    if (stream.type === "salary") {
+      tradingIncome += amount;
+    } else if (
+      stream.type === "db_pension" ||
+      stream.type === "dc_pension" ||
+      stream.type === "state_pension"
+    ) {
+      pensionIncome += amount;
+    } else {
+      investmentIncome += amount;
+    }
+  }
+
+  const sippWithdrawals = withdrawalDetails
+    .filter((detail) => detail.accountType === "sipp")
+    .reduce((sum, detail) => sum + detail.taxableComponent, 0);
+
+  const totalIncome = tradingIncome + investmentIncome + pensionIncome + sippWithdrawals;
+  const personalAllowance = calculateEffectivePersonalAllowance(
+    totalIncome,
+    assumptions.personalAllowance
+  );
+  const taxableIncome = Math.max(0, totalIncome - personalAllowance);
+  const basicRateTaxableBand = assumptions.basicRateBand - assumptions.personalAllowance;
+  const additionalRateThreshold = assumptions.higherRateBand - personalAllowance;
+
+  const basicRateTaxable = Math.min(taxableIncome, basicRateTaxableBand);
+  const basicRateTax = Math.round(Math.max(0, basicRateTaxable) * assumptions.basicRate);
+
+  const higherRateTaxable = Math.min(
+    Math.max(0, taxableIncome - basicRateTaxableBand),
+    Math.max(0, additionalRateThreshold - basicRateTaxableBand)
+  );
+  const higherRateTax = Math.round(Math.max(0, higherRateTaxable) * assumptions.higherRate);
+
+  const additionalRateTaxable = Math.max(0, taxableIncome - additionalRateThreshold);
+  const additionalRateTax = Math.round(additionalRateTaxable * assumptions.additionalRate);
+
+  const totalTax = basicRateTax + higherRateTax + additionalRateTax;
+
+  return {
+    personId,
+    year,
+    tradingIncome,
+    investmentIncome,
+    pensionIncome,
+    sippWithdrawals,
+    totalIncome,
+    personalAllowance,
+    taxableIncome,
+    basicRateTax,
+    higherRateTax,
+    additionalRateTax,
+    totalTax,
+    effectiveTaxRate: totalIncome > 0 ? totalTax / totalIncome : 0,
+  };
+}
+
+/**
+ * Aggregate person-level tax results into a household result.
+ */
+export function calculateHouseholdTaxResult(
+  year: number,
+  people: Map<number, PersonYearState>
+): HouseholdTaxResult {
+  const personTaxResults = new Map<number, PersonTaxResult>();
+  let totalTax = 0;
+  let totalIncome = 0;
+
+  for (const [personId, personYear] of people.entries()) {
+    personTaxResults.set(personId, personYear.taxBreakdown);
+    totalTax += personYear.taxBreakdown.totalTax;
+    totalIncome += personYear.taxBreakdown.totalIncome;
+  }
+
+  return {
+    year,
+    people: personTaxResults,
+    totalTax,
+    effectiveRate: totalIncome > 0 ? totalTax / totalIncome : 0,
+  };
 }
 
 /**
@@ -208,16 +327,15 @@ export function projectPersonYear(
     incomeSubjectToTax += detail.taxableComponent;
   }
 
-  // Calculate tax
-  const taxDue = calculatePersonalTax(
-    incomeSubjectToTax,
-    assumptions.personalAllowance,
-    assumptions.basicRateBand,
-    assumptions.higherRateBand,
-    assumptions.basicRate,
-    assumptions.higherRate,
-    assumptions.additionalRate
+  const taxBreakdown = calculatePersonTaxResult(
+    person.id,
+    year,
+    incomeStreams.filter((stream) => stream.personId === person.id),
+    incomeByStream,
+    withdrawalDetails,
+    assumptions
   );
+  const taxDue = taxBreakdown.totalTax;
 
   // Calculate growth and inflation adjustment
   const growthOnBalances = calculateGrowth(
@@ -228,7 +346,6 @@ export function projectPersonYear(
 
   // Calculate closing balances
   const closingBalances = new Map<number, number>();
-  let totalClosing = 0;
 
   for (const account of accounts) {
     if (account.personId === person.id) {
@@ -240,7 +357,6 @@ export function projectPersonYear(
 
       const closing = opening - withdrawal + proRataGrowth - (opening > 0 ? Math.round((opening / totalOpeningBalance) * taxDue) : 0);
       closingBalances.set(account.id, Math.max(0, closing));
-      totalClosing += Math.max(0, closing);
     }
   }
 
@@ -258,6 +374,7 @@ export function projectPersonYear(
     incomeSubjectToTax,
     taxDue,
     effectiveTaxRate,
+    taxBreakdown,
     growthOnBalances,
     inflationAdjustment: 0, // Track separately if needed
     closingBalances,
@@ -301,6 +418,12 @@ export function runProjection(
       totalHouseholdGrowth: 0,
       totalHouseholdTax: 0,
       totalHouseholdAssets: 0,
+      taxBreakdown: {
+        year,
+        people: new Map(),
+        totalTax: 0,
+        effectiveRate: 0,
+      },
       canSustainSpending: false,
       deficitOrSurplus: 0,
       spendingCoverage: 0,
@@ -336,6 +459,9 @@ export function runProjection(
         householdYear.totalHouseholdAssets += balance;
       }
     }
+
+    householdYear.taxBreakdown = calculateHouseholdTaxResult(year, householdYear.people);
+    householdYear.totalHouseholdTax = householdYear.taxBreakdown.totalTax;
 
     // Calculate household sustainability
     const adjustedSpending = spending.isIndexed

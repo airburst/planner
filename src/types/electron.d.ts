@@ -7,6 +7,7 @@ export {};
         incomeStreams,
         people
     } from "../main/db/schema";
+    import type { HouseholdYearState, Recommendation } from "../main/engine/types";
 
 type HouseholdPlan = InferSelectModel<typeof householdPlans>;
 type NewHouseholdPlan = InferInsertModel<typeof householdPlans>;
@@ -16,6 +17,16 @@ type Account = InferSelectModel<typeof accounts>;
 type NewAccount = InferInsertModel<typeof accounts>;
 type IncomeStream = InferSelectModel<typeof incomeStreams>;
 type NewIncomeStream = InferInsertModel<typeof incomeStreams>;
+type ProjectionResult = {
+  planId: number;
+  scenarioId: number | null;
+  assumptionSetId: number | null;
+  expenseProfileId: number | null;
+  startYear: number;
+  endYear: number;
+  years: HouseholdYearState[];
+  recommendations: Recommendation[];
+};
 
 declare global {
   interface Window {
@@ -64,6 +75,11 @@ declare global {
         data: Partial<NewIncomeStream>
       ) => Promise<IncomeStream | null>;
       deleteIncomeStream: (id: number) => Promise<{ success: boolean }>;
+
+      runProjectionForPlan: (
+        planId: number,
+        options?: { scenarioId?: number; startYear?: number; endYear?: number }
+      ) => Promise<ProjectionResult>;
     };
   }
 }

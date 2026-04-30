@@ -6,9 +6,12 @@ export default defineConfig({
   publicDir: false,
   build: {
     lib: {
-      entry: resolve(__dirname, "src/main/db/index.ts"),
+      entry: {
+        db: resolve(__dirname, "src/main/db/index.ts"),
+        engine: resolve(__dirname, "src/main/engine/runtime.ts")
+      },
       formats: ["cjs"],
-      fileName: () => "db.js"
+      fileName: (_, entryName) => `${entryName}.js`
     },
     outDir: "public",
     emptyOutDir: false,

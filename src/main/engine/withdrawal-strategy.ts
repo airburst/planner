@@ -76,7 +76,7 @@ export function calculateWithdrawal(
   const amountAvailable = Math.min(account.balance, amountNeeded);
 
   switch (account.type) {
-    case "isa":
+    case "isa": {
       // ISA withdrawals are always tax-free
       return {
         accountType: "isa",
@@ -85,8 +85,9 @@ export function calculateWithdrawal(
         taxFreeAmount: amountAvailable,
         explanation: "ISA withdrawal (tax-free by nature)",
       };
+    }
 
-    case "sipp":
+    case "sipp": {
       // SIPP has tax-free allowance (25%) then taxable component
       const sippTaxFreeAllowance = Math.round(amountAvailable * (sippTaxFreeAllowanceRemaining / amountAvailable));
       const sippTaxableAmount = amountAvailable - sippTaxFreeAllowance;
@@ -98,8 +99,9 @@ export function calculateWithdrawal(
         taxFreeAmount: sippTaxFreeAllowance,
         explanation: `SIPP withdrawal (£${sippTaxFreeAllowance} tax-free, £${sippTaxableAmount} taxable)`,
       };
+    }
 
-    case "cash":
+    case "cash": {
       // Cash withdrawals are fully taxable (except savings allowance)
       return {
         accountType: "cash",
@@ -108,6 +110,7 @@ export function calculateWithdrawal(
         taxFreeAmount: 0,
         explanation: "Cash withdrawal (fully taxable, less savings allowance)",
       };
+    }
 
     case "other":
     default:
@@ -132,7 +135,6 @@ export function executeWithdrawalSequence(
 ): WithdrawalResult[] {
   const results: WithdrawalResult[] = [];
   let remainingNeeded = amountNeeded;
-  let sippAllowanceUsed = 0;
 
   // Sort accounts by priority
   const sortedAccounts = [...accounts].sort((a, b) => {
@@ -148,10 +150,6 @@ export function executeWithdrawalSequence(
 
     results.push(result);
     remainingNeeded -= result.amountWithdrawn;
-
-    if (account.type === "sipp") {
-      sippAllowanceUsed += result.taxFreeAmount;
-    }
   }
 
   return results;
@@ -185,7 +183,6 @@ export function analyzeBridgeYear(
 
   // Calculate available tax-free resources
   const isaBalance = accountBalances.get("isa") || 0;
-  const totalAvailable = Array.from(accountBalances.values()).reduce((a, b) => a + b, 0);
 
   let recommendedSources: WithdrawalPriority[] = [];
   let explanation = "";
@@ -251,7 +248,7 @@ export function generateBridgeYearPlan(
     const gap = annualIncomeGaps[i];
     const isBridge = age >= retirementAge && age < statePensionAge;
 
-    let sources: WithdrawalPriority[] = [];
+    const sources: WithdrawalPriority[] = [];
     let taxableNeeded = gap;
 
     if (isBridge && gap > 0) {

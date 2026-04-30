@@ -75,6 +75,10 @@ export function OnboardingPage() {
         description: `Created via onboarding flow on ${new Date().toLocaleDateString()}`,
       });
 
+      if (!result) {
+        throw new Error("Plan creation returned no result");
+      }
+
       // Redirect to the plan detail page
       navigate({ to: "/plan/$planId", params: { planId: String(result.id) } });
     } catch (error) {
