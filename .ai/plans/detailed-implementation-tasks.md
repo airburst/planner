@@ -679,5 +679,7 @@ public/
 
 ### Next priorities
 
-1. **P6-T1** — Verify electron-builder packaging with updated `src/services/db/migrations` path
-2. **UI depth** — Edit flows for people, accounts, and income streams within plan detail
+1. **P0-T2** — Add strict TypeScript project references and enforce renderer/main import boundaries
+2. **P0-T3** — Add baseline CI workflow for lint, typecheck, and tests on pull requests
+3. **P6-T1** — Verify electron-builder packaging with updated `src/services/db/migrations` path
+4. **UI depth** — Edit flows for people, accounts, and income streams within plan detail

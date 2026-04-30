@@ -81,3 +81,7 @@ decision support, scenario analysis, and tax-aware drawdown planning.
 - shadcn + Tailwind UI system
 - Progressive disclosure: simple defaults first, advanced controls when relevant
 - Accessibility and clarity prioritized over dense financial jargon
+
+## Getting Started
+
+For first-time setup and walkthrough guidance, see `docs/NEW-USER-GUIDE.md`.
