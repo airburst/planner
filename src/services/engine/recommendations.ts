@@ -41,11 +41,22 @@ export function generateRecommendations(
     });
   }
 
-  // Only flag depletion when assets are zero AND the plan can no longer sustain spending.
-  // Plans that never held assets but have sufficient income should not trigger this.
-  const assetDepletionYear = years.find(
-    (year) => year.totalHouseholdAssets === 0 && !year.canSustainSpending
-  );
+  // Only flag depletion when assets were previously positive, then drop to zero,
+  // and the plan can no longer sustain spending.
+  let hadPositiveAssetsBefore = false;
+  let assetDepletionYear: HouseholdYearState | undefined;
+  for (const year of years) {
+    if (year.totalHouseholdAssets > 0) {
+      hadPositiveAssetsBefore = true;
+      continue;
+    }
+
+    if (hadPositiveAssetsBefore && year.totalHouseholdAssets === 0 && !year.canSustainSpending) {
+      assetDepletionYear = year;
+      break;
+    }
+  }
+
   if (assetDepletionYear) {
     recommendations.push({
       id: nextId++,

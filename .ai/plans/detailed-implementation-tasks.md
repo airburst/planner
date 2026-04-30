@@ -537,20 +537,21 @@ Dependencies:
 - P3-T4, P5-T1b
 
 ### P5-T3: Add recommendation invariants tests
-Status: Not started
+Status: Completed (2026-04-30)
 
 Objective:
 - Ensure recommendation quality does not regress.
 
-Implementation tasks:
-1. Define invariants:
-   - No contradictory recommendations (e.g. both "reduce spending" and "increase spending")
-   - Stable priority ordering under unchanged inputs
-   - All rationale fields populated (no empty strings)
-   - Depletion rec only fires after assets were positive
-2. Add tests covering baseline, stressed (depleted assets), and income-only scenarios.
+Implementation:
+- Updated `generateRecommendations()` depletion logic to only trigger when assets were
+  previously positive and later hit zero in an unsustainable year.
+- Added invariant tests in `src/services/engine/recommendations.test.ts` covering:
+  - baseline healthy scenario (no contradictory recommendations)
+  - stressed scenario (stable high->medium priority ordering and non-empty rationale)
+  - income-only scenario (no false depletion recommendation)
+  - depletion gating (must have prior positive assets)
 
-Definition of done:
+Definition of done: ✅
 - Recommendation suite catches ranking and explanation regressions.
 
 Dependencies:
@@ -634,12 +635,13 @@ Sprint exit criteria:
 | P2 | IPC and preload surface | ✅ P2-T1, P2-T2, P2-T3 done |
 | P3 | Calculation engine v1 | ✅ P3-T1 to P3-T5 done |
 | P4 | Renderer app and query integration | ✅ P4-T1, P4-T2, P4-T3, P4-T4 done |
-| P5 | Testing and quality gates | ✅ P5-T1, P5-T1b, P5-T2 done; P5-T3 not started |
+| P5 | Testing and quality gates | ✅ P5-T1, P5-T1b, P5-T2, P5-T3 done |
 | P6 | Packaging and release readiness | ⬜ Not started |
 
 ### Test count
 - Last full baseline run: 103 tests (88 unit + 15 integration)
 - P5-T2 adds 5 golden regression tests in `src/services/engine/golden-projections.test.ts`
+- P5-T3 adds 4 recommendation invariant tests in `src/services/engine/recommendations.test.ts`
 
 ### Source layout (current)
 
@@ -676,7 +678,6 @@ public/
 
 ### Next priorities
 
-1. **P5-T3** — Recommendation invariants tests
-2. **P4-T4 follow-on** — Income phase visualisation (stacked area chart)
-3. **P6-T1** — Verify electron-builder packaging with updated `src/services/db/migrations` path
-4. **UI depth** — Edit flows for people, accounts, and income streams within plan detail
+1. **P4-T4 follow-on** — Income phase visualisation (stacked area chart)
+2. **P6-T1** — Verify electron-builder packaging with updated `src/services/db/migrations` path
+3. **UI depth** — Edit flows for people, accounts, and income streams within plan detail

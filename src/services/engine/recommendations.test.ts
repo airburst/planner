@@ -84,8 +84,9 @@ describe("Recommendation Engine", () => {
     expect(spendingRecommendation?.yearTriggered).toBe(2027);
   });
 
-  it("creates a depletion recommendation when assets hit zero", () => {
+  it("creates a depletion recommendation when assets hit zero after previously being positive", () => {
     const recommendations = generateRecommendations(99, [
+      createHouseholdYearState({ year: 2031, totalHouseholdAssets: 10000, canSustainSpending: true }),
       createHouseholdYearState({ year: 2032, totalHouseholdAssets: 0, canSustainSpending: false }),
     ]);
 
@@ -161,5 +162,115 @@ describe("Recommendation Engine", () => {
     const secondRun = generateRecommendations(99, years);
 
     expect(secondRun).toEqual(firstRun);
+  });
+
+  it("does not create depletion recommendation when assets never become positive", () => {
+    const recommendations = generateRecommendations(99, [
+      createHouseholdYearState({ year: 2029, totalHouseholdAssets: 0, canSustainSpending: false }),
+      createHouseholdYearState({ year: 2030, totalHouseholdAssets: 0, canSustainSpending: false }),
+    ]);
+
+    const depletionRecommendation = recommendations.find((item) => item.title.includes("depletion"));
+    expect(depletionRecommendation).toBeUndefined();
+  });
+
+  it("produces no contradictory recommendations in a baseline healthy scenario", () => {
+    const recommendations = generateRecommendations(99, [
+      createHouseholdYearState({
+        year: 2026,
+        canSustainSpending: true,
+        totalHouseholdAssets: 250000,
+      }),
+      createHouseholdYearState({
+        year: 2027,
+        canSustainSpending: true,
+        totalHouseholdAssets: 260000,
+      }),
+    ]);
+
+    expect(recommendations).toEqual([]);
+    expect(recommendations.some((item) => item.title.toLowerCase().includes("reduce spending"))).toBe(false);
+    expect(recommendations.some((item) => item.title.toLowerCase().includes("increase spending"))).toBe(false);
+  });
+
+  it("keeps priority ordering stable and all rationale fields populated in stressed scenario", () => {
+    const taperedTax = createTaxBreakdown({
+      year: 2031,
+      totalIncome: 110000,
+      personalAllowance: 7570,
+      totalTax: 33432,
+      effectiveTaxRate: 33432 / 110000,
+    });
+
+    const stressedYear = createHouseholdYearState({
+      year: 2031,
+      canSustainSpending: false,
+      totalHouseholdAssets: 0,
+      people: new Map([
+        [
+          1,
+          createPersonYearState(taperedTax, {
+            withdrawalDetails: [
+              {
+                accountId: 1,
+                accountType: "sipp",
+                amountWithdrawn: 12000,
+                taxableComponent: 9000,
+                taxFreeComponent: 3000,
+              },
+            ],
+          }),
+        ],
+      ]),
+      taxBreakdown: {
+        year: 2031,
+        people: new Map([[1, taperedTax]]),
+        totalTax: taperedTax.totalTax,
+        effectiveRate: taperedTax.effectiveTaxRate,
+      },
+    });
+
+    const recommendations = generateRecommendations(99, [
+      createHouseholdYearState({ year: 2030, totalHouseholdAssets: 50000, canSustainSpending: true }),
+      stressedYear,
+    ]);
+
+    const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
+    for (let i = 1; i < recommendations.length; i++) {
+      expect(priorityOrder[recommendations[i - 1].priority]).toBeLessThanOrEqual(
+        priorityOrder[recommendations[i].priority]
+      );
+    }
+
+    for (const recommendation of recommendations) {
+      expect(recommendation.rationale.trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it("does not emit depletion recommendation for income-only scenario with zero assets", () => {
+    const incomeTax = createTaxBreakdown({
+      year: 2035,
+      totalIncome: 40000,
+      totalTax: 5486,
+      effectiveTaxRate: 5486 / 40000,
+    });
+
+    const recommendations = generateRecommendations(99, [
+      createHouseholdYearState({
+        year: 2035,
+        totalHouseholdIncome: 40000,
+        totalHouseholdAssets: 0,
+        canSustainSpending: true,
+        people: new Map([[1, createPersonYearState(incomeTax)]]),
+        taxBreakdown: {
+          year: 2035,
+          people: new Map([[1, incomeTax]]),
+          totalTax: incomeTax.totalTax,
+          effectiveRate: incomeTax.effectiveTaxRate,
+        },
+      }),
+    ]);
+
+    expect(recommendations.find((item) => item.title.includes("depletion"))).toBeUndefined();
   });
 });
