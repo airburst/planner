@@ -1,4 +1,4 @@
-import { OnboardingState } from "../index";
+import { OnboardingState } from "../types";
 
 interface Props {
   state: OnboardingState;
