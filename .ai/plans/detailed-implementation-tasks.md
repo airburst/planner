@@ -511,20 +511,25 @@ Dependencies:
 - P3-T5, P5-T1
 
 ### P5-T2: Add golden projection test cases
-Status: Not started
+Status: Completed (2026-04-30)
 
 Objective:
 - Lock expected outcomes for benchmark personas to catch engine regressions.
 
-Implementation tasks:
-1. Define 3–5 benchmark personas (e.g. single early retiree, couple with DB+State Pension,
-   high earner in tax-trap bracket, SIPP-heavy drawdown scenario).
-2. Add fixture files with person/account/income-stream inputs and expected annual output rows.
-3. Tests assert exact totalHouseholdIncome, totalHouseholdTax, and totalHouseholdAssets
-   for each year of the projection.
-4. Any engine change that shifts golden outputs requires a deliberate fixture update.
+Implementation:
+- Added fixture module at `src/services/engine/fixtures/golden-projections.ts` with 4
+  benchmark personas:
+  1) single early retiree bridge years
+  2) partner-mode couple with DB + state pension timing offsets
+  3) high earner in personal allowance taper bracket
+  4) SIPP-heavy drawdown case
+- Each fixture includes full person/account/income-stream inputs plus expected annual rows.
+- Added `src/services/engine/golden-projections.test.ts` asserting exact equality for
+  `totalHouseholdIncome`, `totalHouseholdTax`, and `totalHouseholdAssets` by year.
+- Suite includes explicit coverage check that benchmark count is within 3-5 and that at
+  least one bridge-year and one partner-tax scenario are present.
 
-Definition of done:
+Definition of done: ✅
 - Engine changes show clear pass/fail against golden outputs.
 - At least one bridge-year scenario and one partner-tax scenario included.
 
@@ -629,11 +634,12 @@ Sprint exit criteria:
 | P2 | IPC and preload surface | ✅ P2-T1, P2-T2, P2-T3 done |
 | P3 | Calculation engine v1 | ✅ P3-T1 to P3-T5 done |
 | P4 | Renderer app and query integration | ✅ P4-T1, P4-T2, P4-T3, P4-T4 done |
-| P5 | Testing and quality gates | ✅ P5-T1, P5-T1b done; P5-T2, P5-T3 not started |
+| P5 | Testing and quality gates | ✅ P5-T1, P5-T1b, P5-T2 done; P5-T3 not started |
 | P6 | Packaging and release readiness | ⬜ Not started |
 
 ### Test count
-- 103 tests total: 88 unit + 15 integration (all passing)
+- Last full baseline run: 103 tests (88 unit + 15 integration)
+- P5-T2 adds 5 golden regression tests in `src/services/engine/golden-projections.test.ts`
 
 ### Source layout (current)
 
@@ -657,7 +663,6 @@ src/
                     recommendations.ts, runtime.ts + colocated *.test.ts files
   tests/
     integration/    plans, accounts, income-streams, projections tests
-    unit/           engine, phased-income, withdrawal-strategy tests
   types/            electron.d.ts
 public/
   electron.js       main process
@@ -671,8 +676,7 @@ public/
 
 ### Next priorities
 
-1. **P5-T2** — Golden projection test cases (benchmark personas, regression safety)
-2. **P5-T3** — Recommendation invariants tests
-3. **P4-T4 follow-on** — Income phase visualisation (stacked area chart)
-4. **P6-T1** — Verify electron-builder packaging with updated `src/services/db/migrations` path
-5. **UI depth** — Edit flows for people, accounts, and income streams within plan detail
+1. **P5-T3** — Recommendation invariants tests
+2. **P4-T4 follow-on** — Income phase visualisation (stacked area chart)
+3. **P6-T1** — Verify electron-builder packaging with updated `src/services/db/migrations` path
+4. **UI depth** — Edit flows for people, accounts, and income streams within plan detail
