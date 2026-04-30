@@ -13,5 +13,8 @@ export const queryKeys = {
   incomeStreams: {
     all: ["income-streams"] as const,
     byPlan: (planId: number) => ["income-streams", "plan", planId] as const
+  },
+  projection: {
+    forPlan: (planId: number) => ["projection", "plan", planId] as const
   }
 };
