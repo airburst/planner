@@ -22,6 +22,7 @@ export interface OnboardingState {
   // Income phases
   hasDbPension: boolean;
   dbPensionAge?: number;
+  dbPensionAnnualAmount?: number;
   hasStatePension: boolean;
   statePensionAge?: number;
 

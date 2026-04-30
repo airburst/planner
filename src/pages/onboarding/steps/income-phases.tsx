@@ -5,6 +5,9 @@ interface Props {
   onChange: (updates: Partial<OnboardingState>) => void;
 }
 
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(value);
+
 export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
   return (
     <div className="space-y-6">
@@ -49,6 +52,29 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>55</span>
                 <span>75</span>
+              </div>
+
+              <div className="flex items-center justify-between mt-4">
+                <label htmlFor="db-amount" className="text-sm font-medium">
+                  Annual DB pension amount
+                </label>
+                <span className="text-lg font-semibold text-primary">
+                  {formatCurrency(state.dbPensionAnnualAmount ?? 0)}
+                </span>
+              </div>
+              <input
+                id="db-amount"
+                type="range"
+                min="0"
+                max="60000"
+                step="500"
+                value={state.dbPensionAnnualAmount ?? 0}
+                onChange={(e) => onChange({ dbPensionAnnualAmount: Number(e.target.value) })}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>£0</span>
+                <span>£60k</span>
               </div>
             </div>
           )}
@@ -96,12 +122,12 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
       <div className="rounded-md bg-muted p-4">
         <p className="text-sm text-muted-foreground">
           {state.hasDbPension && state.hasStatePension
-            ? `You'll have DB pension at ${state.dbPensionAge} and State Pension at ${state.statePensionAge}.`
+            ? `DB pension of ${formatCurrency(state.dbPensionAnnualAmount ?? 0)}/yr at ${state.dbPensionAge} and State Pension at ${state.statePensionAge}.`
             : state.hasDbPension
-            ? `You'll have DB pension at ${state.dbPensionAge}.`
-            : state.hasStatePension
-            ? `You'll have State Pension at ${state.statePensionAge}.`
-            : "You'll rely on your savings for retirement income."}
+              ? `DB pension of ${formatCurrency(state.dbPensionAnnualAmount ?? 0)}/yr at ${state.dbPensionAge}.`
+              : state.hasStatePension
+                ? `You'll have State Pension at ${state.statePensionAge}.`
+                : "You'll rely on your savings for retirement income."}
         </p>
       </div>
     </div>

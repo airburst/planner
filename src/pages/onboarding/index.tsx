@@ -1,4 +1,7 @@
 import { Button } from "@/components/ui/button";
+import { useCreateAccount } from "@/hooks/use-accounts";
+import { useCreateIncomeStream } from "@/hooks/use-income-streams";
+import { useCreatePerson } from "@/hooks/use-people";
 import { useCreatePlan } from "@/hooks/use-plans";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -13,6 +16,9 @@ import type { OnboardingState } from "./types";
 export function OnboardingPage() {
   const navigate = useNavigate();
   const createPlan = useCreatePlan();
+  const createPerson = useCreatePerson();
+  const createAccount = useCreateAccount();
+  const createIncomeStream = useCreateIncomeStream();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [state, setState] = useState<OnboardingState>({
     primaryPersonName: "",
@@ -44,16 +50,74 @@ export function OnboardingPage() {
   const handleComplete = async () => {
     try {
       const planName = `${state.primaryPersonName}'s Plan`;
-      const result = await createPlan.mutateAsync({
+      const plan = await createPlan.mutateAsync({
         name: planName,
         description: `Created via onboarding flow on ${new Date().toLocaleDateString()}`,
       });
 
-      if (!result) {
-        throw new Error("Plan creation returned no result");
+      if (!plan) throw new Error("Plan creation returned no result");
+
+      // Create primary person
+      const primaryPerson = await createPerson.mutateAsync({
+        planId: plan.id,
+        role: "primary",
+        firstName: state.primaryPersonName,
+        retirementAge: state.primaryRetirementAge,
+        statePensionAge: state.statePensionAge,
+      });
+
+      if (!primaryPerson) throw new Error("Person creation returned no result");
+
+      // Create partner if applicable
+      if (state.hasPartner && state.partnerName) {
+        await createPerson.mutateAsync({
+          planId: plan.id,
+          role: "partner",
+          firstName: state.partnerName,
+          retirementAge: state.partnerRetirementAge ?? state.primaryRetirementAge,
+        });
       }
 
-      navigate({ to: "/plan/$planId", params: { planId: String(result.id) } });
+      // Create account — map "mixed" to "sipp" as the primary retirement wrapper
+      const wrapperTypeMap = { cash: "cash", isa: "isa", sipp: "sipp", mixed: "sipp" } as const;
+      const accountNameMap = { cash: "Cash Savings", isa: "ISA", sipp: "SIPP", mixed: "SIPP" };
+      await createAccount.mutateAsync({
+        planId: plan.id,
+        personId: primaryPerson.id,
+        name: accountNameMap[state.accountType],
+        wrapperType: wrapperTypeMap[state.accountType],
+        currentBalance: state.currentSavings,
+        annualContribution: 0,
+      });
+
+      // Create income streams
+      if (state.hasStatePension) {
+        await createIncomeStream.mutateAsync({
+          planId: plan.id,
+          personId: primaryPerson.id,
+          streamType: "state_pension",
+          name: "State Pension",
+          startAge: state.statePensionAge ?? 67,
+          annualAmount: 11502, // UK full new state pension (2024/25)
+          inflationLinked: true,
+          taxable: true,
+        });
+      }
+
+      if (state.hasDbPension) {
+        await createIncomeStream.mutateAsync({
+          planId: plan.id,
+          personId: primaryPerson.id,
+          streamType: "db_pension",
+          name: "DB Pension",
+          startAge: state.dbPensionAge ?? 60,
+          annualAmount: state.dbPensionAnnualAmount ?? 0,
+          inflationLinked: true,
+          taxable: true,
+        });
+      }
+
+      navigate({ to: "/plan/$planId", params: { planId: String(plan.id) } });
     } catch (error) {
       console.error("Failed to create plan:", error);
     }
@@ -116,9 +180,9 @@ export function OnboardingPage() {
         {currentStepIndex === STEPS.length - 1 ? (
           <Button
             onClick={handleComplete}
-            disabled={!state.primaryPersonName || createPlan.isPending}
+            disabled={!state.primaryPersonName || createPlan.isPending || createPerson.isPending || createAccount.isPending || createIncomeStream.isPending}
           >
-            {createPlan.isPending ? "Creating..." : "Complete & Create Plan"}
+            {(createPlan.isPending || createPerson.isPending || createAccount.isPending || createIncomeStream.isPending) ? "Creating..." : "Complete & Create Plan"}
           </Button>
         ) : (
           <Button onClick={handleNext}>

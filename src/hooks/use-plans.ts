@@ -34,3 +34,14 @@ export function useUpdatePlan() {
     }
   });
 }
+
+export function useDeletePlan() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => getElectronApi().deletePlan(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.plans.all });
+    }
+  });
+}
