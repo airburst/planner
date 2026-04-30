@@ -9,7 +9,8 @@ TanStack Start + React, TanStack Query, and a preload IPC bridge.
 public/electron.js      Main process (Node)      -> app lifecycle, windows, IPC, DB access
 public/preload.js       Preload bridge           -> typed, minimal API exposed to renderer
 src/                    Renderer (TanStack Start)-> routes, UI, query hooks, view models
-src/main/db/            Persistence layer        -> schema, migrations, query functions
+src/services/db/        Persistence layer        -> schema, migrations, query functions
+src/services/engine/    Calculation engine       -> projection loop, tax, recommendations
 ```
 
 Security model:
@@ -72,7 +73,7 @@ Drizzle ORM is the source of truth for schema definitions.
 Recommended structure:
 
 ```
-src/main/db/
+src/services/db/
   schema.ts
   index.ts
   migrations/
@@ -93,12 +94,35 @@ Rule:
 
 ## 6) Renderer Composition
 
-TanStack Start + React renderer responsibilities:
+TanStack Router + React renderer responsibilities:
 
 - route-driven screens (onboarding, dashboard, scenarios, assumptions, income path)
 - TanStack Query hooks for IPC-backed queries/mutations
 - optimistic updates for UX responsiveness where safe
 - shadcn + Tailwind UI primitives and layout system
+
+**Source layout under `src/`:**
+
+```
+src/
+  components/       shadcn/ui primitives (button, badge, etc.)
+  hooks/            TanStack Query hooks (use-plans, use-people, etc.)
+  lib/              shared utilities (utils.ts, electron-api.ts)
+  pages/            page components, one folder per route
+    index.tsx       HomePage (plan list)
+    onboarding/     5-step onboarding wizard
+    plan/[id]/      plan detail + projection UI
+  router.tsx        TanStack Router route tree
+  main.tsx          renderer entry point
+  index.css         global styles
+  services/         Node-side services (DB + engine)
+    db/             Drizzle schema, migrations, index
+    engine/         simulation core, tax, recommendations
+  tests/            Vitest test suites
+    integration/    IPC + SQLite behavior
+    unit/           pure domain logic
+  types/            electron.d.ts and shared TypeScript types
+```
 
 State model:
 
@@ -132,6 +156,9 @@ src/tests/
   integration/   IPC + SQLite behavior
   unit/          pure modeling and recommendation logic
 ```
+
+Colocated engine tests also live alongside their source files in `src/services/engine/`.
+The `vitest.config.ts` includes both `src/tests/**/*.test.ts` and `src/services/**/*.test.ts`.
 
 Planner-critical test categories:
 

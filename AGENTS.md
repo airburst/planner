@@ -60,6 +60,24 @@ npm rebuild better-sqlite3
 5. TanStack Query in renderer is the source of server-state truth.
 6. Keep domain/calculation logic testable outside Electron wherever possible.
 
+**Source layout:**
+
+```
+src/
+  components/     shadcn/ui primitives
+  hooks/          TanStack Query hooks
+  lib/            shared utilities + electron-api bridge
+  pages/          route-level React components (one folder per route)
+  router.tsx      TanStack Router route tree
+  main.tsx        renderer entry point
+  index.css       global styles
+  services/       Node-side modules (DB and engine) — never import in renderer
+    db/           Drizzle schema, migrations, index
+    engine/       projection loop, tax pipeline, recommendations
+  tests/          Vitest suites (integration/ and unit/)
+  types/          electron.d.ts and shared TS types
+```
+
 ---
 
 ## Database & Migration Rules

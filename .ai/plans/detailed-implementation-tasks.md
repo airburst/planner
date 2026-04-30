@@ -22,7 +22,7 @@ Objective:
 
 Implementation tasks:
 1. Confirm scripts in package manifest for start, build, lint, check-types, test, db:migrate, changeset.
-2. Confirm baseline folders exist: public/ipc, src/main/db, src/renderer, src/types, src/tests/integration, src/tests/unit.
+2. Confirm baseline folders exist: public/ipc, src/services/db, src/hooks, src/types, src/tests/integration, src/tests/unit.
 3. Add placeholder readme files in empty critical folders if needed.
 
 Definition of done:
@@ -73,7 +73,7 @@ Objective:
 - Implement first-pass schema matching Planner core entities.
 
 Implementation tasks:
-1. Define tables in src/main/db/schema.ts:
+1. Define tables in src/services/db/schema.ts:
 - household_plans
 - people
 - accounts
@@ -121,7 +121,7 @@ Objective:
 - Provide stable SQLite initialization for app and tests.
 
 Implementation tasks:
-1. Implement src/main/db/index.ts setup function.
+1. Implement src/services/db/index.ts setup function.
 2. Enable WAL and pragmatic defaults.
 3. Add helper for in-memory DB in tests.
 
@@ -201,12 +201,12 @@ Objective:
 - Build projection loop with transparent year-by-year state.
 
 Implementation:
-- src/main/engine/types.ts: Complete domain model with UK 2026 tax assumptions
+- src/services/engine/types.ts: Complete domain model with UK 2026 tax assumptions
   - PersonContext, AccountContext, IncomeStreamContext types
   - PersonYearState, HouseholdYearState annual state tracking
   - AssumptionSet with progressive UK tax bands (PA £12,570, basic £50,270, higher £125,140)
   - WithdrawalStrategy configuration
-- src/main/engine/index.ts: Core simulation with 8 exported functions
+- src/services/engine/index.ts: Core simulation with 8 exported functions
   - calculateAgeInYear(), isIncomeStreamActive(), calculateIncomeForStream()
   - calculateGrowth(), calculatePersonalTax()
   - projectPersonYear() - single-year projection with withdrawal strategy
@@ -236,7 +236,7 @@ Objective:
 - Handle overlapping income phases by person and stream type.
 
 Implementation:
-- src/main/engine/phased-income.ts: Sophisticated income phase handling (350+ lines)
+- src/services/engine/phased-income.ts: Sophisticated income phase handling (350+ lines)
   - getActiveIncomeStreamsForYear(): Age-based stream activation with inflation indexing
   - calculatePersonIncomePhase(): Single-year income composition and aggregation
   - generatePersonIncomeReport(): Multi-year income trajectory analysis
@@ -269,7 +269,7 @@ Objective:
 - Cover pre-State-Pension funding years with explicit source ordering.
 
 Implementation:
-- src/main/engine/withdrawal-strategy.ts: Tax-efficient withdrawal handling (250+ lines)
+- src/services/engine/withdrawal-strategy.ts: Tax-efficient withdrawal handling (250+ lines)
   - getDefaultWithdrawalStrategy(): UK-optimized priority (cash → ISA → SIPP → other)
   - calculateBridgeYears(): Identify gap between retirement and State Pension age
   - calculateWithdrawal(): Tax implications per account type
@@ -331,7 +331,7 @@ Objective:
 - Produce explainable top actions based on deterministic outputs.
 
 Implementation:
-- src/main/engine/recommendations.ts: generateRecommendations(projectionRunId, years)
+- src/services/engine/recommendations.ts: generateRecommendations(projectionRunId, years)
   - Rule 1 (high): first year spending is unsustainable
   - Rule 2 (high): asset depletion — only fires when assets hit zero AND plan cannot sustain
     spending (income-only plans do not trigger spurious depletion warnings)
@@ -339,7 +339,7 @@ Implementation:
   - Rule 4 (medium): taxable withdrawals present — review drawdown sequencing
   - All recommendations carry id, projectionRunId, priority, category, title, description,
     rationale, yearTriggered
-- src/main/engine/runtime.ts: bundle entry re-exporting engine + recommendations for Vite CJS build
+- src/services/engine/runtime.ts: bundle entry re-exporting engine + recommendations for Vite CJS build
 - vite.main.config.ts: engine entry point added, output as public/engine.js
 - public/ipc/projections.js: projections:runForPlan handler — queries DB, maps schema rows to
   engine types, calls runProjection() + generateRecommendations(), returns ProjectionResult
@@ -442,21 +442,27 @@ Dependencies:
 - P4-T2 (Completed)
 
 ### P4-T4: Implement scenario detail states
-Status: Not started
+Status: Completed (2026-04-30)
 
 Objective:
 - Display scenario health and recommendation details.
 
-Implementation tasks:
-1. Add useProjection() query hook that calls runProjectionForPlan() via IPC.
-2. Build projection summary card (total years covered, sustainability status, asset end-value).
-3. Build year-by-year timeline table (income, tax, withdrawals, assets).
-4. Add recommendation panel listing all recommendations with priority badge and rationale text.
-5. Visualise income phases using a stacked bar or area chart.
+Implementation:
+- useProjection() hook in src/hooks/use-projection.ts; staleTime 30s, retry disabled
+- query-keys.ts: projection.forPlan(planId) key added
+- badge.tsx: Badge component with high/medium/low/success/muted variants
+- PlanDetailPage rewritten with per-file component extraction:
+  - ProjectionSummary: sustainability status, end assets, total tax, total drawdown
+  - RecommendationPanel: priority-sorted recommendation cards with Badge and rationale
+  - ProjectionTable: scrollable year-by-year table (income/tax/eff-rate/drawdown/assets/status)
+  - ProjectionError: error state with retry button
+  - utils.ts: fmt() and pct() formatting helpers
+- Loading, error (with retry), and empty states handled
+- All plan/[id]/ components extracted to individual files (one-component-per-file)
 
-Definition of done:
+Definition of done: ✅
 - Scenario detail reflects projection and recommendation outputs accurately.
-- Recommendation rationale text is visible to the user.
+- Recommendation rationale text visible to user.
 
 Dependencies:
 - P3-T5, P4-T2
@@ -495,7 +501,7 @@ Implementation:
   - Partner mode: per-person tax lower than pooled-income equivalent
   - Recommendations: no false positives, depletion and withdrawal recs triggered correctly
 - helpers/ipc.ts: projections handler registered in registerPlannerHandlers()
-- vitest.config.ts: test discovery widened to include src/main/**/*.test.ts
+- vitest.config.ts: test discovery widened to include src/services/**/*.test.ts
   (colocated engine tests now discovered alongside integration suite)
 
 Definition of done: ✅
@@ -609,3 +615,64 @@ Sprint exit criteria:
 - Projection year rows are persisted.
 - One integration test suite covers plan creation and projection run.
 - lint and check-types pass.
+
+---
+
+## Current status — 2026-04-30
+
+### Completed phases
+
+| Phase | Tasks | Status |
+|-------|-------|--------|
+| P0 | Foundation and repository readiness | ✅ P0-T1 done; P0-T2 (tsconfig split) and P0-T3 (CI) deferred |
+| P1 | Database and domain schema | ✅ P1-T1, P1-T2, P1-T3 done |
+| P2 | IPC and preload surface | ✅ P2-T1, P2-T2, P2-T3 done |
+| P3 | Calculation engine v1 | ✅ P3-T1 to P3-T5 done |
+| P4 | Renderer app and query integration | ✅ P4-T1, P4-T2, P4-T3, P4-T4 done |
+| P5 | Testing and quality gates | ✅ P5-T1, P5-T1b done; P5-T2, P5-T3 not started |
+| P6 | Packaging and release readiness | ⬜ Not started |
+
+### Test count
+- 103 tests total: 88 unit + 15 integration (all passing)
+
+### Source layout (current)
+
+```
+src/
+  components/       shadcn/ui primitives (button.tsx, badge.tsx)
+  hooks/            TanStack Query hooks (use-plans, use-people, use-accounts,
+                    use-income-streams, use-projection, query-keys)
+  lib/              utils.ts, electron-api.ts
+  pages/
+    index.tsx       HomePage
+    onboarding/     5-step wizard (index.tsx + steps/ + types.ts + constants.ts)
+    plan/[id]/      PlanDetailPage + ProjectionSummary, RecommendationPanel,
+                    ProjectionTable, ProjectionError, utils.ts
+  router.tsx
+  main.tsx
+  index.css
+  services/
+    db/             schema.ts, index.ts, migrations/
+    engine/         index.ts, types.ts, phased-income.ts, withdrawal-strategy.ts,
+                    recommendations.ts, runtime.ts + colocated *.test.ts files
+  tests/
+    integration/    plans, accounts, income-streams, projections tests
+    unit/           engine, phased-income, withdrawal-strategy tests
+  types/            electron.d.ts
+public/
+  electron.js       main process
+  preload.js        contextBridge
+  db.js             bundled DB module (built from src/services/db/)
+  engine.js         bundled engine module (built from src/services/engine/)
+  ipc/              plans.js, people.js, accounts.js, income-streams.js,
+                    projections.js, assumption-sets.js, scenarios.js,
+                    expense-profiles.js
+```
+
+### Next priorities
+
+1. **P5-T2** — Golden projection test cases (benchmark personas, regression safety)
+2. **P5-T3** — Recommendation invariants tests
+3. **P4-T4 follow-on** — Income phase visualisation (stacked area chart)
+4. **P6-T1** — Verify electron-builder packaging with updated `src/services/db/migrations` path
+5. **UI depth** — Edit flows for people, accounts, and income streams within plan detail
