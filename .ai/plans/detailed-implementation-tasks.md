@@ -299,31 +299,58 @@ Dependencies:
 - P3-T1, P3-T2
 
 ### P3-T4: Implement per-person tax pipeline
+Status: Completed (2026-04-30)
+
 Objective:
 - Compute tax by person, then aggregate household result.
 
-Implementation tasks:
-1. Build tax function with per-person inputs.
-2. Apply personal allowance and banded rates from assumptions.
-3. Return person tax details plus household sum.
+Implementation:
+- calculatePersonTaxResult(): classifies income by source (trading/investment/pension/SIPP
+  withdrawals), applies tax-trap-aware personal allowance taper, returns PersonTaxResult with
+  full band breakdown (basicRateTax, higherRateTax, additionalRateTax, effectiveTaxRate)
+- calculateEffectivePersonalAllowance(): standalone helper for £100k taper logic reused
+  by both calculatePersonalTax() and calculatePersonTaxResult()
+- calculateHouseholdTaxResult(): aggregates PersonTaxResult per person into HouseholdTaxResult
+  with combined totalTax and effectiveRate — never pools income before tax
+- PersonYearState and HouseholdYearState types updated to carry taxBreakdown field
+- runProjection() wired to populate taxBreakdown on every year state
+- Tests: partner-mode separation verified against pooled-income comparison; household
+  aggregation from Map<personId, PersonYearState> verified
 
-Definition of done:
-- Partner mode never pools taxable income before tax computation.
+Definition of done: ✅
+- Partner mode never pools taxable income before tax computation
+- All checks passing
 
 Dependencies:
 - P3-T2, P3-T3
 
 ### P3-T5: Implement recommendation rule engine v1
+Status: Completed (2026-04-30)
+
 Objective:
 - Produce explainable top actions based on deterministic outputs.
 
-Implementation tasks:
-1. Define recommendation triggers and priorities.
-2. Generate recommendation records with rationale fields.
-3. Link recommendations to projection run id.
+Implementation:
+- src/main/engine/recommendations.ts: generateRecommendations(projectionRunId, years)
+  - Rule 1 (high): first year spending is unsustainable
+  - Rule 2 (high): asset depletion — only fires when assets hit zero AND plan cannot sustain
+    spending (income-only plans do not trigger spurious depletion warnings)
+  - Rule 3 (medium): personal allowance taper exposure (PA > 0 and < £12,570 for any person)
+  - Rule 4 (medium): taxable withdrawals present — review drawdown sequencing
+  - All recommendations carry id, projectionRunId, priority, category, title, description,
+    rationale, yearTriggered
+- src/main/engine/runtime.ts: bundle entry re-exporting engine + recommendations for Vite CJS build
+- vite.main.config.ts: engine entry point added, output as public/engine.js
+- public/ipc/projections.js: projections:runForPlan handler — queries DB, maps schema rows to
+  engine types, calls runProjection() + generateRecommendations(), returns ProjectionResult
+- public/electron.js: projections handler registered
+- public/preload.js: runProjectionForPlan() exposed via contextBridge
+- src/types/electron.d.ts: ProjectionResult type added with full year + recommendation shape
+- Tests: 5 unit tests in recommendations.test.ts; depletion fix verified
 
-Definition of done:
-- Recommendation outputs are deterministic and explainable.
+Definition of done: ✅
+- Recommendation outputs are deterministic and explainable
+- All checks passing
 
 Dependencies:
 - P3-T1, P3-T4
@@ -415,16 +442,21 @@ Dependencies:
 - P4-T2 (Completed)
 
 ### P4-T4: Implement scenario detail states
+Status: Not started
+
 Objective:
 - Display scenario health and recommendation details.
 
 Implementation tasks:
-1. Build scenario summary cards and timeline views.
-2. Add projection table/graph views.
-3. Add recommendation panel with rationale text.
+1. Add useProjection() query hook that calls runProjectionForPlan() via IPC.
+2. Build projection summary card (total years covered, sustainability status, asset end-value).
+3. Build year-by-year timeline table (income, tax, withdrawals, assets).
+4. Add recommendation panel listing all recommendations with priority badge and rationale text.
+5. Visualise income phases using a stacked bar or area chart.
 
 Definition of done:
 - Scenario detail reflects projection and recommendation outputs accurately.
+- Recommendation rationale text is visible to the user.
 
 Dependencies:
 - P3-T5, P4-T2
@@ -448,37 +480,70 @@ Definition of done:
 Dependencies:
 - P1-T3, P2-T3
 
-### P5-T2: Add golden projection test cases
+### P5-T1b: Add projections IPC integration tests
+Status: Completed (2026-04-30)
+
 Objective:
-- Lock expected outcomes for benchmark personas.
+- Verify end-to-end projection + recommendation path through IPC and real schema.
+
+Implementation:
+- src/tests/integration/projections.test.ts: 15 integration tests across 6 groups
+  - Structure: envelope shape, required year fields, missing-DOB error
+  - Income & tax: age-gated activation, PA boundary, 20% basic rate, determinism
+  - Withdrawals: asset decay under spending pressure, zero tax from ISA-only drawdown
+  - Scenarios: custom assumption set via scenario, plan-level fallback
+  - Partner mode: per-person tax lower than pooled-income equivalent
+  - Recommendations: no false positives, depletion and withdrawal recs triggered correctly
+- helpers/ipc.ts: projections handler registered in registerPlannerHandlers()
+- vitest.config.ts: test discovery widened to include src/main/**/*.test.ts
+  (colocated engine tests now discovered alongside integration suite)
+
+Definition of done: ✅
+- 103 total tests passing (88 unit + 15 integration)
+
+Dependencies:
+- P3-T5, P5-T1
+
+### P5-T2: Add golden projection test cases
+Status: Not started
+
+Objective:
+- Lock expected outcomes for benchmark personas to catch engine regressions.
 
 Implementation tasks:
-1. Implement fixtures for benchmark personas P1 to P7.
-2. Add tests for bridge years and partner tax behavior.
-3. Store expected annual outputs for regression checks.
+1. Define 3–5 benchmark personas (e.g. single early retiree, couple with DB+State Pension,
+   high earner in tax-trap bracket, SIPP-heavy drawdown scenario).
+2. Add fixture files with person/account/income-stream inputs and expected annual output rows.
+3. Tests assert exact totalHouseholdIncome, totalHouseholdTax, and totalHouseholdAssets
+   for each year of the projection.
+4. Any engine change that shifts golden outputs requires a deliberate fixture update.
 
 Definition of done:
 - Engine changes show clear pass/fail against golden outputs.
+- At least one bridge-year scenario and one partner-tax scenario included.
 
 Dependencies:
-- P3-T4
+- P3-T4, P5-T1b
 
 ### P5-T3: Add recommendation invariants tests
+Status: Not started
+
 Objective:
 - Ensure recommendation quality does not regress.
 
 Implementation tasks:
 1. Define invariants:
-- no contradictory recommendations
-- stable priority under unchanged inputs
-- rationale populated
-2. Add tests covering baseline and stressed scenarios.
+   - No contradictory recommendations (e.g. both "reduce spending" and "increase spending")
+   - Stable priority ordering under unchanged inputs
+   - All rationale fields populated (no empty strings)
+   - Depletion rec only fires after assets were positive
+2. Add tests covering baseline, stressed (depleted assets), and income-only scenarios.
 
 Definition of done:
 - Recommendation suite catches ranking and explanation regressions.
 
 Dependencies:
-- P3-T5
+- P3-T5, P5-T1b
 
 ## Phase 6: Packaging and release readiness
 
