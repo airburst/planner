@@ -2,19 +2,19 @@ import { HomePage } from "@/pages";
 import { OnboardingPage } from "@/pages/onboarding";
 import { PlanDetailPage } from "@/pages/plan/[id]";
 import {
-    Link,
-    Outlet,
-    RouterProvider,
-    createRootRoute,
-    createRoute,
-    createRouter
+  Link,
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter
 } from "@tanstack/react-router";
 
 function RootLayout() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-card/50">
-        <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-3">
+        <div className="mx-auto flex items-center gap-4 px-6 py-3">
           <p className="font-semibold">Planner</p>
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
             Plans

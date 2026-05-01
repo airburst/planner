@@ -39,7 +39,7 @@ export function PlanDetailPage() {
 
   if (!selectedPlan) {
     return (
-      <main className="mx-auto max-w-5xl space-y-6 p-6">
+      <main className="mx-auto space-y-6 p-6">
         <section className="rounded-lg border bg-card p-5 text-card-foreground">
           <h2 className="text-lg font-semibold">Plan not found</h2>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -54,7 +54,7 @@ export function PlanDetailPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 p-6">
+    <main className="mx-auto  space-y-6 p-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

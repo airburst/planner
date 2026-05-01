@@ -1,4 +1,4 @@
-const { eq, and } = require("drizzle-orm");
+const { eq } = require("drizzle-orm");
 
 module.exports = function registerScenarioHandlers(ipcMain, db, schema) {
   ipcMain.handle("scenarios:getByPlan", async (_, planId) => {

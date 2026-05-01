@@ -34,6 +34,10 @@ export function OnboardingPage() {
     hasDbPension: false,
     hasStatePension: true,
     statePensionAge: 67,
+    statePensionAnnualAmount: 11502,
+    partnerHasDbPension: false,
+    partnerHasStatePension: true,
+    partnerStatePensionAnnualAmount: 11502,
     annualSpendingTarget: 30000,
     essentialAnnual: 21000,   // 70% default
   });
@@ -78,13 +82,15 @@ export function OnboardingPage() {
       if (!primaryPerson) throw new Error("Failed to create primary person");
 
       // 3. Partner
+      let partnerPerson: { id: number; firstName: string } | null = null;
       if (state.hasPartner && state.partnerName) {
-        await createPerson.mutateAsync({
+        partnerPerson = await createPerson.mutateAsync({
           planId: plan.id,
           role: "partner",
           firstName: state.partnerName,
           dateOfBirth: state.partnerDateOfBirth || null,
           retirementAge: state.partnerRetirementAge ?? state.primaryRetirementAge,
+          statePensionAge: state.partnerStatePensionAge ?? state.statePensionAge,
         });
       }
 
@@ -122,6 +128,35 @@ export function OnboardingPage() {
           name: "DB Pension",
           startAge: state.dbPensionAge ?? 60,
           annualAmount: state.dbPensionAnnualAmount ?? 0,
+          inflationLinked: true,
+          taxable: true,
+        });
+      }
+
+      if (partnerPerson && state.partnerHasStatePension) {
+        await createIncomeStream.mutateAsync({
+          planId: plan.id,
+          personId: partnerPerson.id,
+          streamType: "state_pension",
+          name: `${partnerPerson.firstName}'s State Pension`,
+          startAge: state.partnerStatePensionAge ?? state.statePensionAge ?? 67,
+          annualAmount:
+            state.partnerStatePensionAnnualAmount ??
+            state.statePensionAnnualAmount ??
+            11502,
+          inflationLinked: true,
+          taxable: true,
+        });
+      }
+
+      if (partnerPerson && state.partnerHasDbPension) {
+        await createIncomeStream.mutateAsync({
+          planId: plan.id,
+          personId: partnerPerson.id,
+          streamType: "db_pension",
+          name: `${partnerPerson.firstName}'s DB Pension`,
+          startAge: state.partnerDbPensionAge ?? state.dbPensionAge ?? 60,
+          annualAmount: state.partnerDbPensionAnnualAmount ?? 0,
           inflationLinked: true,
           taxable: true,
         });

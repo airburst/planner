@@ -125,14 +125,50 @@ export function ScenarioModal({
             />
           </div>
 
-          <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-            <p className="font-semibold mb-2">
-              ℹ️ You can set scenario-specific overrides after creating it
+          <div className="rounded-lg bg-muted/50 p-3 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground">
+              Optional overrides
             </p>
-            <p>
-              Add different retirement ages, spending targets, or growth rates to
-              compare against your base plan.
-            </p>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-card-foreground">
+                Retirement age (primary person)
+              </label>
+              <input
+                type="number"
+                placeholder="Leave blank for no change"
+                value={retirementAge}
+                onChange={(e) => setRetirementAge(e.target.value)}
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-card-foreground">
+                Annual spending (£)
+              </label>
+              <input
+                type="number"
+                placeholder="Leave blank for no change"
+                value={spendingTarget}
+                onChange={(e) => setSpendingTarget(e.target.value)}
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-card-foreground">
+                Investment return (e.g. 0.03 = 3% real return)
+              </label>
+              <input
+                type="number"
+                placeholder="Leave blank for no change"
+                step="0.01"
+                value={growthRate}
+                onChange={(e) => setGrowthRate(e.target.value)}
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
           </div>
 
           <div className="flex gap-2 justify-end pt-2">

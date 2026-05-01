@@ -27,6 +27,13 @@ export interface OnboardingState {
   dbPensionAnnualAmount?: number;
   hasStatePension: boolean;
   statePensionAge?: number;
+  statePensionAnnualAmount?: number;
+  partnerHasDbPension?: boolean;
+  partnerDbPensionAge?: number;
+  partnerDbPensionAnnualAmount?: number;
+  partnerHasStatePension?: boolean;
+  partnerStatePensionAge?: number;
+  partnerStatePensionAnnualAmount?: number;
 
   // Spending target
   annualSpendingTarget: number;

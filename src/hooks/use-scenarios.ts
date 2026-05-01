@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
+const PROJECTION_YEARS = 30;
+
 export function useScenariosByPlan(planId: number) {
   return useQuery({
     queryKey: queryKeys.scenarios.forPlan(planId),
@@ -114,5 +116,22 @@ export function useSetScenarioOverrides() {
         queryKey: queryKeys.projection.forPlan(variables.planId),
       });
     },
+  });
+}
+
+export function useScenarioProjection(scenarioId: number | null) {
+  return useQuery({
+    queryKey: [...queryKeys.scenarios.byId(scenarioId), "projection"],
+    queryFn: async () => {
+      if (!scenarioId) return null;
+      const startYear = new Date().getFullYear();
+      return window.api.runProjectionForScenario(scenarioId, {
+        startYear,
+        endYear: startYear + PROJECTION_YEARS,
+      });
+    },
+    enabled: !!scenarioId,
+    staleTime: 30_000,
+    retry: false,
   });
 }

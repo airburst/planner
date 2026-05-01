@@ -4,8 +4,12 @@ const gbpFormatter = new Intl.NumberFormat("en-GB", {
   maximumFractionDigits: 0,
 });
 
-export function fmt(n: number): string {
+export function formatCurrency(n: number): string {
   return gbpFormatter.format(n);
+}
+
+export function fmt(n: number): string {
+  return formatCurrency(n);
 }
 
 export function pct(n: number): string {

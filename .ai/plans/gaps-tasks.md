@@ -652,3 +652,9 @@ needed to close it.
 **DoD**: A user with £50k savings, no contributions, and 10 years to retirement on a
 £30k/yr spending target sees a recommendation with a specific annual contribution figure.
 
+
+---
+
+### User acceptance testing phase
+
+TODO: Generate scenarios with steps for manual, and then automated e2e tests.  Ensure that data is persisted.

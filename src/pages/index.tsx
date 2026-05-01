@@ -85,7 +85,7 @@ export function HomePage() {
   }, [editingPlanId]);
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 p-6">
+    <main className="mx-auto space-y-6 p-6">
       <h1 className="text-3xl font-semibold tracking-tight">Planner</h1>
       <p className="text-muted-foreground">
         Long-term retirement and financial planning

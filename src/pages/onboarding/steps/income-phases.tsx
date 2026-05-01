@@ -9,7 +9,142 @@ interface Props {
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(value);
 
+function PersonIncomeSection({
+  title,
+  hasDbPension,
+  onHasDbPensionChange,
+  dbPensionAge,
+  onDbPensionAgeChange,
+  dbPensionAnnualAmount,
+  onDbPensionAnnualAmountChange,
+  hasStatePension,
+  onHasStatePensionChange,
+  statePensionAge,
+  onStatePensionAgeChange,
+}: {
+  title: string;
+  hasDbPension: boolean;
+  onHasDbPensionChange: (next: boolean) => void;
+  dbPensionAge: number;
+  onDbPensionAgeChange: (next: number) => void;
+  dbPensionAnnualAmount: number;
+  onDbPensionAnnualAmountChange: (next: number) => void;
+  hasStatePension: boolean;
+  onHasStatePensionChange: (next: boolean) => void;
+  statePensionAge: number;
+  onStatePensionAgeChange: (next: number) => void;
+}) {
+  return (
+    <section className="space-y-4 rounded-md border p-4">
+      <h3 className="text-sm font-semibold text-muted-foreground">{title}</h3>
+
+      <div className="space-y-3 rounded-md border p-4">
+        <label className="flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            checked={hasDbPension}
+            onChange={(e) => onHasDbPensionChange(e.target.checked)}
+            className="h-4 w-4 rounded border border-input"
+          />
+          <span className="text-sm font-medium">Defined benefit (DB) pension</span>
+        </label>
+
+        {hasDbPension && (
+          <div className="mt-4 space-y-2 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">DB pension starts at age</label>
+              <span className="text-lg font-semibold text-primary">{dbPensionAge}</span>
+            </div>
+            <Slider
+              value={dbPensionAge}
+              onValueChange={onDbPensionAgeChange}
+              min={55}
+              max={75}
+              step={1}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>55</span>
+              <span>75</span>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between">
+              <label className="text-sm font-medium">Annual DB pension amount</label>
+              <span className="text-lg font-semibold text-primary">
+                {formatCurrency(dbPensionAnnualAmount)}
+              </span>
+            </div>
+            <Slider
+              value={dbPensionAnnualAmount}
+              onValueChange={onDbPensionAnnualAmountChange}
+              min={0}
+              max={60000}
+              step={500}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>£0</span>
+              <span>£60k</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3 rounded-md border p-4">
+        <label className="flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            checked={hasStatePension}
+            onChange={(e) => onHasStatePensionChange(e.target.checked)}
+            className="h-4 w-4 rounded border border-input"
+          />
+          <span className="text-sm font-medium">State Pension</span>
+        </label>
+
+        {hasStatePension && (
+          <div className="mt-4 space-y-2 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">State Pension starts at age</label>
+              <span className="text-lg font-semibold text-primary">{statePensionAge}</span>
+            </div>
+            <Slider
+              value={statePensionAge}
+              onValueChange={onStatePensionAgeChange}
+              min={60}
+              max={75}
+              step={1}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>60</span>
+              <span>75</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
+  const primaryLabel = state.primaryPersonName ? `${state.primaryPersonName}` : "You";
+  const partnerLabel = state.partnerName ? `${state.partnerName}` : "Partner";
+
+  const primarySummary = state.hasDbPension && state.hasStatePension
+    ? `${primaryLabel}: DB pension ${formatCurrency(state.dbPensionAnnualAmount ?? 0)}/yr from ${state.dbPensionAge ?? 60}, plus State Pension from ${state.statePensionAge ?? 67}.`
+    : state.hasDbPension
+      ? `${primaryLabel}: DB pension ${formatCurrency(state.dbPensionAnnualAmount ?? 0)}/yr from ${state.dbPensionAge ?? 60}.`
+      : state.hasStatePension
+        ? `${primaryLabel}: State Pension from ${state.statePensionAge ?? 67}.`
+        : `${primaryLabel}: no guaranteed pension income entered.`;
+
+  const partnerSummary = state.hasPartner
+    ? state.partnerHasDbPension && state.partnerHasStatePension
+      ? `${partnerLabel}: DB pension ${formatCurrency(state.partnerDbPensionAnnualAmount ?? 0)}/yr from ${state.partnerDbPensionAge ?? 60}, plus State Pension from ${state.partnerStatePensionAge ?? state.statePensionAge ?? 67}.`
+      : state.partnerHasDbPension
+        ? `${partnerLabel}: DB pension ${formatCurrency(state.partnerDbPensionAnnualAmount ?? 0)}/yr from ${state.partnerDbPensionAge ?? 60}.`
+        : state.partnerHasStatePension
+          ? `${partnerLabel}: State Pension from ${state.partnerStatePensionAge ?? state.statePensionAge ?? 67}.`
+          : `${partnerLabel}: no guaranteed pension income entered.`
+    : "";
+
   return (
     <div className="space-y-6">
       <div>
@@ -20,106 +155,40 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
       </div>
 
       <div className="space-y-6">
-        {/* DB Pension */}
-        <div className="space-y-3 rounded-md border p-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={state.hasDbPension}
-              onChange={(e) => onChange({ hasDbPension: e.target.checked })}
-              className="h-4 w-4 border border-input rounded"
-            />
-            <span className="text-sm font-medium">I have a defined benefit (DB) pension</span>
-          </label>
+        <PersonIncomeSection
+          title={`${primaryLabel}'s pensions`}
+          hasDbPension={state.hasDbPension}
+          onHasDbPensionChange={(next) => onChange({ hasDbPension: next })}
+          dbPensionAge={state.dbPensionAge ?? 60}
+          onDbPensionAgeChange={(next) => onChange({ dbPensionAge: next })}
+          dbPensionAnnualAmount={state.dbPensionAnnualAmount ?? 0}
+          onDbPensionAnnualAmountChange={(next) => onChange({ dbPensionAnnualAmount: next })}
+          hasStatePension={state.hasStatePension}
+          onHasStatePensionChange={(next) => onChange({ hasStatePension: next })}
+          statePensionAge={state.statePensionAge ?? 67}
+          onStatePensionAgeChange={(next) => onChange({ statePensionAge: next })}
+        />
 
-          {state.hasDbPension && (
-            <div className="space-y-2 mt-4 pt-4 border-t">
-              <div className="flex items-center justify-between">
-                <label htmlFor="db-age" className="text-sm font-medium">
-                  DB Pension starts at age
-                </label>
-                <span className="text-lg font-semibold text-primary">{state.dbPensionAge || 60}</span>
-              </div>
-              <Slider
-                value={state.dbPensionAge || 60}
-                onValueChange={(v) => onChange({ dbPensionAge: v })}
-                min={55}
-                max={75}
-                step={1}
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>55</span>
-                <span>75</span>
-              </div>
-
-              <div className="flex items-center justify-between mt-4">
-                <label htmlFor="db-amount" className="text-sm font-medium">
-                  Annual DB pension amount
-                </label>
-                <span className="text-lg font-semibold text-primary">
-                  {formatCurrency(state.dbPensionAnnualAmount ?? 0)}
-                </span>
-              </div>
-              <Slider
-                value={state.dbPensionAnnualAmount ?? 0}
-                onValueChange={(v) => onChange({ dbPensionAnnualAmount: v })}
-                min={0}
-                max={60000}
-                step={500}
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>£0</span>
-                <span>£60k</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* State Pension */}
-        <div className="space-y-3 rounded-md border p-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={state.hasStatePension}
-              onChange={(e) => onChange({ hasStatePension: e.target.checked })}
-              className="h-4 w-4 border border-input rounded"
-            />
-            <span className="text-sm font-medium">I will receive State Pension</span>
-          </label>
-
-          {state.hasStatePension && (
-            <div className="space-y-2 mt-4 pt-4 border-t">
-              <div className="flex items-center justify-between">
-                <label htmlFor="sp-age" className="text-sm font-medium">
-                  State Pension starts at age
-                </label>
-                <span className="text-lg font-semibold text-primary">{state.statePensionAge || 67}</span>
-              </div>
-              <Slider
-                value={state.statePensionAge || 67}
-                onValueChange={(v) => onChange({ statePensionAge: v })}
-                min={60}
-                max={75}
-                step={1}
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>60</span>
-                <span>75</span>
-              </div>
-            </div>
-          )}
-        </div>
+        {state.hasPartner && (
+          <PersonIncomeSection
+            title={`${partnerLabel}'s pensions`}
+            hasDbPension={state.partnerHasDbPension ?? false}
+            onHasDbPensionChange={(next) => onChange({ partnerHasDbPension: next })}
+            dbPensionAge={state.partnerDbPensionAge ?? 60}
+            onDbPensionAgeChange={(next) => onChange({ partnerDbPensionAge: next })}
+            dbPensionAnnualAmount={state.partnerDbPensionAnnualAmount ?? 0}
+            onDbPensionAnnualAmountChange={(next) => onChange({ partnerDbPensionAnnualAmount: next })}
+            hasStatePension={state.partnerHasStatePension ?? false}
+            onHasStatePensionChange={(next) => onChange({ partnerHasStatePension: next })}
+            statePensionAge={state.partnerStatePensionAge ?? state.statePensionAge ?? 67}
+            onStatePensionAgeChange={(next) => onChange({ partnerStatePensionAge: next })}
+          />
+        )}
       </div>
 
       <div className="rounded-md bg-muted p-4">
         <p className="text-sm text-muted-foreground">
-          {state.hasDbPension && state.hasStatePension
-            ? `DB pension of ${formatCurrency(state.dbPensionAnnualAmount ?? 0)}/yr at ${state.dbPensionAge} and State Pension at ${state.statePensionAge}.`
-            : state.hasDbPension
-              ? `DB pension of ${formatCurrency(state.dbPensionAnnualAmount ?? 0)}/yr at ${state.dbPensionAge}.`
-              : state.hasStatePension
-                ? `You'll have State Pension at ${state.statePensionAge}.`
-                : "You'll rely on your savings for retirement income."}
+          {state.hasPartner ? `${primarySummary} ${partnerSummary}` : primarySummary}
         </p>
       </div>
     </div>
