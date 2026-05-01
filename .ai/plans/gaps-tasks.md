@@ -469,19 +469,28 @@ projection data.
 ### Sprint 1 — Make existing plans usable ✅ COMPLETE
 ~~G1-T1~~, ~~G1-T2~~, ~~G1-T3a~~, ~~G1-T3b~~, ~~G1-T3c~~, ~~G1-T3d~~, ~~G3-T5~~
 
-### Sprint 2 — Tax, assumptions, and life events
-G2-T1, G2-T2 (SP forecast), G2-T7 (windfalls), G2-T8 (one-off expenses)
+### Sprint 2 — Independent accuracy improvements (safe before engine changes)
+G2-T1 (tax thresholds), G2-T2 (SP forecast)
 
-### Sprint 3 — Richer onboarding data
-G2-T3 (multi-account), G2-T4 (partner income), G3-T8 (end dates), G3-T4 (employment income)
+### Sprint 3 — Accumulation engine foundation (unlocks sprints 4–5)
+ACC-T1 (engine phase split), ACC-T2 (employer contributions), ACC-T5 (onboarding contributions capture)
 
-### Sprint 4 — Scenarios
+### Sprint 4 — Account and partner improvements (phase-aware)
+ACC-T2+G2-T3 (multi-account + employer contributions in one pass), G2-T4 (partner income), G3-T4 (employment income), ACC-T3 (salary in accumulation chart)
+
+### Sprint 5 — One-off events (phase-aware)
+G2-T7 (windfalls), G2-T8 (one-off expenses), G3-T8 (income stream end dates)
+
+### Sprint 6 — Accumulation UI and insights
+ACC-T4 (retirement pot view), ACC-T6 (gap-to-target recommendation), G3-T7 (safe spend)
+
+### Sprint 7 — Scenarios and bridge years
 G2-T5a, G2-T5b, G2-T5c, G2-T6 (bridge-year wiring)
 
-### Sprint 5 — Planning depth
-G3-T1 (review step), G3-T2 (longevity), G3-T3 (quantified recs), G3-T7 (safe spend)
+### Sprint 8 — Planning depth and polish
+G3-T1 (review step), G3-T2 (longevity), G3-T3 (quantified recs)
 
-### Sprint 6 — Stress testing
+### Sprint 9 — Stress testing
 G3-T6, G4-T3 (Marriage Allowance)
 
 ### Deferred (v1.1+)
@@ -490,9 +499,6 @@ G4-T1, G4-T2, G4-T5, G4-T6, G4-T7
 ---
 
 ## Accumulation Phase — Pre-retirement wealth building
-
-*Multi-sprint body of work. Can be deferred but is a significant gap in product value
-for anyone more than 2–3 years from retirement.*
 
 **Background**: The engine's `startYear` is always today and it runs in drawdown mode
 from the first year. `annualContribution` exists on the `accounts` table but is never
@@ -645,14 +651,4 @@ needed to close it.
 
 **DoD**: A user with £50k savings, no contributions, and 10 years to retirement on a
 £30k/yr spending target sees a recommendation with a specific annual contribution figure.
-
----
-
-## Sprint plan update
-
-### Sprint A1 — Accumulation engine foundation
-ACC-T1 (engine phase), ACC-T2 (employer contributions), ACC-T5 (onboarding capture)
-
-### Sprint A2 — Accumulation UI and insights
-ACC-T3 (salary in accumulation), ACC-T4 (retirement pot view), ACC-T6 (gap recommendation)
 
