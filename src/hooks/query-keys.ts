@@ -17,6 +17,11 @@ export const queryKeys = {
   expenseProfiles: {
     byPlan: (planId: number) => ["expense-profiles", "plan", planId] as const
   },
+  scenarios: {
+    forPlan: (planId: number) => ["scenarios", "plan", planId] as const,
+    byId: (scenarioId: number | null) => ["scenarios", "id", scenarioId] as const,
+    overrides: (scenarioId: number | null) => ["scenarios", "overrides", scenarioId] as const
+  },
   projection: {
     forPlan: (planId: number) => ["projection", "plan", planId] as const
   }

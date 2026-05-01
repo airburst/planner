@@ -5,6 +5,7 @@ import { usePeopleByPlan } from "@/hooks/use-people";
 import { usePlans } from "@/hooks/use-plans";
 import { useProjection } from "@/hooks/use-projection";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { useState } from "react";
 import { AccountsPanel } from "./AccountsPanel";
 import { IncomePhaseChart } from "./IncomePhaseChart";
 import { IncomeStreamsPanel } from "./IncomeStreamsPanel";
@@ -13,12 +14,17 @@ import { ProjectionError } from "./ProjectionError";
 import { ProjectionSummary } from "./ProjectionSummary";
 import { ProjectionTable } from "./ProjectionTable";
 import { RecommendationPanel } from "./RecommendationPanel";
+import { ScenarioComparison } from "./ScenarioComparison";
+import { ScenarioModal } from "./ScenarioModal";
+import { ScenarioSelector } from "./ScenarioSelector";
 import { SpendingPanel } from "./SpendingPanel";
 
 export function PlanDetailPage() {
   const params = useParams({ from: "/plan/$planId" });
   const planId = Number(params.planId);
   const navigate = useNavigate();
+  const [selectedScenarioId, setSelectedScenarioId] = useState<number | null>(null);
+  const [scenarioModalOpen, setScenarioModalOpen] = useState(false);
 
   const plansQuery = usePlans();
   const peopleQuery = usePeopleByPlan(planId);
@@ -89,6 +95,17 @@ export function PlanDetailPage() {
         </div>
       </section>
 
+      {/* Scenario selector */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold tracking-tight">Analysis</h2>
+        <ScenarioSelector
+          planId={planId}
+          selectedScenarioId={selectedScenarioId}
+          onScenarioSelect={setSelectedScenarioId}
+          onCreateClick={() => setScenarioModalOpen(true)}
+        />
+      </section>
+
       {/* Projection loading */}
       {projectionQuery.isLoading && (
         <section className="rounded-lg border bg-card p-5 text-card-foreground">
@@ -111,6 +128,10 @@ export function PlanDetailPage() {
       {/* Projection results */}
       {projectionQuery.data && projectionQuery.data.years.length > 0 && (
         <>
+          <ScenarioComparison
+            planId={planId}
+            selectedScenarioId={selectedScenarioId}
+          />
           <ProjectionSummary
             years={projectionQuery.data.years}
             startYear={projectionQuery.data.startYear}
@@ -133,6 +154,13 @@ export function PlanDetailPage() {
           </p>
         </section>
       )}
+
+      {/* Scenario modal */}
+      <ScenarioModal
+        planId={planId}
+        open={scenarioModalOpen}
+        onOpenChange={setScenarioModalOpen}
+      />
     </main>
   );
 }

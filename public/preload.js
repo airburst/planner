@@ -43,6 +43,9 @@ contextBridge.exposeInMainWorld("api", {
   runProjectionForPlan: (planId, options) =>
     ipcRenderer.invoke("projections:runForPlan", planId, options),
 
+  runProjectionForScenario: (scenarioId, options) =>
+    ipcRenderer.invoke("projections:runForScenario", scenarioId, options),
+
   getExpenseProfileByPlan: (planId) =>
     ipcRenderer.invoke("expense-profiles:getByPlan", planId),
   createExpenseProfile: (data) =>
@@ -51,4 +54,15 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("expense-profiles:update", id, data),
   deleteExpenseProfile: (id) =>
     ipcRenderer.invoke("expense-profiles:delete", id),
+
+  getScenariosByPlan: (planId) =>
+    ipcRenderer.invoke("scenarios:getByPlan", planId),
+  getScenario: (id) => ipcRenderer.invoke("scenarios:get", id),
+  createScenario: (data) => ipcRenderer.invoke("scenarios:create", data),
+  updateScenario: (id, data) => ipcRenderer.invoke("scenarios:update", id, data),
+  deleteScenario: (id) => ipcRenderer.invoke("scenarios:delete", id),
+  getScenarioOverrides: (scenarioId) =>
+    ipcRenderer.invoke("scenarios:getOverrides", scenarioId),
+  setScenarioOverrides: (scenarioId, overrides) =>
+    ipcRenderer.invoke("scenarios:setOverrides", scenarioId, overrides),
 });

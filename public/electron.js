@@ -7,6 +7,7 @@ const registerAccountsHandlers = require("./ipc/accounts");
 const registerIncomeStreamsHandlers = require("./ipc/income-streams");
 const registerProjectionHandlers = require("./ipc/projections");
 const registerExpenseProfilesHandlers = require("./ipc/expense-profiles");
+const registerScenarioHandlers = require("./ipc/scenarios");
 
 const isDev = !app.isPackaged;
 let mainWindow;
@@ -59,6 +60,7 @@ app.whenReady().then(() => {
   registerIncomeStreamsHandlers(ipcMain, db, schema);
   registerProjectionHandlers(ipcMain, db, schema);
   registerExpenseProfilesHandlers(ipcMain, db, schema);
+  registerScenarioHandlers(ipcMain, db, schema);
 
   createWindow();
 

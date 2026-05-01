@@ -6,7 +6,9 @@ export {};
         expenseProfiles,
         householdPlans,
         incomeStreams,
-        people
+        people,
+        scenarioOverrides,
+        scenarios
     } from "../services/db/schema";
     import type { HouseholdYearState, Recommendation } from "../services/engine/types";
 
@@ -20,6 +22,10 @@ type IncomeStream = InferSelectModel<typeof incomeStreams>;
 type NewIncomeStream = InferInsertModel<typeof incomeStreams>;
 type ExpenseProfile = InferSelectModel<typeof expenseProfiles>;
 type NewExpenseProfile = InferInsertModel<typeof expenseProfiles>;
+type Scenario = InferSelectModel<typeof scenarios>;
+type NewScenario = InferInsertModel<typeof scenarios>;
+type ScenarioOverride = InferSelectModel<typeof scenarioOverrides>;
+type NewScenarioOverride = InferInsertModel<typeof scenarioOverrides>;
 type ProjectionResult = {
   planId: number;
   scenarioId: number | null;
@@ -84,9 +90,21 @@ declare global {
       updateExpenseProfile: (id: number, data: Partial<NewExpenseProfile>) => Promise<ExpenseProfile | null>;
       deleteExpenseProfile: (id: number) => Promise<{ success: boolean }>;
 
+      getScenariosByPlan: (planId: number) => Promise<Scenario[]>;
+      getScenario: (id: number) => Promise<Scenario | null>;
+      createScenario: (data: NewScenario) => Promise<Scenario | null>;
+      updateScenario: (id: number, data: Partial<NewScenario>) => Promise<Scenario | null>;
+      deleteScenario: (id: number) => Promise<{ success: boolean }>;
+      getScenarioOverrides: (scenarioId: number) => Promise<ScenarioOverride[]>;
+      setScenarioOverrides: (scenarioId: number, overrides: NewScenarioOverride[]) => Promise<void>;
+
       runProjectionForPlan: (
         planId: number,
         options?: { scenarioId?: number; startYear?: number; endYear?: number }
+      ) => Promise<ProjectionResult>;
+      runProjectionForScenario: (
+        scenarioId: number,
+        options?: { startYear?: number; endYear?: number }
       ) => Promise<ProjectionResult>;
     };
   }
