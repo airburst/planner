@@ -12,24 +12,28 @@ const isDev = !app.isPackaged;
 let mainWindow;
 
 function createWindow() {
+  // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 1080,
     minWidth: 960,
     minHeight: 600,
     center: true,
-    ...(process.platform === "darwin" ? { titleBarStyle: "hidden" } : {}),
-    ...(process.platform !== "darwin" ? { titleBarOverlay: true } : {}),
-    ...(process.platform === "darwin"
-      ? { trafficLightPosition: { x: 16, y: 16 } }
-      : {}),
+    // remove the default titlebar on macOS only
+    // ...(process.platform === "darwin" ? { titleBarStyle: "hidden" } : {}),
+    // expose window controls in Windows/Linux
+    // ...(process.platform !== "darwin" ? { titleBarOverlay: true } : {}),
+    // add padding around macOS traffic lights
+    // ...(process.platform === "darwin"
+    //   ? { trafficLightPosition: { x: 16, y: 16 } }
+    //   : {}),
     webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      preload: path.join(__dirname, "preload.js"),
-      enableRemoteModule: false,
+       enableRemoteModule: false,
       sandbox: true
-    }
+    },
   });
 
   mainWindow.loadURL(
