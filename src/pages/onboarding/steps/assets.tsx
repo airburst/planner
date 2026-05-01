@@ -36,8 +36,8 @@ export function OnboardingAssetsStep({ state, onChange }: Props) {
             </span>
           </div>
           <Slider
-            value={[state.currentSavings]}
-            onValueChange={([v]) => onChange({ currentSavings: v })}
+            value={state.currentSavings}
+            onValueChange={(v) => onChange({ currentSavings: v })}
             min={0}
             max={1000000}
             step={5000}

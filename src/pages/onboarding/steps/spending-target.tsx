@@ -39,8 +39,8 @@ export function OnboardingSpendingTargetStep({ state, onChange }: Props) {
             </span>
           </div>
           <Slider
-            value={[state.annualSpendingTarget]}
-            onValueChange={([v]) => handleTotalChange(v)}
+            value={state.annualSpendingTarget}
+            onValueChange={(v) => handleTotalChange(v)}
             min={10000}
             max={200000}
             step={1000}
@@ -61,8 +61,8 @@ export function OnboardingSpendingTargetStep({ state, onChange }: Props) {
             <span className="text-lg font-semibold text-primary">{fmt(essential)}</span>
           </div>
           <Slider
-            value={[essential]}
-            onValueChange={([v]) => onChange({ essentialAnnual: v })}
+            value={essential}
+            onValueChange={(v) => onChange({ essentialAnnual: v })}
             min={0}
             max={state.annualSpendingTarget}
             step={500}

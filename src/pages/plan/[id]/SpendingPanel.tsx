@@ -72,8 +72,8 @@ export function SpendingPanel({ planId }: Props) {
               <span className="text-base font-semibold text-primary">{fmt(essential)}</span>
             </div>
             <Slider
-              value={[essential]}
-              onValueChange={([v]) => setEssential(v)}
+              value={essential}
+              onValueChange={(v) => setEssential(v)}
               min={0}
               max={200000}
               step={500}
@@ -93,8 +93,8 @@ export function SpendingPanel({ planId }: Props) {
               <span className="text-base font-semibold text-primary">{fmt(discretionary)}</span>
             </div>
             <Slider
-              value={[discretionary]}
-              onValueChange={([v]) => setDiscretionary(v)}
+              value={discretionary}
+              onValueChange={(v) => setDiscretionary(v)}
               min={0}
               max={200000}
               step={500}

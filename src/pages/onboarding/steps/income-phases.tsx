@@ -41,8 +41,8 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
                 <span className="text-lg font-semibold text-primary">{state.dbPensionAge || 60}</span>
               </div>
               <Slider
-                value={[state.dbPensionAge || 60]}
-                onValueChange={([v]) => onChange({ dbPensionAge: v })}
+                value={state.dbPensionAge || 60}
+                onValueChange={(v) => onChange({ dbPensionAge: v })}
                 min={55}
                 max={75}
                 step={1}
@@ -61,8 +61,8 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
                 </span>
               </div>
               <Slider
-                value={[state.dbPensionAnnualAmount ?? 0]}
-                onValueChange={([v]) => onChange({ dbPensionAnnualAmount: v })}
+                value={state.dbPensionAnnualAmount ?? 0}
+                onValueChange={(v) => onChange({ dbPensionAnnualAmount: v })}
                 min={0}
                 max={60000}
                 step={500}
@@ -96,8 +96,8 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
                 <span className="text-lg font-semibold text-primary">{state.statePensionAge || 67}</span>
               </div>
               <Slider
-                value={[state.statePensionAge || 67]}
-                onValueChange={([v]) => onChange({ statePensionAge: v })}
+                value={state.statePensionAge || 67}
+                onValueChange={(v) => onChange({ statePensionAge: v })}
                 min={60}
                 max={75}
                 step={1}

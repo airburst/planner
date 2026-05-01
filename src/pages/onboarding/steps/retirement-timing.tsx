@@ -43,8 +43,8 @@ export function OnboardingRetirementTimingStep({ state, onChange }: Props) {
             <span className="text-lg font-semibold text-primary">{state.primaryRetirementAge}</span>
           </div>
           <Slider
-            value={[state.primaryRetirementAge]}
-            onValueChange={([v]) => onChange({ primaryRetirementAge: v })}
+            value={state.primaryRetirementAge}
+            onValueChange={(v) => onChange({ primaryRetirementAge: v })}
             min={50}
             max={85}
             step={1}
@@ -74,8 +74,8 @@ export function OnboardingRetirementTimingStep({ state, onChange }: Props) {
               </span>
             </div>
             <Slider
-              value={[state.partnerRetirementAge ?? state.primaryRetirementAge]}
-              onValueChange={([v]) => onChange({ partnerRetirementAge: v })}
+              value={state.partnerRetirementAge ?? state.primaryRetirementAge}
+              onValueChange={(v) => onChange({ partnerRetirementAge: v })}
               min={50}
               max={85}
               step={1}
