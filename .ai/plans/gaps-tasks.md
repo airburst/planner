@@ -482,7 +482,177 @@ G2-T5a, G2-T5b, G2-T5c, G2-T6 (bridge-year wiring)
 G3-T1 (review step), G3-T2 (longevity), G3-T3 (quantified recs), G3-T7 (safe spend)
 
 ### Sprint 6 — Stress testing
-G3-T6, G4-T3 (Marriage Allowance), G4-T4 (one-off expenses)
+G3-T6, G4-T3 (Marriage Allowance)
 
 ### Deferred (v1.1+)
 G4-T1, G4-T2, G4-T5, G4-T6, G4-T7
+
+---
+
+## Accumulation Phase — Pre-retirement wealth building
+
+*Multi-sprint body of work. Can be deferred but is a significant gap in product value
+for anyone more than 2–3 years from retirement.*
+
+**Background**: The engine's `startYear` is always today and it runs in drawdown mode
+from the first year. `annualContribution` exists on the `accounts` table but is never
+read or applied by the engine. There is no concept of a retirement year as a phase
+boundary. For someone 10 years from retirement, the app cannot answer "what will my
+pot be on retirement day?" or "am I saving enough to hit my target?" — the two most
+important questions for a pre-retiree.
+
+The competitor research (ProjectionLab, Boldin, Empower) all model accumulation as a
+first-class phase. The product requirements doc section 2.2 explicitly requires
+"contributions before retirement and withdrawals after retirement."
+
+---
+
+### ACC-T1: Engine — accumulation phase (core, blocking)
+**Why**: The engine has no retirement year boundary. Every year is treated as
+drawdown. Contributions are stored in the DB but the engine ignores them.
+
+**Approach**: Introduce `retirementYear` as a computed engine input (derived from
+`person.dateOfBirth` and `person.retirementAge`). Add a phase check per year:
+- **Accumulation year** (`year < retirementYear`): add `annualContribution` to each
+  account closing balance; apply investment growth; no spending drawdown; income
+  streams (salary, employment) offset contributions but no net-spending withdrawal
+- **Retirement year onwards**: existing drawdown logic unchanged
+
+**Files**:
+- `src/services/engine/index.ts` — in `projectPersonYear`, add pre/post retirement
+  phase branch; accumulation: `closing = opening + annualContribution + growth`;
+  skip withdrawal logic entirely
+- `src/services/engine/types.ts` — add `annualContribution: number` to
+  `AccountContext`; add `retirementYear: number` to `PersonContext`
+- `public/ipc/projections.js` — pass `annualContribution` from DB account row to
+  engine `AccountContext`; compute `retirementYear` from `person.dateOfBirth +
+  person.retirementAge` and pass to `PersonContext`
+
+**DoD**: A person aged 45 retiring at 65 shows a 20-year accumulation chart where
+account balances grow via contributions + investment return, then switches to drawdown
+from retirement year. The retirement pot at year 20 is the drawdown opening balance.
+
+---
+
+### ACC-T2: Employer pension contributions
+**Why**: For most UK employees, employer matching is the largest annual pension
+contribution. Without it, accumulation projections are systematically under-stated.
+
+**Approach**: Add `employerContribution` field to `accounts` table (real, default 0).
+The IPC projections handler passes it alongside `annualContribution`. Engine adds
+both during accumulation years.
+
+**Files**:
+- Schema: add `employer_contribution real not null default 0` to `accounts` table
+  (migration required)
+- `src/types/electron.d.ts` — add field to `Account` type
+- `src/pages/plan/[id]/AccountsPanel.tsx` — add "Employer contribution (£/yr)" field
+  to the account edit form, shown only when `wrapperType === "sipp"`
+- `public/ipc/projections.js` — map `account.employerContribution` to engine
+
+**DoD**: A SIPP with employee contribution £5,000/yr and employer £3,000/yr shows
+£8,000/yr accumulating before retirement. Employer field hidden for ISA/cash accounts.
+
+---
+
+### ACC-T3: Pre-retirement salary / employment income
+**Why**: For users currently employed, their salary funds their contributions. The
+app currently has no way to model this or show gross income → contributions →
+remaining cash flow during accumulation years.
+
+**Note**: The `employment` stream type already exists in the schema. The gap is that
+the engine currently ignores stream income during accumulation years and the
+onboarding has no path to capture it (G3-T4 covers adding it).
+
+**What this task adds beyond G3-T4**:
+- During accumulation years, employment income should be shown in the chart as a
+  distinct band (salary) and surplus after contributions should be trackable
+- The recommendation engine should flag if salary is insufficient to cover
+  contributions at the specified rate
+
+**Files**:
+- `src/services/engine/index.ts` — during accumulation years, include `employment`
+  and `other` streams in `totalIncome`; show them in `incomeByStream`; do not trigger
+  drawdown from savings to cover spending
+- `src/pages/plan/[id]/IncomePhaseChart.tsx` — extend to show salary band in
+  accumulation years
+
+**DoD**: A user with £60k salary and 15 years to retirement sees their employment
+income in the chart during those 15 years.
+
+---
+
+### ACC-T4: Accumulation projection view and "retirement pot" insight
+**Why**: Pre-retirees need to see (a) projected pot size at retirement date, (b)
+whether they're on track, (c) how changes to contributions or retirement age affect
+the pot. Without a dedicated accumulation output, the plan detail page conveys nothing
+useful to someone 10 years out.
+
+**Files**:
+- `src/pages/plan/[id]/ProjectionSummary.tsx` — add "Projected pot at retirement:
+  £X" metric, computed as total account balance at the retirement year boundary
+- `src/pages/plan/[id]/IncomePhaseChart.tsx` — add vertical line or visual marker at
+  retirement year, label accumulation vs drawdown regions
+- `src/pages/plan/[id]/` — consider a separate `AccumulationSummary.tsx` card that
+  shows: current savings, annual contributions, projected pot at retirement, target
+  pot needed (derived from spending plan + drawdown engine)
+- `public/ipc/projections.js` — add `retirementPot` to the returned
+  `ProjectionResult`: the sum of all account balances at the retirement year
+
+**DoD**: Plan detail shows "Projected pot at retirement: £X". If pot is less than
+what the drawdown phase needs, a recommendation fires: "Increase contributions by
+£Y/yr to close the gap."
+
+---
+
+### ACC-T5: Accumulation onboarding — contributions and salary capture
+**Why**: The current onboarding only captures current balance and account type. It
+does not ask about annual contributions, employer contributions, or salary. Plans
+created through onboarding will always show flat or zero accumulation.
+
+**Files**:
+- `src/pages/onboarding/steps/assets.tsx` — after the account type selector, add:
+  - "Annual contribution (£/yr)" number input or slider
+  - "Employer contribution (£/yr)" input (shown when type is SIPP)
+- `src/pages/onboarding/types.ts` — add `annualContribution`, `employerContribution`
+  to onboarding state (or add per-account if multi-account is implemented first)
+- `src/pages/onboarding/index.tsx` — pass both values to `createAccount.mutateAsync`
+- (Optional) Add a salary capture to household step or assets step: "Annual salary
+  (£)" → creates an `employment` income stream with `endAge = retirementAge`
+
+**DoD**: A plan created via onboarding with contributions shows growing account
+balances from today to retirement date, then drawdown. "Projected pot at retirement"
+is non-zero.
+
+---
+
+### ACC-T6: Gap-to-target recommendation
+**Why**: The highest-value insight for a pre-retiree is: "Are you saving enough?" The
+engine already runs the full projection; the retirement pot is computed. The target pot
+is derivable from running the drawdown phase backwards.
+
+**Approach**: After running the projection, compute the minimum retirement opening
+balance that produces a sustainable drawdown (binary search or analytical estimate).
+Compare with projected pot. If gap exists, compute the additional annual contribution
+needed to close it.
+
+**Files**:
+- `src/services/engine/recommendations.ts` — add `accumulationShortfall` rule: if
+  projected pot at retirement < minimum sustainable pot, emit recommendation with
+  `additionalContributionNeeded` and `yearsToRetirement`
+- `src/pages/plan/[id]/RecommendationPanel.tsx` — display "Increase contributions by
+  £X/yr" as a top-level action card
+
+**DoD**: A user with £50k savings, no contributions, and 10 years to retirement on a
+£30k/yr spending target sees a recommendation with a specific annual contribution figure.
+
+---
+
+## Sprint plan update
+
+### Sprint A1 — Accumulation engine foundation
+ACC-T1 (engine phase), ACC-T2 (employer contributions), ACC-T5 (onboarding capture)
+
+### Sprint A2 — Accumulation UI and insights
+ACC-T3 (salary in accumulation), ACC-T4 (retirement pot view), ACC-T6 (gap recommendation)
+
