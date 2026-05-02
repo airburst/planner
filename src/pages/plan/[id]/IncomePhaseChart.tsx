@@ -3,8 +3,9 @@ import type { HouseholdYearState } from "@/services/engine/types";
 import { useMemo, useState } from "react";
 import {
   Bar,
-  BarChart,
   CartesianGrid,
+  ComposedChart,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -20,151 +21,161 @@ interface IncomePhaseChartProps {
 }
 
 type ViewMode = "stacked" | "separated";
-type PanelMode = "details" | "year";
 
-interface IncomeRow {
+interface ChartRow {
   year: number;
+  spendingTarget: number;
   total: number;
   [key: string]: number;
 }
 
-interface ActivationEvent {
-  streamId: number;
-  year: number;
+interface SeriesMeta {
+  key: string;
   label: string;
   color: string;
+  group: "income" | "drawdown";
 }
 
-interface HoverSummary {
-  year: number;
-  total: number;
-}
-
-const CHART_COLORS = [
-  "#2563eb",
-  "#0891b2",
-  "#16a34a",
-  "#ca8a04",
-  "#dc2626",
-  "#9333ea",
-  "#0f766e",
-  "#b45309",
+// Voyant-inspired palette: streams in warm green/teal/purple, drawdowns in cool blue family.
+const STREAM_COLORS = [
+  "#0f766e", // dark teal — primary stream (state pension)
+  "#a855f7", // purple — DB pension
+  "#0891b2", // cyan — secondary stream
+  "#16a34a", // green — salary / employment
+  "#ca8a04", // amber — other income
+  "#dc2626", // red — last-resort fallback
 ];
+
+const DRAWDOWN_COLORS: Record<string, string> = {
+  drawdown_cash: "#5eead4",       // light teal — cash savings
+  drawdown_isa: "#14b8a6",        // teal — ISA (tax-free savings)
+  drawdown_sipp_tfls: "#3b82f6",  // blue — SIPP 25% tax-free lump sum
+  drawdown_sipp_taxable: "#93c5fd", // light blue — SIPP taxable component
+  drawdown_other: "#a78bfa",      // purple — other accounts
+};
+
+const DRAWDOWN_LABELS: Record<string, string> = {
+  drawdown_cash: "Cash drawdown",
+  drawdown_isa: "ISA drawdown (tax-free)",
+  drawdown_sipp_tfls: "SIPP — tax-free 25%",
+  drawdown_sipp_taxable: "SIPP — taxable",
+  drawdown_other: "Other drawdown",
+};
+
+const SPENDING_TARGET_COLOR = "#22c55e";
 
 export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("stacked");
-  const [panelMode, setPanelMode] = useState<PanelMode>("details");
-  const [dimmedStreamIds, setDimmedStreamIds] = useState<Set<number>>(new Set());
-  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
-  const [hoverSummary, setHoverSummary] = useState<HoverSummary | null>(null);
+  const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
 
-  const streamMeta = new Map<number, { label: string; color: string }>();
-
-  incomeStreams.forEach((stream, index) => {
-    const label = stream.name?.trim() || `Stream ${stream.id}`;
-    streamMeta.set(stream.id, {
-      label,
-      color: CHART_COLORS[index % CHART_COLORS.length],
-    });
-  });
-
-  const usedStreamIds = new Set<number>();
-  const data = years.map((year) => {
-    const row: IncomeRow = { year: year.year, total: 0 };
-
-    year.people.forEach((personYear) => {
-      personYear.incomeByStream.forEach((amount, streamId) => {
-        const key = `stream_${streamId}`;
-        row[key] = (row[key] ?? 0) + amount;
-        row.total += amount;
-        if (amount > 0) {
-          usedStreamIds.add(streamId);
-        }
+  // Build per-stream metadata using a stable colour assignment.
+  const streamMeta = useMemo(() => {
+    const map = new Map<number, { label: string; color: string }>();
+    incomeStreams.forEach((stream, index) => {
+      const label = stream.name?.trim() || `Stream ${stream.id}`;
+      map.set(stream.id, {
+        label,
+        color: STREAM_COLORS[index % STREAM_COLORS.length],
       });
     });
+    return map;
+  }, [incomeStreams]);
 
-    return row;
-  });
+  // Compute per-year chart rows: each stream and each drawdown source as its own field.
+  const { data, activeStreamIds, activeDrawdownKeys } = useMemo(() => {
+    const usedStreamIds = new Set<number>();
+    const usedDrawdownKeys = new Set<string>();
 
-  const streamIds = Array.from(usedStreamIds).sort((a, b) => a - b);
-  const activeStreamIds = streamIds;
+    const rows: ChartRow[] = years.map((year) => {
+      const row: ChartRow = {
+        year: year.year,
+        spendingTarget: year.totalHouseholdIncome - year.deficitOrSurplus,
+        total: 0,
+      };
 
-  const activationEvents = useMemo<ActivationEvent[]>(() => {
-    const events = streamIds
-      .map((streamId) => {
-        const stream = incomeStreams.find((item) => item.id === streamId);
-        if (!stream) {
-          return null;
-        }
-
-        const activationYear = years.find((yearState, index) => {
-          const person = yearState.people.get(stream.personId);
-          if (!person) {
-            return false;
-          }
-
-          if (person.age < stream.startAge) {
-            return false;
-          }
-
-          if (index === 0) {
-            return true;
-          }
-
-          const priorYear = years[index - 1];
-          const priorPerson = priorYear.people.get(stream.personId);
-          return !priorPerson || priorPerson.age < stream.startAge;
+      // Stream income summed across people.
+      year.people.forEach((personYear) => {
+        personYear.incomeByStream.forEach((amount, streamId) => {
+          if (amount <= 0) return;
+          const key = `stream_${streamId}`;
+          row[key] = (row[key] ?? 0) + amount;
+          row.total += amount;
+          usedStreamIds.add(streamId);
         });
 
-        if (!activationYear) {
-          return null;
+        // Drawdown sources from each withdrawal detail.
+        for (const detail of personYear.withdrawalDetails) {
+          if (detail.amountWithdrawn <= 0) continue;
+          if (detail.accountType === "sipp") {
+            if (detail.taxFreeComponent > 0) {
+              row.drawdown_sipp_tfls = (row.drawdown_sipp_tfls ?? 0) + detail.taxFreeComponent;
+              row.total += detail.taxFreeComponent;
+              usedDrawdownKeys.add("drawdown_sipp_tfls");
+            }
+            if (detail.taxableComponent > 0) {
+              row.drawdown_sipp_taxable = (row.drawdown_sipp_taxable ?? 0) + detail.taxableComponent;
+              row.total += detail.taxableComponent;
+              usedDrawdownKeys.add("drawdown_sipp_taxable");
+            }
+          } else {
+            const key = `drawdown_${detail.accountType}`;
+            row[key] = (row[key] ?? 0) + detail.amountWithdrawn;
+            row.total += detail.amountWithdrawn;
+            usedDrawdownKeys.add(key);
+          }
         }
+      });
 
-        const meta = streamMeta.get(streamId);
-        return {
-          streamId,
-          year: activationYear.year,
-          label: meta?.label || `Stream ${streamId}`,
-          color: meta?.color || CHART_COLORS[0],
-        };
-      })
-      .filter((event): event is ActivationEvent => Boolean(event));
+      return row;
+    });
 
-    return events.sort((a, b) => a.year - b.year || a.streamId - b.streamId);
-  }, [streamIds, incomeStreams, years, streamMeta]);
+    return {
+      data: rows,
+      activeStreamIds: Array.from(usedStreamIds).sort((a, b) => a - b),
+      activeDrawdownKeys: ["drawdown_cash", "drawdown_isa", "drawdown_sipp_tfls", "drawdown_sipp_taxable", "drawdown_other"]
+        .filter((k) => usedDrawdownKeys.has(k)),
+    };
+  }, [years]);
 
-  const selectedEvent = useMemo(() => {
-    if (activationEvents.length === 0) {
-      return null;
-    }
-    if (selectedEventId === null) {
-      return activationEvents[0];
-    }
-    return activationEvents.find((event) => event.streamId === selectedEventId) || activationEvents[0];
-  }, [activationEvents, selectedEventId]);
+  // Series metadata in stack order (bottom → top): streams, then drawdowns.
+  const series: SeriesMeta[] = useMemo(() => {
+    const list: SeriesMeta[] = [];
+    activeStreamIds.forEach((id) => {
+      const meta = streamMeta.get(id);
+      list.push({
+        key: `stream_${id}`,
+        label: meta?.label ?? `Stream ${id}`,
+        color: meta?.color ?? STREAM_COLORS[0],
+        group: "income",
+      });
+    });
+    activeDrawdownKeys.forEach((k) => {
+      list.push({
+        key: k,
+        label: DRAWDOWN_LABELS[k],
+        color: DRAWDOWN_COLORS[k],
+        group: "drawdown",
+      });
+    });
+    return list;
+  }, [activeStreamIds, activeDrawdownKeys, streamMeta]);
 
-  function toggleStream(streamId: number) {
-    setDimmedStreamIds((prev) => {
+  const toggle = (key: string) => {
+    setHiddenKeys((prev) => {
       const next = new Set(prev);
-      if (next.has(streamId)) {
-        next.delete(streamId);
-      } else {
-        next.add(streamId);
-      }
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
-  }
+  };
+  const resetHidden = () => setHiddenKeys(new Set());
 
-  function resetEmphasis() {
-    setDimmedStreamIds(new Set());
-  }
-
-  if (streamIds.length === 0) {
+  if (series.length === 0) {
     return (
       <section className="rounded-lg border bg-card p-5 text-card-foreground">
-        <h3 className="mb-1 text-lg font-semibold">Income Phase Visualisation</h3>
+        <h3 className="mb-1 text-lg font-semibold">Cash Flow</h3>
         <p className="text-sm text-muted-foreground">
-          No active income streams were projected in the selected period.
+          No income or drawdown projected in the selected period.
         </p>
       </section>
     );
@@ -174,29 +185,12 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
     <section className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="mb-1 text-lg font-semibold">Income Phase Visualisation</h3>
+          <h3 className="mb-1 text-lg font-semibold">Cash Flow</h3>
           <p className="text-sm text-muted-foreground">
-            Layered annual income by stream across the projection timeline.
+            Annual income sources and bridge-year drawdowns. The green line marks your spending target.
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-lg border bg-background/60 p-1 shadow-sm">
-          <Button size="sm" variant="outline" className="pointer-events-none px-2 text-xs">
-            Cash Flow
-          </Button>
-          <Button
-            size="sm"
-            variant={panelMode === "details" ? "default" : "outline"}
-            onClick={() => setPanelMode("details")}
-          >
-            Details
-          </Button>
-          <Button
-            size="sm"
-            variant={panelMode === "year" ? "default" : "outline"}
-            onClick={() => setPanelMode("year")}
-          >
-            Year View
-          </Button>
           <Button
             size="sm"
             variant={viewMode === "stacked" ? "default" : "outline"}
@@ -214,54 +208,56 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
         </div>
       </div>
 
+      {/* Legend / toggles */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        {streamIds.map((streamId) => {
-          const meta = streamMeta.get(streamId);
-          const isDimmed = dimmedStreamIds.has(streamId);
+        {series.map((s) => {
+          const isHidden = hiddenKeys.has(s.key);
           return (
             <button
-              key={streamId}
+              key={s.key}
               type="button"
-              onClick={() => toggleStream(streamId)}
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors ${isDimmed
-                ? "border-border text-muted-foreground"
-                : "border-foreground/20 bg-muted/40 text-foreground"
-                }`}
+              onClick={() => toggle(s.key)}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors ${
+                isHidden
+                  ? "border-border text-muted-foreground"
+                  : "border-foreground/20 bg-muted/40 text-foreground"
+              }`}
             >
               <span
                 className="h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: meta?.color || CHART_COLORS[0] }}
+                style={{ backgroundColor: s.color, opacity: isHidden ? 0.3 : 1 }}
               />
-              <span>{meta?.label || `Stream ${streamId}`}</span>
+              <span>{s.label}</span>
+              {s.group === "drawdown" && (
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">drawdown</span>
+              )}
             </button>
           );
         })}
+        <span className="inline-flex items-center gap-2 rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground">
+          <span
+            className="h-0.5 w-4 rounded-full"
+            style={{ backgroundColor: SPENDING_TARGET_COLOR }}
+          />
+          <span>Spending target</span>
+        </span>
         <Button
           size="sm"
           variant="ghost"
           className="h-7 px-2 text-xs"
-          onClick={resetEmphasis}
-          disabled={dimmedStreamIds.size === 0}
+          onClick={resetHidden}
+          disabled={hiddenKeys.size === 0}
         >
-          Reset emphasis
+          Reset
         </Button>
       </div>
 
-      <div className="h-80 w-full rounded-md border bg-background/40 p-2">
+      <div className="h-96 w-full rounded-md border bg-background/40 p-2">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart
+          <ComposedChart
             data={data}
-            barCategoryGap={0}
+            barCategoryGap={2}
             margin={{ top: 8, right: 16, left: 12, bottom: 0 }}
-            onMouseMove={(state) => {
-              if (state.isTooltipActive && state.activeLabel !== undefined) {
-                const row = data.find((d) => d.year === state.activeLabel);
-                if (row) setHoverSummary({ year: Number(state.activeLabel), total: row.total });
-              } else {
-                setHoverSummary(null);
-              }
-            }}
-            onMouseLeave={() => setHoverSummary(null)}
           >
             <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
             <XAxis
@@ -287,74 +283,46 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
               labelStyle={{ color: "#0f172a", fontWeight: 600 }}
               formatter={(value, name) => {
                 const numericValue = Number(Array.isArray(value) ? value[0] : value ?? 0);
-                const streamId = Number(String(name ?? "").replace("stream_", ""));
-                const meta = streamMeta.get(streamId);
-                return [fmt(numericValue), meta?.label || `Stream ${streamId}`];
+                if (name === "Spending target") {
+                  return [fmt(numericValue), "Spending target"];
+                }
+                const match = series.find((s) => s.key === name);
+                return [fmt(numericValue), match?.label ?? String(name)];
               }}
               labelFormatter={(label) => `Year ${label}`}
             />
 
-            {activeStreamIds.map((streamId) => {
-              const key = `stream_${streamId}`;
-              const color = streamMeta.get(streamId)?.color || CHART_COLORS[0];
-              const isDimmed = dimmedStreamIds.has(streamId);
+            {series.map((s) => {
+              if (hiddenKeys.has(s.key)) return null;
               return (
                 <Bar
-                  key={key}
-                  dataKey={key}
-                  stackId={viewMode === "stacked" ? "income" : key}
-                  fill={color}
-                  fillOpacity={isDimmed ? 0.12 : 0.85}
+                  key={s.key}
+                  dataKey={s.key}
+                  stackId={viewMode === "stacked" ? "cashflow" : s.key}
+                  fill={s.color}
+                  fillOpacity={0.9}
                   isAnimationActive={false}
                 />
               );
             })}
-          </BarChart>
+
+            <Line
+              type="stepAfter"
+              dataKey="spendingTarget"
+              name="Spending target"
+              stroke={SPENDING_TARGET_COLOR}
+              strokeWidth={2.5}
+              strokeDasharray="6 3"
+              dot={false}
+              isAnimationActive={false}
+            />
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
 
-      {panelMode === "year" && hoverSummary && (
-        <div className="mt-3 rounded-md border bg-background/70 p-3">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Year {hoverSummary.year}</p>
-          <p className="mt-1 text-sm font-medium">Total projected income: {fmt(hoverSummary.total)}</p>
-        </div>
-      )}
-
-      {activationEvents.length > 0 && (
-        <div className="mt-4 rounded-md border bg-background/50 p-3">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Activation events
-          </p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {activationEvents.map((event) => {
-              const isSelected = selectedEvent?.streamId === event.streamId;
-              return (
-                <button
-                  key={`event-card-${event.streamId}`}
-                  type="button"
-                  onClick={() => setSelectedEventId(event.streamId)}
-                  className={`rounded-md border px-3 py-2 text-left transition-colors ${isSelected
-                    ? "border-foreground/30 bg-muted/60"
-                    : "border-border bg-background/70 hover:bg-muted/40"
-                    }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: event.color }}
-                    />
-                    <p className="text-sm font-medium">{event.label}</p>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Starts in {event.year}</p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       <p className="mt-3 text-xs text-muted-foreground">
-        Click a stream label above to dim it. Click an event card to highlight that stream's activation year.
+        Click a legend chip to hide that series. Drawdown bars are stacked above stream income so the green
+        line shows when external income alone covers spending.
       </p>
     </section>
   );
