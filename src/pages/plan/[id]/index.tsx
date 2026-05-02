@@ -145,7 +145,10 @@ export function PlanDetailPage() {
             years={projectionQuery.data.years}
             incomeStreams={incomeStreams}
           />
-          <RecommendationPanel recommendations={projectionQuery.data.recommendations} />
+          <RecommendationPanel
+            recommendations={projectionQuery.data.recommendations}
+            accumulationShortfall={projectionQuery.data.accumulationShortfall}
+          />
           <ProjectionTable years={projectionQuery.data.years} />
         </>
       )}

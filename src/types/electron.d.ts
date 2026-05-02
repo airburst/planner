@@ -35,6 +35,12 @@ type RetirementPotEntry = {
   alreadyRetired: boolean;
 };
 
+type AccumulationShortfall = {
+  isSustainable: boolean;
+  additionalAnnualContribution: number;
+  yearsToRetirement: number;
+};
+
 type ProjectionResult = {
   planId: number;
   scenarioId: number | null;
@@ -45,6 +51,7 @@ type ProjectionResult = {
   years: HouseholdYearState[];
   recommendations: Recommendation[];
   retirementPotByPerson: Record<number, RetirementPotEntry>;
+  accumulationShortfall: AccumulationShortfall;
 };
 
 declare global {

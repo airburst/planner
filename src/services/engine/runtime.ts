@@ -3,6 +3,7 @@ export {
   calculateHouseholdTaxResult,
   calculatePersonalTax,
   calculatePersonTaxResult,
+  findGapToTarget,
   projectPersonYear,
   runProjection,
 } from "./index";

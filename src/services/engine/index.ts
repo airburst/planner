@@ -645,3 +645,100 @@ export function runProjection(
 
   return years;
 }
+
+function isProjectionSustainable(years: HouseholdYearState[]): boolean {
+  return years.every((y) => y.canSustainSpending);
+}
+
+/**
+ * Find the additional annual contribution needed to make an under-funded plan
+ * sustainable. Binary-searches the £/yr extra to add to the primary person's
+ * preferred account (SIPP > ISA > first available) until every year sustains.
+ *
+ * Returns:
+ *   - isSustainable: true if no extra contribution is needed
+ *   - additionalAnnualContribution: rounded to the nearest £100, or 0 if N/A
+ *   - yearsToRetirement: years from startYear to the earliest retirementYear
+ */
+export function findGapToTarget(
+  people: PersonContext[],
+  accounts: AccountContext[],
+  incomeStreams: IncomeStreamContext[],
+  assumptions: AssumptionSet,
+  spending: SpendingAssumption,
+  withdrawalStrategy: WithdrawalStrategy,
+  startYear: number,
+  endYear: number
+): {
+  isSustainable: boolean;
+  additionalAnnualContribution: number;
+  yearsToRetirement: number;
+} {
+  const baselineYears = runProjection(
+    people, accounts, incomeStreams, assumptions, spending, withdrawalStrategy, startYear, endYear
+  );
+  if (isProjectionSustainable(baselineYears)) {
+    return { isSustainable: true, additionalAnnualContribution: 0, yearsToRetirement: 0 };
+  }
+
+  const earliestRetirement = Math.min(...people.map((p) => p.retirementYear));
+  const yearsToRetirement = Math.max(0, earliestRetirement - startYear);
+
+  // Cannot recommend additional contributions if everyone is already retired.
+  if (yearsToRetirement === 0) {
+    return { isSustainable: false, additionalAnnualContribution: 0, yearsToRetirement: 0 };
+  }
+
+  const primary = people.find((p) => p.role === "primary") ?? people[0];
+  if (!primary) {
+    return { isSustainable: false, additionalAnnualContribution: 0, yearsToRetirement };
+  }
+
+  const targetAccount =
+    accounts.find((a) => a.personId === primary.id && a.type === "sipp") ??
+    accounts.find((a) => a.personId === primary.id && a.type === "isa") ??
+    accounts.find((a) => a.personId === primary.id);
+
+  if (!targetAccount) {
+    return { isSustainable: false, additionalAnnualContribution: 0, yearsToRetirement };
+  }
+
+  const runWithExtra = (extra: number): boolean => {
+    const augmented = accounts.map((a) =>
+      a.id === targetAccount.id
+        ? { ...a, annualContribution: a.annualContribution + extra }
+        : a
+    );
+    const years = runProjection(
+      people, augmented, incomeStreams, assumptions, spending, withdrawalStrategy, startYear, endYear
+    );
+    return isProjectionSustainable(years);
+  };
+
+  // Find an upper bound that makes the plan sustainable.
+  let hi = 1000;
+  while (!runWithExtra(hi)) {
+    hi *= 2;
+    if (hi > 10_000_000) {
+      // Plan can't be saved by contributions alone (e.g. accumulating for 0 years
+      // before retirement, or spending dwarfs all reasonable savings).
+      return { isSustainable: false, additionalAnnualContribution: 0, yearsToRetirement };
+    }
+  }
+
+  // Binary search.
+  let lo = 0;
+  for (let i = 0; i < 25; i++) {
+    const mid = (lo + hi) / 2;
+    if (runWithExtra(mid)) hi = mid;
+    else lo = mid;
+  }
+
+  // Round up to nearest £100 so the recommendation is a clean number that's
+  // guaranteed to still be sustainable.
+  return {
+    isSustainable: false,
+    additionalAnnualContribution: Math.ceil(hi / 100) * 100,
+    yearsToRetirement,
+  };
+}

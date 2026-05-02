@@ -1,5 +1,6 @@
 const { eq } = require("drizzle-orm");
 const {
+  findGapToTarget,
   generateRecommendations,
   runProjection,
 } = require("../engine.js");
@@ -244,6 +245,16 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       years,
       recommendations: generateRecommendations(0, years),
       retirementPotByPerson: computeRetirementPotByPerson(enginePeople, years, startYear),
+      accumulationShortfall: findGapToTarget(
+        enginePeople,
+        engineAccounts,
+        engineIncomeStreams,
+        engineAssumptions,
+        spending,
+        withdrawalStrategy,
+        startYear,
+        endYear
+      ),
     };
   });
 
@@ -402,6 +413,16 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       years,
       recommendations: generateRecommendations(0, years),
       retirementPotByPerson: computeRetirementPotByPerson(enginePeople, years, startYear),
+      accumulationShortfall: findGapToTarget(
+        enginePeople,
+        engineAccounts,
+        engineIncomeStreams,
+        engineAssumptions,
+        spending,
+        withdrawalStrategy,
+        startYear,
+        endYear
+      ),
     };
   });
 };

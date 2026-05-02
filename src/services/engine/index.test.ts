@@ -12,6 +12,7 @@ import {
   calculateIncomeForStream,
   calculatePersonalTax,
   calculatePersonTaxResult,
+  findGapToTarget,
   isIncomeStreamActive,
   runProjection,
 } from "./index";
@@ -1252,5 +1253,118 @@ describe("Household-level drawdown", () => {
     expect(year.taxBreakdown.people.get(1)?.totalTax).toBe(expectedPerPerson);
     expect(year.taxBreakdown.people.get(2)?.totalTax).toBe(expectedPerPerson);
     expect(year.totalHouseholdTax).toBe(2 * expectedPerPerson);
+  });
+});
+
+describe("Gap-to-target (ACC-T6)", () => {
+  const baseAssumptions: AssumptionSet = {
+    id: 1, planId: 1, name: "Base",
+    inflationRate: 0.025, investmentReturn: 0.025,
+    personalAllowance: 12570, personalSavingsAllowance: 1000,
+    basicRateBand: 50270, higherRateBand: 125140,
+    basicRate: 0.2, higherRate: 0.4, additionalRate: 0.45,
+    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55,
+  };
+  const baseStrategy: WithdrawalStrategy = {
+    accountTypeOrder: ["cash", "isa", "sipp", "other"],
+    optimizeForTaxEfficiency: true, sippWithdrawalApproach: "flexible",
+  };
+
+  it("returns 0 when plan is already sustainable", () => {
+    const person: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "Wealthy",
+      dateOfBirth: new Date("1965-01-01"), retirementYear: 2026,
+    };
+    const accounts: AccountContext[] = [
+      // £2M cash — clearly sustainable for any reasonable spend.
+      { id: 1, planId: 1, personId: 1, name: "Cash", type: "cash",
+        openingBalance: 2_000_000, annualContribution: 0, employerContribution: 0 },
+    ];
+
+    const result = findGapToTarget(
+      [person], accounts, [], baseAssumptions,
+      { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: true },
+      baseStrategy, 2026, 2056
+    );
+
+    expect(result.isSustainable).toBe(true);
+    expect(result.additionalAnnualContribution).toBe(0);
+  });
+
+  it("returns a positive £/yr for an under-funded plan", () => {
+    // £50k savings, no contributions, 10 years to retirement, £30k spend target.
+    const person: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "Under-funded",
+      dateOfBirth: new Date("1971-01-01"), retirementYear: 2036,
+    };
+    const accounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 50000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const sp: IncomeStreamContext = {
+      id: 1, planId: 1, personId: 1, name: "SP", type: "state_pension",
+      activationAge: 67, annualAmount: 11000, isIndexed: true,
+    };
+
+    const result = findGapToTarget(
+      [person], accounts, [sp], baseAssumptions,
+      { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: true },
+      baseStrategy, 2026, 2056
+    );
+
+    expect(result.isSustainable).toBe(false);
+    expect(result.additionalAnnualContribution).toBeGreaterThan(0);
+    expect(result.yearsToRetirement).toBe(10);
+  });
+
+  it("recommended contribution actually makes the plan sustainable", () => {
+    // Take a borderline plan, get the recommendation, apply it, verify sustainability.
+    const person: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "Borderline",
+      dateOfBirth: new Date("1971-01-01"), retirementYear: 2036,
+    };
+    const accounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 80000, annualContribution: 0, employerContribution: 0 },
+    ];
+
+    const result = findGapToTarget(
+      [person], accounts, [], baseAssumptions,
+      { id: 1, planId: 1, annualSpendingTarget: 25000, isIndexed: true },
+      baseStrategy, 2026, 2056
+    );
+    expect(result.isSustainable).toBe(false);
+
+    // Apply the recommendation and re-run.
+    const augmented = accounts.map((a, i) =>
+      i === 0 ? { ...a, annualContribution: result.additionalAnnualContribution } : a
+    );
+    const years = runProjection(
+      [person], augmented, [], baseAssumptions,
+      { id: 1, planId: 1, annualSpendingTarget: 25000, isIndexed: true },
+      baseStrategy, 2026, 2056
+    );
+    expect(years.every((y) => y.canSustainSpending)).toBe(true);
+  });
+
+  it("returns yearsToRetirement = 0 if everyone is already retired", () => {
+    const retiree: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "Retiree",
+      dateOfBirth: new Date("1955-01-01"), retirementYear: 2020,
+    };
+    const accounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "Cash", type: "cash",
+        openingBalance: 100000, annualContribution: 0, employerContribution: 0 },
+    ];
+
+    const result = findGapToTarget(
+      [retiree], accounts, [], baseAssumptions,
+      { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: true },
+      baseStrategy, 2026, 2056
+    );
+
+    // No years left to add contributions → cannot recommend
+    expect(result.yearsToRetirement).toBe(0);
+    expect(result.additionalAnnualContribution).toBe(0);
   });
 });

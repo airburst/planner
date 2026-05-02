@@ -701,7 +701,17 @@ is non-zero.
 
 ---
 
-### ACC-T6: Gap-to-target recommendation
+### ~~ACC-T6: Gap-to-target recommendation~~ ✅ DONE
+Engine adds `findGapToTarget` helper that binary-searches the £/yr extra contribution
+needed to make an unsustainable plan sustainable. Adds to the primary person's
+preferred account (SIPP > ISA > first available). IPC envelope adds
+`accumulationShortfall: { isSustainable, additionalAnnualContribution, yearsToRetirement }`.
+RecommendationPanel renders a top-level "SAVE MORE" card with the £/yr figure.
+Result rounded up to nearest £100 so the recommendation is a clean number that's
+guaranteed to still be sustainable. Returns 0 contribution if everyone is already
+retired (no years left to save).
+
+### ACC-T6 (legacy spec):
 **Why**: The highest-value insight for a pre-retiree is: "Are you saving enough?" The
 engine already runs the full projection; the retirement pot is computed. The target pot
 is derivable from running the drawdown phase backwards.
