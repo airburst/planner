@@ -1166,6 +1166,75 @@ describe("Household-level drawdown", () => {
     expect(year.people.get(1)?.totalIncome).toBe(12000);
   });
 
+  it("treats Dec-birth retirement year as full accumulation (no drawdown)", () => {
+    // DOB 31 Dec → drawdown factor 0 in retirementYear; contributions ~11/12.
+    const decBirth: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "Late",
+      dateOfBirth: new Date("1969-12-31"), retirementYear: 2032,
+    };
+    const sipp: AccountContext = {
+      id: 1, planId: 1, personId: 1, name: "SIPP", type: "sipp",
+      openingBalance: 200000, annualContribution: 12000, employerContribution: 0,
+    };
+    const noInflation: AssumptionSet = { ...assumptions, inflationRate: 0 };
+
+    const [year] = runProjection(
+      [decBirth], [sipp], [], noInflation,
+      { id: 1, planId: 1, annualSpendingTarget: 50000, isIndexed: false },
+      strategy, 2032, 2032
+    );
+
+    expect(year.totalHouseholdWithdrawals).toBe(0);
+    // Contribution proportional to birth month (Dec → 11/12 worked).
+    expect(year.people.get(1)?.closingBalances.get(1))
+      .toBe(200000 + Math.round(12000 * 11 / 12));
+  });
+
+  it("pro-rates retirement year drawdown for mid-year birth", () => {
+    // DOB 1 Jul → drawdown factor 5/12 (Aug-Dec).
+    const julyBirth: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "Mid",
+      dateOfBirth: new Date("1969-07-01"), retirementYear: 2032,
+    };
+    const isa: AccountContext = {
+      id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+      openingBalance: 200000, annualContribution: 0, employerContribution: 0,
+    };
+    const noInflation: AssumptionSet = { ...assumptions, inflationRate: 0 };
+
+    const [year] = runProjection(
+      [julyBirth], [isa], [], noInflation,
+      { id: 1, planId: 1, annualSpendingTarget: 24000, isIndexed: false },
+      strategy, 2032, 2032
+    );
+
+    // Expected drawdown = spending × (11-6)/12 = 24000 × 5/12 = 10000.
+    expect(year.totalHouseholdWithdrawals).toBe(10000);
+  });
+
+  it("applies full drawdown if any person is fully past their retirement year", () => {
+    // P retired in 2025 (full drawdown). Q retiring this year with Dec birth.
+    // Household drawdown factor = max(1, 0) = 1 → full year.
+    const fullyRetired: PersonContext = { ...primary, retirementYear: 2025 };
+    const decBirthRetiring: PersonContext = {
+      id: 2, planId: 1, role: "partner", name: "Q",
+      dateOfBirth: new Date("1969-12-31"), retirementYear: 2032,
+    };
+    const accounts: AccountContext[] = [
+      { id: 10, planId: 1, personId: 1, name: "P-ISA", type: "isa", openingBalance: 100000, annualContribution: 0, employerContribution: 0 },
+      { id: 11, planId: 1, personId: 2, name: "Q-ISA", type: "isa", openingBalance: 100000, annualContribution: 0, employerContribution: 0 },
+    ];
+
+    const [year] = runProjection(
+      [fullyRetired, decBirthRetiring], accounts, [], assumptions,
+      { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: false },
+      strategy, 2032, 2032
+    );
+
+    // Full year drawdown because the primary is post-retirement.
+    expect(year.totalHouseholdWithdrawals).toBe(30000);
+  });
+
   it("calculates tax separately per person — two allowances of £12,570", () => {
     // Each person has £20k taxable income. With separate allowances, each pays
     // (20000 - 12570) * 0.2 = £1,486. Combined = £2,972. NOT (40000 - 12570) * 0.2 = £5,486.

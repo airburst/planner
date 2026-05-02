@@ -252,6 +252,40 @@ export function activationYearProRataFactor(person: PersonContext): number {
 }
 
 /**
+ * In the retirement year, share of the year still spent contributing
+ * (months strictly before the birth month). Symmetric with the activation factor.
+ *
+ *   31 Dec → 11/12 (worked Jan-Nov)
+ *   15 Jun →  5/12 (worked Jan-May)
+ *    1 Jan → 0    (retired immediately)
+ */
+export function retirementYearAccumulationFactor(person: PersonContext): number {
+  const birthMonth = person.dateOfBirth.getMonth();
+  return Math.max(0, birthMonth) / 12;
+}
+
+/**
+ * Household-level drawdown factor for a year:
+ *   - 1 if any person is past their retirement year (post-retirement)
+ *   - per-person retirement-year activation factor if at boundary
+ *   - 0 if everyone is still in accumulation
+ *
+ * Takes the maximum across people so a fully-retired partner triggers full
+ * household drawdown even if another partner is mid-retirement-year.
+ */
+export function householdDrawdownFactor(people: PersonContext[], year: number): number {
+  let factor = 0;
+  for (const p of people) {
+    if (year > p.retirementYear) {
+      factor = 1;
+    } else if (year === p.retirementYear) {
+      factor = Math.max(factor, activationYearProRataFactor(p));
+    }
+  }
+  return factor;
+}
+
+/**
  * Compute a person's stream income for a given year (no withdrawals).
  */
 function computePersonStreamIncome(
@@ -442,9 +476,19 @@ export function projectPersonYear(
       const proRataTax = opening > 0 && totalOpeningBalance > 0
         ? Math.round((opening / totalOpeningBalance) * taxDue)
         : 0;
-      const contribution = isAccumulation
-        ? account.annualContribution + account.employerContribution
-        : 0;
+      // In the retirement year contributions continue for the months before
+      // the birth month (when the person is still working).
+      let contributionFactor: number;
+      if (isAccumulation) {
+        contributionFactor = 1;
+      } else if (year === person.retirementYear) {
+        contributionFactor = retirementYearAccumulationFactor(person);
+      } else {
+        contributionFactor = 0;
+      }
+      const contribution = Math.round(
+        (account.annualContribution + account.employerContribution) * contributionFactor
+      );
 
       const closing = opening - withdrawal + proRataGrowth - proRataTax + contribution;
       closingBalances.set(account.id, Math.max(0, closing));
@@ -528,13 +572,15 @@ export function runProjection(
       householdStreamIncome += income.totalIncome;
     }
 
-    // Pass 2: household deficit (only if at least one person is drawing down).
-    const anyoneRetired = people.some((p) => year >= p.retirementYear);
+    // Pass 2: household deficit pro-rated by retirement-year boundary.
+    // For people fully past retirement, factor = 1 (full year of drawdown).
+    // For someone in their retirementYear, factor < 1 by birth month.
+    const drawdownFactor = householdDrawdownFactor(people, year);
     const adjustedSpending = spending.isIndexed
       ? Math.round(spending.annualSpendingTarget * Math.pow(1 + assumptions.inflationRate, year - startYear))
       : spending.annualSpendingTarget;
-    const householdDeficit = anyoneRetired
-      ? Math.max(0, adjustedSpending - householdStreamIncome)
+    const householdDeficit = drawdownFactor > 0
+      ? Math.max(0, Math.round((adjustedSpending - householdStreamIncome) * drawdownFactor))
       : 0;
 
     // Pass 3: allocate withdrawals across drawable accounts in strategy order.
@@ -589,7 +635,7 @@ export function runProjection(
     householdYear.deficitOrSurplus = householdYear.totalHouseholdIncome - adjustedSpending;
     // During accumulation, sustainability is meaningless; otherwise the household is
     // sustainable if income covers spending, or if assets remain to draw from.
-    householdYear.canSustainSpending = !anyoneRetired
+    householdYear.canSustainSpending = drawdownFactor === 0
       || householdYear.totalHouseholdAssets > 0
       || householdYear.deficitOrSurplus >= 0;
     householdYear.spendingCoverage = householdYear.totalHouseholdIncome / Math.max(1, adjustedSpending);
