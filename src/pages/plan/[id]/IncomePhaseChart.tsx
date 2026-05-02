@@ -2,10 +2,9 @@ import { Button } from "@/components/ui/button";
 import type { HouseholdYearState } from "@/services/engine/types";
 import { useMemo, useState } from "react";
 import {
-  Area,
-  AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
-  ReferenceDot,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -225,8 +224,8 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
               type="button"
               onClick={() => toggleStream(streamId)}
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors ${isDimmed
-                  ? "border-border text-muted-foreground"
-                  : "border-foreground/20 bg-muted/40 text-foreground"
+                ? "border-border text-muted-foreground"
+                : "border-foreground/20 bg-muted/40 text-foreground"
                 }`}
             >
               <span
@@ -250,36 +249,20 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
 
       <div className="h-80 w-full rounded-md border bg-background/40 p-2">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
+          <BarChart
             data={data}
+            barCategoryGap={0}
             margin={{ top: 8, right: 16, left: 12, bottom: 0 }}
             onMouseMove={(state) => {
-              if (typeof state?.activeLabel !== "number") {
-                return;
-              }
-              const activeYear = state.activeLabel;
-              const row = data.find((item) => item.year === activeYear);
-              if (!row) {
+              if (state.isTooltipActive && state.activeLabel !== undefined) {
+                const row = data.find((d) => d.year === state.activeLabel);
+                if (row) setHoverSummary({ year: Number(state.activeLabel), total: row.total });
+              } else {
                 setHoverSummary(null);
-                return;
               }
-              setHoverSummary({ year: activeYear, total: row.total });
             }}
             onMouseLeave={() => setHoverSummary(null)}
           >
-            <defs>
-              {activeStreamIds.map((streamId) => {
-                const key = `stream_${streamId}`;
-                const color = streamMeta.get(streamId)?.color || CHART_COLORS[0];
-                return (
-                  <linearGradient key={key} id={`grad_${key}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={color} stopOpacity={0.65} />
-                    <stop offset="95%" stopColor={color} stopOpacity={0.1} />
-                  </linearGradient>
-                );
-              })}
-            </defs>
-
             <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="year"
@@ -297,11 +280,11 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
             <Tooltip
               contentStyle={{
                 borderRadius: 10,
-                border: "1px solid hsl(var(--border))",
-                background: "hsl(var(--card))",
+                border: "1px solid #e2e8f0",
+                backgroundColor: "#ffffff",
                 boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
               }}
-              labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
+              labelStyle={{ color: "#0f172a", fontWeight: 600 }}
               formatter={(value, name) => {
                 const numericValue = Number(Array.isArray(value) ? value[0] : value ?? 0);
                 const streamId = Number(String(name ?? "").replace("stream_", ""));
@@ -311,41 +294,22 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
               labelFormatter={(label) => `Year ${label}`}
             />
 
-            {activationEvents.map((event) => (
-              <ReferenceDot
-                key={`activation_${event.streamId}`}
-                x={event.year}
-                y={0}
-                r={selectedEvent?.streamId === event.streamId ? 7 : 5}
-                fill={event.color}
-                stroke="hsl(var(--background))"
-                strokeWidth={2}
-                ifOverflow="visible"
-                onClick={() => setSelectedEventId(event.streamId)}
-              />
-            ))}
-
             {activeStreamIds.map((streamId) => {
               const key = `stream_${streamId}`;
-              const meta = streamMeta.get(streamId);
+              const color = streamMeta.get(streamId)?.color || CHART_COLORS[0];
               const isDimmed = dimmedStreamIds.has(streamId);
               return (
-                <Area
+                <Bar
                   key={key}
-                  type="natural"
                   dataKey={key}
                   stackId={viewMode === "stacked" ? "income" : key}
-                  stroke={meta?.color || CHART_COLORS[0]}
-                  fill={`url(#grad_${key})`}
-                  strokeWidth={2}
-                  activeDot={{ r: 4 }}
-                  connectNulls
-                  fillOpacity={isDimmed ? 0.08 : 1}
-                  strokeOpacity={isDimmed ? 0.25 : 1}
+                  fill={color}
+                  fillOpacity={isDimmed ? 0.12 : 0.85}
+                  isAnimationActive={false}
                 />
               );
             })}
-          </AreaChart>
+          </BarChart>
         </ResponsiveContainer>
       </div>
 
@@ -370,8 +334,8 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
                   type="button"
                   onClick={() => setSelectedEventId(event.streamId)}
                   className={`rounded-md border px-3 py-2 text-left transition-colors ${isSelected
-                      ? "border-foreground/30 bg-muted/60"
-                      : "border-border bg-background/70 hover:bg-muted/40"
+                    ? "border-foreground/30 bg-muted/60"
+                    : "border-border bg-background/70 hover:bg-muted/40"
                     }`}
                 >
                   <div className="flex items-center gap-2">
@@ -390,8 +354,7 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
       )}
 
       <p className="mt-3 text-xs text-muted-foreground">
-        Dots on the baseline indicate income stream activation years. Click a dot or event card
-        to focus that stream.
+        Click a stream label above to dim it. Click an event card to highlight that stream's activation year.
       </p>
     </section>
   );

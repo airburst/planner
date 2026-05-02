@@ -7,6 +7,7 @@ import { useProjection } from "@/hooks/use-projection";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { AccountsPanel } from "./AccountsPanel";
+import { AssumptionsPanel } from "./AssumptionsPanel";
 import { IncomePhaseChart } from "./IncomePhaseChart";
 import { IncomeStreamsPanel } from "./IncomeStreamsPanel";
 import { PeoplePanel } from "./PeoplePanel";
@@ -92,6 +93,7 @@ export function PlanDetailPage() {
           <SpendingPanel planId={planId} />
           <AccountsPanel planId={planId} accounts={accounts} people={people} />
           <IncomeStreamsPanel planId={planId} incomeStreams={incomeStreams} people={people} />
+          <AssumptionsPanel planId={planId} />
         </div>
       </section>
 

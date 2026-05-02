@@ -24,5 +24,8 @@ export const queryKeys = {
   },
   projection: {
     forPlan: (planId: number) => ["projection", "plan", planId] as const
+  },
+  assumptionSets: {
+    byPlan: (planId: number) => ["assumption-sets", "plan", planId] as const
   }
 };

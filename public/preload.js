@@ -65,4 +65,13 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("scenarios:getOverrides", scenarioId),
   setScenarioOverrides: (scenarioId, overrides) =>
     ipcRenderer.invoke("scenarios:setOverrides", scenarioId, overrides),
+
+  getAssumptionSetByPlan: (planId) =>
+    ipcRenderer.invoke("assumption-sets:getByPlan", planId),
+  createAssumptionSet: (data) =>
+    ipcRenderer.invoke("assumption-sets:create", data),
+  updateAssumptionSet: (id, data) =>
+    ipcRenderer.invoke("assumption-sets:update", id, data),
+  deleteAssumptionSet: (id) =>
+    ipcRenderer.invoke("assumption-sets:delete", id),
 });

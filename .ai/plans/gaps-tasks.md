@@ -1,4 +1,4 @@
-# Gap Tasks — updated 2026-04-30
+# Gap Tasks — updated 2026-05-01
 
 Prioritised engineering backlog derived from `gaps.md`. Tasks are ordered by impact on
 usability. Each task is self-contained: it states what to build, why it matters, what
@@ -6,6 +6,17 @@ files to touch, and the definition of done.
 
 Task ID format: G<priority>-T<seq>
 Priority tiers: P1 = critical path, P2 = high value, P3 = medium, P4 = low/deferred
+
+## Status Checkpoint — 2026-05-01 (paused)
+
+- Completed in this session:
+  - G2-T4 Partner income streams in onboarding
+  - G2-T5 Scenario creation and comparison (a/b/c)
+  - Husky pre-commit gate added for lint + test + check-types
+- Next suggested task when resuming:
+  - G2-T7 One-off income / windfalls (or G2-T3 multi-account onboarding)
+- Resume note:
+  - Continue from Priority 2 list below; keep G2-T6 pending after tax-threshold work.
 
 ---
 
@@ -51,37 +62,20 @@ created with `useExpenseProfileByPlan`, `useCreateExpenseProfile`,
 
 ## Priority 2 — High value (core product features)
 
-### G2-T1: UK tax threshold management
+### ~~G2-T1: UK tax threshold management~~ ✅ DONE
 **Why**: Tax bands change every April. Currently all thresholds (personal allowance
 £12,570, basic rate band £50,270, higher rate £125,140) are hardcoded in
 `projections.js`. Users have no way to update them without editing source code.
 
-**Approach**: Store thresholds in `assumption_sets` table (fields already defined in
-schema). Add a settings screen to view and edit the active tax year's thresholds.
-
-**Files**:
-- `public/ipc/projections.js` — instead of hardcoding, read `personalAllowance`,
-  `basicRateBand`, `higherRateBand`, `basicRate`, `higherRate`, `additionalRate` from
-  the plan's assumption set row; fall back to 2026 UK defaults if no row exists
-- `public/ipc/assumption-sets.js` — CRUD handlers for assumption sets (likely already
-  present; verify and add `assumption-sets:getByPlan` if missing)
-- `src/hooks/use-assumption-sets.ts` — new hook file
-- `src/pages/plan/[id]/AssumptionsPanel.tsx` — new component: collapsible panel on
-  plan detail showing current tax year values with inline edit
-  - Fields: tax year label, personal allowance, basic rate threshold, higher rate
-    threshold, basic/higher/additional rates, inflation rate, nominal growth rate,
-    SIPP minimum access age
-  - Show "using defaults" badge when no custom assumption set exists for this plan
-- `src/pages/plan/[id]/index.tsx` — render `<AssumptionsPanel>` below the projection
-  table
-
-**Global defaults**: Add a separate "Tax settings" page (or section on home page)
-that holds the app-wide default thresholds for the current tax year. New plans inherit
-these; individual plans can override.
-
-**DoD**: Changing the personal allowance field causes the projection to re-run with
-the new value. A plan created in 2027 uses 2027 thresholds without code changes.
-Unit test: `calculatePersonalTax()` parametrised with an assumption set read from DB.
+`public/ipc/assumption-sets.js` — CRUD handlers: `getByPlan`, `create`, `update`,
+`delete`. Registered in `public/electron.js` and exposed via `public/preload.js`.
+`src/types/electron.d.ts` — `AssumptionSet` / `NewAssumptionSet` types and Window API
+methods. `src/hooks/query-keys.ts` — `assumptionSets.byPlan`. `src/hooks/use-assumption-sets.ts`
+— `useAssumptionSetByPlan`, `useCreateAssumptionSet`, `useUpdateAssumptionSet`,
+`useDeleteAssumptionSet`; mutations invalidate projection. `src/pages/plan/[id]/AssumptionsPanel.tsx`
+— collapsible panel showing tax year label, thresholds, rates, inflation, growth; shows
+"using defaults" badge when no custom row exists. Engine (`projections.js`) already reads
+from `assumptionSets` table and falls back to hardcoded 2026 UK defaults — no changes needed.
 
 ---
 
@@ -179,7 +173,7 @@ accounts list on the plan detail page.
 
 ---
 
-### G2-T4: Partner income streams in onboarding
+### ~~G2-T4: Partner income streams in onboarding~~ ✅ DONE
 **Why**: When a partner is added, their income streams (State Pension, DB pension) are
 never created. A two-person household has a single person's income, making partner
 plans wrong.
@@ -199,7 +193,7 @@ household income from two sources.
 
 ---
 
-### G2-T5: Scenario creation and comparison
+### ~~G2-T5: Scenario creation and comparison~~ ✅ DONE
 **Why**: The schema and engine fully support scenarios. Without a UI, users cannot
 explore "what if I retire at 63?" which is the primary use case for a planning tool.
 

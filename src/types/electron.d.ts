@@ -3,6 +3,7 @@ export {};
     import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
     import type {
         accounts,
+        assumptionSets,
         expenseProfiles,
         householdPlans,
         incomeStreams,
@@ -26,6 +27,8 @@ type Scenario = InferSelectModel<typeof scenarios>;
 type NewScenario = InferInsertModel<typeof scenarios>;
 type ScenarioOverride = InferSelectModel<typeof scenarioOverrides>;
 type NewScenarioOverride = InferInsertModel<typeof scenarioOverrides>;
+type AssumptionSet = InferSelectModel<typeof assumptionSets>;
+type NewAssumptionSet = InferInsertModel<typeof assumptionSets>;
 type ProjectionResult = {
   planId: number;
   scenarioId: number | null;
@@ -97,6 +100,11 @@ declare global {
       deleteScenario: (id: number) => Promise<{ success: boolean }>;
       getScenarioOverrides: (scenarioId: number) => Promise<ScenarioOverride[]>;
       setScenarioOverrides: (scenarioId: number, overrides: NewScenarioOverride[]) => Promise<void>;
+
+      getAssumptionSetByPlan: (planId: number) => Promise<AssumptionSet | null>;
+      createAssumptionSet: (data: NewAssumptionSet) => Promise<AssumptionSet | null>;
+      updateAssumptionSet: (id: number, data: Partial<NewAssumptionSet>) => Promise<AssumptionSet | null>;
+      deleteAssumptionSet: (id: number) => Promise<{ success: boolean }>;
 
       runProjectionForPlan: (
         planId: number,
