@@ -28,6 +28,7 @@ export interface AccountContext {
   type: "cash" | "isa" | "sipp" | "other";
   openingBalance: number; // GBP pence
   annualContribution: number; // GBP per year, applied during accumulation phase
+  employerContribution: number; // GBP per year, applied during accumulation phase (SIPP only)
 }
 
 /**

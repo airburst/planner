@@ -54,6 +54,7 @@ describe("Core Simulation Engine", () => {
         type: "cash",
         openingBalance: 100000, // £100k
         annualContribution: 0,
+        employerContribution: 0,
       },
       {
         id: 2,
@@ -63,6 +64,7 @@ describe("Core Simulation Engine", () => {
         type: "isa",
         openingBalance: 150000, // £150k
         annualContribution: 0,
+        employerContribution: 0,
       },
       {
         id: 3,
@@ -72,6 +74,7 @@ describe("Core Simulation Engine", () => {
         type: "sipp",
         openingBalance: 250000, // £250k
         annualContribution: 0,
+        employerContribution: 0,
       },
     ];
 
@@ -662,6 +665,7 @@ describe("Core Simulation Engine", () => {
           type: "cash",
           openingBalance: 50000,
           annualContribution: 0,
+          employerContribution: 0,
         },
         {
           id: 5,
@@ -671,6 +675,7 @@ describe("Core Simulation Engine", () => {
           type: "isa",
           openingBalance: 100000,
           annualContribution: 0,
+          employerContribution: 0,
         },
       ];
 
@@ -747,6 +752,7 @@ describe("Accumulation phase (ACC-T1)", () => {
       type: "sipp",
       openingBalance: 100000,
       annualContribution: 10000,
+      employerContribution: 0,
     };
 
     const year = projectPersonYear(
@@ -783,6 +789,7 @@ describe("Accumulation phase (ACC-T1)", () => {
       type: "sipp",
       openingBalance: 100000,
       annualContribution: 10000,
+      employerContribution: 0,
     };
 
     const year = projectPersonYear(
@@ -820,6 +827,7 @@ describe("Accumulation phase (ACC-T1)", () => {
       type: "isa",
       openingBalance: 50000,
       annualContribution: 5000,
+      employerContribution: 0,
     };
 
     const years = runProjection(
@@ -853,6 +861,7 @@ describe("Accumulation phase (ACC-T1)", () => {
       type: "sipp",
       openingBalance: 200000,
       annualContribution: 5000,
+      employerContribution: 0,
     };
 
     const years = runProjection(
@@ -889,6 +898,7 @@ describe("Accumulation phase (ACC-T1)", () => {
       type: "isa",
       openingBalance: 50000,
       annualContribution: 0,
+      employerContribution: 0,
     };
     const dbStream: IncomeStreamContext = {
       id: 1,
@@ -934,6 +944,7 @@ describe("Accumulation phase (ACC-T1)", () => {
       type: "cash",
       openingBalance: 100000,
       annualContribution: 9999, // should be ignored — it's a drawdown year
+      employerContribution: 0,
     };
 
     const year = projectPersonYear(
@@ -952,5 +963,78 @@ describe("Accumulation phase (ACC-T1)", () => {
     expect(year.totalWithdrawals).toBeGreaterThan(0);
     // Closing should NOT include the £9,999 contribution.
     expect(year.closingBalances.get(1)).toBeLessThan(100000);
+  });
+
+  it("accumulates employer contribution alongside personal contribution (ACC-T2)", () => {
+    const person: PersonContext = {
+      id: 1,
+      planId: 1,
+      role: "primary",
+      name: "Employee",
+      dateOfBirth: new Date("1980-01-01"),
+      retirementYear: 2045,
+    };
+    const sipp: AccountContext = {
+      id: 1,
+      planId: 1,
+      personId: 1,
+      name: "SIPP",
+      type: "sipp",
+      openingBalance: 100000,
+      annualContribution: 5000,
+      employerContribution: 3000,
+    };
+
+    const year = projectPersonYear(
+      person,
+      [sipp],
+      [],
+      baseAssumptions,
+      baseSpending,
+      baseStrategy,
+      2026,
+      2026,
+      new Map([[1, 100000]])
+    );
+
+    // closing = opening (100000) + growth (6080) + personal (5000) + employer (3000)
+    expect(year.closingBalances.get(1)).toBe(100000 + 6080 + 5000 + 3000);
+  });
+
+  it("does not apply employer contribution after retirement", () => {
+    const retiree: PersonContext = {
+      id: 1,
+      planId: 1,
+      role: "primary",
+      name: "Retiree",
+      dateOfBirth: new Date("1965-01-01"),
+      retirementYear: 2025, // already retired
+    };
+    const sipp: AccountContext = {
+      id: 1,
+      planId: 1,
+      personId: 1,
+      name: "SIPP",
+      type: "sipp",
+      openingBalance: 200000,
+      annualContribution: 5000,
+      employerContribution: 3000,
+    };
+
+    const year = projectPersonYear(
+      retiree,
+      [sipp],
+      [],
+      baseAssumptions,
+      baseSpending,
+      baseStrategy,
+      2026,
+      2026,
+      new Map([[1, 200000]])
+    );
+
+    // Drawdown — no contribution should be added. Withdrawals reduce balance.
+    expect(year.totalWithdrawals).toBeGreaterThan(0);
+    expect(year.closingBalances.get(1)).toBeLessThan(200000);
   });
 });

@@ -359,7 +359,9 @@ export function projectPersonYear(
       const proRataTax = opening > 0 && totalOpeningBalance > 0
         ? Math.round((opening / totalOpeningBalance) * taxDue)
         : 0;
-      const contribution = isAccumulation ? account.annualContribution : 0;
+      const contribution = isAccumulation
+        ? account.annualContribution + account.employerContribution
+        : 0;
 
       const closing = opening - withdrawal + proRataGrowth - proRataTax + contribution;
       closingBalances.set(account.id, Math.max(0, closing));

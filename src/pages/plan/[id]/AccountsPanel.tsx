@@ -10,6 +10,7 @@ type Account = {
   wrapperType: "sipp" | "isa" | "gia" | "cash" | "other";
   currentBalance: number;
   annualContribution: number;
+  employerContribution: number;
 };
 
 type Person = { id: number; firstName: string; role: "primary" | "partner" };
@@ -25,6 +26,7 @@ interface DraftAccount {
   wrapperType: "sipp" | "isa" | "gia" | "cash" | "other";
   currentBalance: number;
   annualContribution: number;
+  employerContribution: number;
   personId: number | null;
 }
 
@@ -44,6 +46,7 @@ const BLANK: DraftAccount = {
   wrapperType: "sipp",
   currentBalance: 0,
   annualContribution: 0,
+  employerContribution: 0,
   personId: null,
 };
 
@@ -67,16 +70,21 @@ export function AccountsPanel({ planId, accounts, people }: Props) {
       wrapperType: a.wrapperType,
       currentBalance: a.currentBalance,
       annualContribution: a.annualContribution,
+      employerContribution: a.employerContribution,
       personId: a.personId,
     });
     setEditingId(a.id);
   };
 
   const save = async (existingId?: number) => {
+    const payload = {
+      ...draft,
+      employerContribution: draft.wrapperType === "sipp" ? draft.employerContribution : 0,
+    };
     if (existingId !== undefined) {
-      await updateAccount.mutateAsync({ id: existingId, data: draft });
+      await updateAccount.mutateAsync({ id: existingId, data: payload });
     } else {
-      await createAccount.mutateAsync({ planId, ...draft });
+      await createAccount.mutateAsync({ planId, ...payload });
     }
     setEditingId(null);
   };
@@ -160,6 +168,20 @@ export function AccountsPanel({ planId, accounts, people }: Props) {
             className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
+
+        {draft.wrapperType === "sipp" && (
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Employer Contribution (£)</label>
+            <input
+              type="number"
+              min={0}
+              step={100}
+              value={draft.employerContribution}
+              onChange={(e) => setDraft((d) => ({ ...d, employerContribution: Number(e.target.value) }))}
+              className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2 pt-1">
@@ -207,6 +229,7 @@ export function AccountsPanel({ planId, accounts, people }: Props) {
                 <p className="text-xs text-muted-foreground">
                   {fmt(account.currentBalance)} balance
                   {account.annualContribution > 0 ? ` · ${fmt(account.annualContribution)}/yr` : ""}
+                  {account.employerContribution > 0 ? ` · ${fmt(account.employerContribution)}/yr employer` : ""}
                 </p>
               </div>
               <div className="flex gap-1">

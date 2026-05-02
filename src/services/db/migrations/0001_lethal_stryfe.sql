@@ -1,0 +1,1 @@
+ALTER TABLE `accounts` ADD `employer_contribution` real DEFAULT 0 NOT NULL;

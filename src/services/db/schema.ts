@@ -53,6 +53,7 @@ export const accounts = sqliteTable(
     }).notNull(),
     currentBalance: real("current_balance").notNull().default(0),
     annualContribution: real("annual_contribution").notNull().default(0),
+    employerContribution: real("employer_contribution").notNull().default(0),
     createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`)
   },
   (table) => ({

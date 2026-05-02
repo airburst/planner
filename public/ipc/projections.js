@@ -172,6 +172,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       type: mapWrapperType(account.wrapperType),
       openingBalance: account.currentBalance,
       annualContribution: account.annualContribution ?? 0,
+      employerContribution: account.employerContribution ?? 0,
     }));
 
     const engineIncomeStreams = incomeStreams.map((stream) => ({
@@ -314,6 +315,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       type: mapWrapperType(account.wrapperType),
       openingBalance: account.currentBalance,
       annualContribution: account.annualContribution ?? 0,
+      employerContribution: account.employerContribution ?? 0,
     }));
 
     let engineIncomeStreams = incomeStreams.map((stream) => ({

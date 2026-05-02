@@ -64,9 +64,9 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
       },
     ],
     accounts: [
-      { id: 1, planId: 1, personId: 1, name: "Cash", type: "cash", openingBalance: 60000, annualContribution: 0 },
-      { id: 2, planId: 1, personId: 1, name: "ISA", type: "isa", openingBalance: 120000, annualContribution: 0 },
-      { id: 3, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 250000, annualContribution: 0 },
+      { id: 1, planId: 1, personId: 1, name: "Cash", type: "cash", openingBalance: 60000, annualContribution: 0, employerContribution: 0 },
+      { id: 2, planId: 1, personId: 1, name: "ISA", type: "isa", openingBalance: 120000, annualContribution: 0, employerContribution: 0 },
+      { id: 3, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 250000, annualContribution: 0, employerContribution: 0 },
     ],
     incomeStreams: [
       {
@@ -126,6 +126,7 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
         type: "isa",
         openingBalance: 150000,
         annualContribution: 0,
+        employerContribution: 0,
       },
       {
         id: 11,
@@ -135,6 +136,7 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
         type: "sipp",
         openingBalance: 200000,
         annualContribution: 0,
+        employerContribution: 0,
       },
     ],
     incomeStreams: [
@@ -199,7 +201,7 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
       },
     ],
     accounts: [
-      { id: 30, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 100000, annualContribution: 0 },
+      { id: 30, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 100000, annualContribution: 0, employerContribution: 0 },
     ],
     incomeStreams: [
       {
@@ -249,8 +251,8 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
       },
     ],
     accounts: [
-      { id: 1, planId: 1, personId: 1, name: "Primary SIPP", type: "sipp", openingBalance: 100000, annualContribution: 10000 },
-      { id: 2, planId: 1, personId: 2, name: "Partner SIPP", type: "sipp", openingBalance: 100000, annualContribution: 10000 },
+      { id: 1, planId: 1, personId: 1, name: "Primary SIPP", type: "sipp", openingBalance: 100000, annualContribution: 10000, employerContribution: 0 },
+      { id: 2, planId: 1, personId: 2, name: "Partner SIPP", type: "sipp", openingBalance: 100000, annualContribution: 10000, employerContribution: 0 },
     ],
     incomeStreams: [],
     spending: {
@@ -283,7 +285,7 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
       },
     ],
     accounts: [
-      { id: 40, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 300000, annualContribution: 0 },
+      { id: 40, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 300000, annualContribution: 0, employerContribution: 0 },
     ],
     incomeStreams: [],
     spending: {

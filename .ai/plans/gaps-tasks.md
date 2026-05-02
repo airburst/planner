@@ -540,7 +540,13 @@ from retirement year. The retirement pot at year 20 is the drawdown opening bala
 
 ---
 
-### ACC-T2: Employer pension contributions
+### ~~ACC-T2: Employer pension contributions~~ ✅ DONE
+`accounts.employer_contribution` column added (migration 0001). Engine combines
+`annualContribution + employerContribution` during accumulation. AccountsPanel
+shows "Employer Contribution (£)" input only when `wrapperType === "sipp"`; on
+save the field is forced to 0 if type isn't SIPP. List summary line surfaces
+employer £/yr alongside personal.
+
 **Why**: For most UK employees, employer matching is the largest annual pension
 contribution. Without it, accumulation projections are systematically under-stated.
 
