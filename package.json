@@ -64,6 +64,7 @@
   "build": {
     "appId": "com.markfairhurst.planner",
     "productName": "Planner",
+    "icon": "public/assets/icon.icns",
     "files": [
       "build/**/*",
       "public/electron.js",
@@ -71,10 +72,12 @@
       "public/db.js",
       "public/engine.js",
       "public/ipc/**/*",
+      "public/assets/**/*",
       "src/services/db/migrations/**/*",
       "package.json"
     ],
     "directories": {
+      "buildResources": "public/assets",
       "output": "out"
     },
     "publish": {
