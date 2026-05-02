@@ -55,6 +55,29 @@ function buildAssumptionSet(row) {
   };
 }
 
+/**
+ * For each person, capture the total opening balance at the start of their
+ * retirement year. If the person is already retired (retirementYear <= startYear),
+ * use the first year's opening balance. Returns { [personId]: { pot, year, alreadyRetired } }.
+ */
+function computeRetirementPotByPerson(enginePeople, years, startYear) {
+  const result = {};
+  for (const person of enginePeople) {
+    const alreadyRetired = person.retirementYear <= startYear;
+    const targetYear = alreadyRetired ? startYear : person.retirementYear;
+    const yearState = years.find((y) => y.year === targetYear);
+    let pot = 0;
+    const personState = yearState?.people?.get(person.id);
+    if (personState) {
+      for (const balance of personState.openingBalances.values()) {
+        pot += balance;
+      }
+    }
+    result[person.id] = { pot, year: targetYear, alreadyRetired };
+  }
+  return result;
+}
+
 function applyOverridesToEngineData(engineData, overrides) {
   // Create a deep copy to avoid mutating the original
   const data = JSON.parse(JSON.stringify(engineData));
@@ -220,6 +243,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       endYear,
       years,
       recommendations: generateRecommendations(0, years),
+      retirementPotByPerson: computeRetirementPotByPerson(enginePeople, years, startYear),
     };
   });
 
@@ -377,6 +401,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       endYear,
       years,
       recommendations: generateRecommendations(0, years),
+      retirementPotByPerson: computeRetirementPotByPerson(enginePeople, years, startYear),
     };
   });
 };

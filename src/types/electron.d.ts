@@ -29,6 +29,12 @@ type ScenarioOverride = InferSelectModel<typeof scenarioOverrides>;
 type NewScenarioOverride = InferInsertModel<typeof scenarioOverrides>;
 type AssumptionSet = InferSelectModel<typeof assumptionSets>;
 type NewAssumptionSet = InferInsertModel<typeof assumptionSets>;
+type RetirementPotEntry = {
+  pot: number;
+  year: number;
+  alreadyRetired: boolean;
+};
+
 type ProjectionResult = {
   planId: number;
   scenarioId: number | null;
@@ -38,6 +44,7 @@ type ProjectionResult = {
   endYear: number;
   years: HouseholdYearState[];
   recommendations: Recommendation[];
+  retirementPotByPerson: Record<number, RetirementPotEntry>;
 };
 
 declare global {

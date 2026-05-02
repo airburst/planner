@@ -524,4 +524,71 @@ describe("projections IPC", () => {
       expect(year.totalHouseholdTax).toBeLessThan(pooledTax);
     });
   });
+
+  describe("projections:runForPlan — retirement pot", () => {
+    it("returns retirementPotByPerson for an accumulating person (ACC-T4)", async () => {
+      const planId = await seedPlan(invoke);
+      // Person born 1980, age 46 in 2026, retires at 65 → retirement year 2045.
+      const person = await invoke<{ id: number }>("people:create", {
+        planId,
+        role: "primary",
+        firstName: "Pre-retiree",
+        dateOfBirth: "1980-01-01",
+        retirementAge: 65,
+        statePensionAge: 67,
+      });
+      await invoke("accounts:create", {
+        planId,
+        personId: person.id,
+        name: "ISA",
+        wrapperType: "isa",
+        currentBalance: 100000,
+        annualContribution: 10000,
+      });
+
+      const result = await invoke<{ retirementPotByPerson: Record<number, { pot: number; year: number; alreadyRetired: boolean }> }>(
+        "projections:runForPlan",
+        planId,
+        { startYear: 2026, endYear: 2046 }
+      );
+
+      expect(result.retirementPotByPerson).toBeDefined();
+      expect(result.retirementPotByPerson[person.id]).toBeDefined();
+      expect(result.retirementPotByPerson[person.id].year).toBe(2045);
+      expect(result.retirementPotByPerson[person.id].alreadyRetired).toBe(false);
+      // Lower bound: opening + 19 years of contributions, no growth → £290k.
+      // Real result includes growth → must be much higher.
+      expect(result.retirementPotByPerson[person.id].pot).toBeGreaterThan(290000);
+    });
+
+    it("flags alreadyRetired and uses opening balance when retirementYear <= startYear", async () => {
+      const planId = await seedPlan(invoke);
+      // Person born 1958, age 68 in 2026, retired at 65 (2023).
+      const person = await invoke<{ id: number }>("people:create", {
+        planId,
+        role: "primary",
+        firstName: "Already retired",
+        dateOfBirth: "1958-01-01",
+        retirementAge: 65,
+        statePensionAge: 67,
+      });
+      await invoke("accounts:create", {
+        planId,
+        personId: person.id,
+        name: "ISA",
+        wrapperType: "isa",
+        currentBalance: 250000,
+        annualContribution: 0,
+      });
+
+      const result = await invoke<{ retirementPotByPerson: Record<number, { pot: number; year: number; alreadyRetired: boolean }> }>(
+        "projections:runForPlan",
+        planId,
+        { startYear: 2026, endYear: 2030 }
+      );
+
+      expect(result.retirementPotByPerson[person.id].alreadyRetired).toBe(true);
+      expect(result.retirementPotByPerson[person.id].pot).toBe(250000);
+    });
+  });
 });

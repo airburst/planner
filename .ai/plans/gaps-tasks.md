@@ -607,7 +607,18 @@ income in the chart during those 15 years.
 
 ---
 
-### ACC-T4: Accumulation projection view and "retirement pot" insight
+### ~~ACC-T4: Accumulation projection view and "retirement pot" insight~~ ✅ PARTIAL
+Headline metric only. IPC adds `retirementPotByPerson: Record<personId, { pot, year, alreadyRetired }>`
+to the projection envelope. Computed as the household's opening balances at the
+start of each person's `retirementYear`. For already-retired people, uses the
+plan's startYear (today's pot). ProjectionSummary shows household total + per-person
+breakdown for couples; label switches to "Pot at start" if all retired.
+
+NOT yet shipped: vertical retirement-year marker on the cash-flow chart, separate
+AccumulationSummary card, target-pot computation. ACC-T6 (gap-to-target) still
+queued — needs target derived from drawdown phase.
+
+### ACC-T4 (legacy spec):
 **Why**: Pre-retirees need to see (a) projected pot size at retirement date, (b)
 whether they're on track, (c) how changes to contributions or retirement age affect
 the pot. Without a dedicated accumulation output, the plan detail page conveys nothing
