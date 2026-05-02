@@ -20,8 +20,6 @@ interface IncomePhaseChartProps {
   incomeStreams: IncomeStreamRow[];
 }
 
-type ViewMode = "stacked" | "separated";
-
 interface ChartRow {
   year: number;
   spendingTarget: number;
@@ -51,13 +49,13 @@ interface BarShapeProps {
 /**
  * Render a stacked-bar segment with:
  *   - rounded top corners only on the topmost visible segment of each row
- *   - 2px gap above each non-topmost segment (so the segments don't touch)
+ *   - 1px gap above each non-topmost segment (so the segments don't touch)
  */
-function makeBarShape(seriesKey: string, alwaysTopmost: boolean) {
+function makeBarShape(seriesKey: string) {
   return function BarShape(props: BarShapeProps) {
     const { x = 0, y = 0, width = 0, height = 0, fill, payload } = props;
     if (height <= 0 || width <= 0) return null;
-    const isTopmost = alwaysTopmost || payload?._topmostKey === seriesKey;
+    const isTopmost = payload?._topmostKey === seriesKey;
 
     if (isTopmost) {
       const r = Math.min(TOP_RADIUS, width / 2, height);
@@ -114,7 +112,6 @@ const DRAWDOWN_LABELS: Record<string, string> = {
 const SPENDING_TARGET_COLOR = "var(--sw-error)";
 
 export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>("stacked");
   const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
 
   // Build per-stream metadata using a stable colour assignment.
@@ -256,22 +253,6 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
             Annual income sources and bridge-year drawdowns. The dashed line marks your spending target.
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-lg border bg-background/60 p-1 shadow-sm">
-          <Button
-            size="sm"
-            variant={viewMode === "stacked" ? "default" : "outline"}
-            onClick={() => setViewMode("stacked")}
-          >
-            Stacked
-          </Button>
-          <Button
-            size="sm"
-            variant={viewMode === "separated" ? "default" : "outline"}
-            onClick={() => setViewMode("separated")}
-          >
-            Split
-          </Button>
-        </div>
       </div>
 
       {/* Legend / toggles */}
@@ -322,7 +303,7 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={dataWithTopmost}
-            barCategoryGap={1}
+            barCategoryGap={0}
             margin={{ top: 8, right: 16, left: 12, bottom: 0 }}
           >
             <defs>
@@ -379,9 +360,9 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
                 <Bar
                   key={s.key}
                   dataKey={s.key}
-                  stackId={viewMode === "stacked" ? "cashflow" : s.key}
+                  stackId="cashflow"
                   fill={`url(#grad-${s.key})`}
-                  shape={makeBarShape(s.key, viewMode === "separated")}
+                  shape={makeBarShape(s.key)}
                   isAnimationActive={false}
                 />
               );
