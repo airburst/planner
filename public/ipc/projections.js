@@ -149,12 +149,18 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
         throw new Error(`Person ${person.id} is missing dateOfBirth`);
       }
 
+      const birthYear = new Date(person.dateOfBirth).getFullYear();
+      const retirementYear = person.retirementAge != null
+        ? birthYear + person.retirementAge
+        : startYear;
+
       return {
         id: person.id,
         planId: person.planId,
         role: person.role,
         name: person.firstName,
         dateOfBirth: new Date(person.dateOfBirth),
+        retirementYear,
       };
     });
 
@@ -165,6 +171,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       name: account.name,
       type: mapWrapperType(account.wrapperType),
       openingBalance: account.currentBalance,
+      annualContribution: account.annualContribution ?? 0,
     }));
 
     const engineIncomeStreams = incomeStreams.map((stream) => ({
@@ -284,12 +291,18 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
         throw new Error(`Person ${person.id} is missing dateOfBirth`);
       }
 
+      const birthYear = new Date(person.dateOfBirth).getFullYear();
+      const retirementYear = person.retirementAge != null
+        ? birthYear + person.retirementAge
+        : startYear;
+
       return {
         id: person.id,
         planId: person.planId,
         role: person.role,
         name: person.firstName,
         dateOfBirth: new Date(person.dateOfBirth),
+        retirementYear,
       };
     });
 
@@ -300,6 +313,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       name: account.name,
       type: mapWrapperType(account.wrapperType),
       openingBalance: account.currentBalance,
+      annualContribution: account.annualContribution ?? 0,
     }));
 
     let engineIncomeStreams = incomeStreams.map((stream) => ({

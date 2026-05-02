@@ -507,7 +507,13 @@ first-class phase. The product requirements doc section 2.2 explicitly requires
 
 ---
 
-### ACC-T1: Engine — accumulation phase (core, blocking)
+### ~~ACC-T1: Engine — accumulation phase (core, blocking)~~ ✅ DONE
+Engine now branches on `year < person.retirementYear`. Accumulation skips drawdown,
+applies `annualContribution` per account, computes tax on stream income normally.
+`PersonContext.retirementYear` and `AccountContext.annualContribution` added to types;
+both IPC handlers wired through. New unit tests + `couple-with-accumulation` golden
+fixture. See `.ai/plans/acc-t1-accumulation-engine.md`.
+
 **Why**: The engine has no retirement year boundary. Every year is treated as
 drawdown. Contributions are stored in the DB but the engine ignores them.
 

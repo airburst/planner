@@ -41,6 +41,7 @@ describe("Core Simulation Engine", () => {
       role: "primary",
       name: "John Smith",
       dateOfBirth: new Date("1960-01-01"),
+      retirementYear: 2000,
     };
 
     // Setup test accounts
@@ -52,6 +53,7 @@ describe("Core Simulation Engine", () => {
         name: "Cash Savings",
         type: "cash",
         openingBalance: 100000, // £100k
+        annualContribution: 0,
       },
       {
         id: 2,
@@ -60,6 +62,7 @@ describe("Core Simulation Engine", () => {
         name: "ISA",
         type: "isa",
         openingBalance: 150000, // £150k
+        annualContribution: 0,
       },
       {
         id: 3,
@@ -68,6 +71,7 @@ describe("Core Simulation Engine", () => {
         name: "SIPP",
         type: "sipp",
         openingBalance: 250000, // £250k
+        annualContribution: 0,
       },
     ];
 
@@ -330,6 +334,7 @@ describe("Core Simulation Engine", () => {
         role: "primary",
         name: "Alex",
         dateOfBirth: new Date("1960-01-01"),
+        retirementYear: 2000,
       };
       const secondary: PersonContext = {
         id: 2,
@@ -337,6 +342,7 @@ describe("Core Simulation Engine", () => {
         role: "partner",
         name: "Sam",
         dateOfBirth: new Date("1962-01-01"),
+        retirementYear: 2000,
       };
       const salaryStreams: IncomeStreamContext[] = [
         {
@@ -644,6 +650,7 @@ describe("Core Simulation Engine", () => {
         role: "partner",
         name: "Jane Smith",
         dateOfBirth: new Date("1962-01-01"),
+        retirementYear: 2000,
       };
 
       const partnerAccounts: AccountContext[] = [
@@ -654,6 +661,7 @@ describe("Core Simulation Engine", () => {
           name: "Cash",
           type: "cash",
           openingBalance: 50000,
+          annualContribution: 0,
         },
         {
           id: 5,
@@ -662,6 +670,7 @@ describe("Core Simulation Engine", () => {
           name: "ISA",
           type: "isa",
           openingBalance: 100000,
+          annualContribution: 0,
         },
       ];
 
@@ -687,5 +696,261 @@ describe("Core Simulation Engine", () => {
         expect(year.totalHouseholdIncome).toBe(sumIncome);
       }
     });
+  });
+});
+
+describe("Accumulation phase (ACC-T1)", () => {
+  const baseAssumptions: AssumptionSet = {
+    id: 1,
+    planId: 1,
+    name: "Base",
+    inflationRate: 0.02,
+    investmentReturn: 0.04,
+    personalAllowance: 12570,
+    personalSavingsAllowance: 1000,
+    basicRateBand: 50270,
+    higherRateBand: 125140,
+    basicRate: 0.2,
+    higherRate: 0.4,
+    additionalRate: 0.45,
+    sippTaxFreePercentage: 0.25,
+    sippMinimumAgeAccess: 55,
+  };
+
+  const baseSpending: SpendingAssumption = {
+    id: 1,
+    planId: 1,
+    annualSpendingTarget: 40000,
+    isIndexed: true,
+  };
+
+  const baseStrategy: WithdrawalStrategy = {
+    accountTypeOrder: ["cash", "isa", "sipp", "other"],
+    optimizeForTaxEfficiency: true,
+    sippWithdrawalApproach: "flexible",
+  };
+
+  it("does not withdraw from accounts during accumulation years", () => {
+    const accumulator: PersonContext = {
+      id: 1,
+      planId: 1,
+      role: "primary",
+      name: "Pre-retiree",
+      dateOfBirth: new Date("1980-01-01"),
+      retirementYear: 2045,
+    };
+    const account: AccountContext = {
+      id: 1,
+      planId: 1,
+      personId: 1,
+      name: "SIPP",
+      type: "sipp",
+      openingBalance: 100000,
+      annualContribution: 10000,
+    };
+
+    const year = projectPersonYear(
+      accumulator,
+      [account],
+      [],
+      baseAssumptions,
+      baseSpending,
+      baseStrategy,
+      2026,
+      2026,
+      new Map([[1, 100000]])
+    );
+
+    expect(year.totalWithdrawals).toBe(0);
+    expect(year.withdrawalsByAccount.size).toBe(0);
+    expect(year.withdrawalDetails).toHaveLength(0);
+  });
+
+  it("adds annual contribution to closing balance during accumulation", () => {
+    const accumulator: PersonContext = {
+      id: 1,
+      planId: 1,
+      role: "primary",
+      name: "Pre-retiree",
+      dateOfBirth: new Date("1980-01-01"),
+      retirementYear: 2045,
+    };
+    const account: AccountContext = {
+      id: 1,
+      planId: 1,
+      personId: 1,
+      name: "SIPP",
+      type: "sipp",
+      openingBalance: 100000,
+      annualContribution: 10000,
+    };
+
+    const year = projectPersonYear(
+      accumulator,
+      [account],
+      [],
+      baseAssumptions,
+      baseSpending,
+      baseStrategy,
+      2026,
+      2026,
+      new Map([[1, 100000]])
+    );
+
+    // closing = opening (100000) + growth on opening + contribution (10000)
+    // growth = round(100000 * ((1.04 * 1.02) - 1)) = round(100000 * 0.0608) = 6080
+    const expectedClosing = 100000 + 6080 + 10000;
+    expect(year.closingBalances.get(1)).toBe(expectedClosing);
+  });
+
+  it("treats canSustainSpending as true during accumulation even with shortfall", () => {
+    const accumulator: PersonContext = {
+      id: 1,
+      planId: 1,
+      role: "primary",
+      name: "Pre-retiree",
+      dateOfBirth: new Date("1980-01-01"),
+      retirementYear: 2045,
+    };
+    const account: AccountContext = {
+      id: 1,
+      planId: 1,
+      personId: 1,
+      name: "ISA",
+      type: "isa",
+      openingBalance: 50000,
+      annualContribution: 5000,
+    };
+
+    const years = runProjection(
+      [accumulator],
+      [account],
+      [],
+      baseAssumptions,
+      baseSpending,
+      baseStrategy,
+      2026,
+      2026
+    );
+
+    expect(years[0].canSustainSpending).toBe(true);
+  });
+
+  it("flips to drawdown in the retirement year boundary", () => {
+    const person: PersonContext = {
+      id: 1,
+      planId: 1,
+      role: "primary",
+      name: "Boundary",
+      dateOfBirth: new Date("1980-01-01"),
+      retirementYear: 2027,
+    };
+    const account: AccountContext = {
+      id: 1,
+      planId: 1,
+      personId: 1,
+      name: "SIPP",
+      type: "sipp",
+      openingBalance: 200000,
+      annualContribution: 5000,
+    };
+
+    const years = runProjection(
+      [person],
+      [account],
+      [],
+      baseAssumptions,
+      baseSpending,
+      baseStrategy,
+      2026,
+      2027
+    );
+
+    // 2026 is accumulation: no withdrawal, contribution applied
+    expect(years[0].people.get(1)?.totalWithdrawals).toBe(0);
+    // 2027 is retirementYear: drawdown begins, contribution NOT applied
+    expect(years[1].people.get(1)?.totalWithdrawals).toBeGreaterThan(0);
+  });
+
+  it("still computes tax on income streams active during accumulation", () => {
+    const earlyDbPerson: PersonContext = {
+      id: 1,
+      planId: 1,
+      role: "primary",
+      name: "DB",
+      dateOfBirth: new Date("1970-01-01"),
+      retirementYear: 2045, // retiring at 75 (unusual but makes the test clear)
+    };
+    const account: AccountContext = {
+      id: 1,
+      planId: 1,
+      personId: 1,
+      name: "ISA",
+      type: "isa",
+      openingBalance: 50000,
+      annualContribution: 0,
+    };
+    const dbStream: IncomeStreamContext = {
+      id: 1,
+      planId: 1,
+      personId: 1,
+      name: "Early DB",
+      type: "db_pension",
+      activationAge: 55, // active in 2026 when person is 56
+      annualAmount: 30000,
+      isIndexed: false,
+    };
+
+    const year = projectPersonYear(
+      earlyDbPerson,
+      [account],
+      [dbStream],
+      baseAssumptions,
+      baseSpending,
+      baseStrategy,
+      2026,
+      2026,
+      new Map([[1, 50000]])
+    );
+
+    expect(year.totalIncome).toBe(30000);
+    expect(year.taxDue).toBeGreaterThan(0); // £30k - £12,570 = £17,430 taxed at 20% ≈ £3,486
+  });
+
+  it("does not apply contribution in the year of retirement (drawdown)", () => {
+    const person: PersonContext = {
+      id: 1,
+      planId: 1,
+      role: "primary",
+      name: "Boundary",
+      dateOfBirth: new Date("1965-01-01"),
+      retirementYear: 2026,
+    };
+    const account: AccountContext = {
+      id: 1,
+      planId: 1,
+      personId: 1,
+      name: "Cash",
+      type: "cash",
+      openingBalance: 100000,
+      annualContribution: 9999, // should be ignored — it's a drawdown year
+    };
+
+    const year = projectPersonYear(
+      person,
+      [account],
+      [],
+      baseAssumptions,
+      baseSpending,
+      baseStrategy,
+      2026,
+      2026,
+      new Map([[1, 100000]])
+    );
+
+    // 2026 == retirementYear → drawdown. With £40k spending and no income, withdrawal kicks in.
+    expect(year.totalWithdrawals).toBeGreaterThan(0);
+    // Closing should NOT include the £9,999 contribution.
+    expect(year.closingBalances.get(1)).toBeLessThan(100000);
   });
 });

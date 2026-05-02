@@ -14,6 +14,7 @@ export interface PersonContext {
   role: "primary" | "partner";
   name: string;
   dateOfBirth: Date;
+  retirementYear: number;
 }
 
 /**
@@ -26,6 +27,7 @@ export interface AccountContext {
   name: string;
   type: "cash" | "isa" | "sipp" | "other";
   openingBalance: number; // GBP pence
+  annualContribution: number; // GBP per year, applied during accumulation phase
 }
 
 /**

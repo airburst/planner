@@ -249,6 +249,7 @@ export function projectPersonYear(
 ): PersonYearState {
   const age = calculateAgeInYear(person, year);
   const yearsFromBase = year - baseYear;
+  const isAccumulation = year < person.retirementYear;
 
   // Initialize opening balances
   const openingBalances = new Map(previousYearBalances);
@@ -274,12 +275,13 @@ export function projectPersonYear(
     }
   }
 
-  // Calculate required withdrawals (if income insufficient)
+  // Calculate required withdrawals (if income insufficient).
+  // During accumulation no withdrawals occur — the user is funding spending from external income.
   const adjustedSpending = spending.isIndexed
     ? Math.round(spending.annualSpendingTarget * Math.pow(1 + assumptions.inflationRate, yearsFromBase))
     : spending.annualSpendingTarget;
 
-  const deficit = Math.max(0, adjustedSpending - totalIncome);
+  const deficit = isAccumulation ? 0 : Math.max(0, adjustedSpending - totalIncome);
 
   const withdrawalsByAccount = new Map<number, number>();
   const withdrawalDetails = [];
@@ -354,8 +356,12 @@ export function projectPersonYear(
       const proRataGrowth = opening > 0 && totalOpeningBalance > 0
         ? Math.round((opening / totalOpeningBalance) * growthOnBalances)
         : 0;
+      const proRataTax = opening > 0 && totalOpeningBalance > 0
+        ? Math.round((opening / totalOpeningBalance) * taxDue)
+        : 0;
+      const contribution = isAccumulation ? account.annualContribution : 0;
 
-      const closing = opening - withdrawal + proRataGrowth - (opening > 0 ? Math.round((opening / totalOpeningBalance) * taxDue) : 0);
+      const closing = opening - withdrawal + proRataGrowth - proRataTax + contribution;
       closingBalances.set(account.id, Math.max(0, closing));
     }
   }

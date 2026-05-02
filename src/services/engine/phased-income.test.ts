@@ -26,6 +26,7 @@ describe("Phased Income Module (P3-T2)", () => {
       role: "primary",
       name: "John Smith",
       dateOfBirth: new Date("1960-01-01"),
+      retirementYear: 2000,
     };
 
     partner = {
@@ -34,6 +35,7 @@ describe("Phased Income Module (P3-T2)", () => {
       role: "partner",
       name: "Jane Smith",
       dateOfBirth: new Date("1962-01-01"),
+      retirementYear: 2000,
     };
 
     incomeStreams = [

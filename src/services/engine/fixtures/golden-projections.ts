@@ -60,12 +60,13 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
         role: "primary",
         name: "Alex",
         dateOfBirth: new Date("1966-01-01"),
+        retirementYear: 2000,
       },
     ],
     accounts: [
-      { id: 1, planId: 1, personId: 1, name: "Cash", type: "cash", openingBalance: 60000 },
-      { id: 2, planId: 1, personId: 1, name: "ISA", type: "isa", openingBalance: 120000 },
-      { id: 3, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 250000 },
+      { id: 1, planId: 1, personId: 1, name: "Cash", type: "cash", openingBalance: 60000, annualContribution: 0 },
+      { id: 2, planId: 1, personId: 1, name: "ISA", type: "isa", openingBalance: 120000, annualContribution: 0 },
+      { id: 3, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 250000, annualContribution: 0 },
     ],
     incomeStreams: [
       {
@@ -105,6 +106,7 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
         role: "primary",
         name: "Jamie",
         dateOfBirth: new Date("1965-01-01"),
+        retirementYear: 2000,
       },
       {
         id: 2,
@@ -112,6 +114,7 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
         role: "partner",
         name: "Sam",
         dateOfBirth: new Date("1968-01-01"),
+        retirementYear: 2000,
       },
     ],
     accounts: [
@@ -122,6 +125,7 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
         name: "Primary ISA",
         type: "isa",
         openingBalance: 150000,
+        annualContribution: 0,
       },
       {
         id: 11,
@@ -130,6 +134,7 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
         name: "Partner SIPP",
         type: "sipp",
         openingBalance: 200000,
+        annualContribution: 0,
       },
     ],
     incomeStreams: [
@@ -190,10 +195,11 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
         role: "primary",
         name: "Taylor",
         dateOfBirth: new Date("1976-01-01"),
+        retirementYear: 2000,
       },
     ],
     accounts: [
-      { id: 30, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 100000 },
+      { id: 30, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 100000, annualContribution: 0 },
     ],
     incomeStreams: [
       {
@@ -222,6 +228,48 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
     ],
   },
   {
+    id: "couple-with-accumulation",
+    description: "Couple in accumulation phase with staggered retirement years (ACC-T1).",
+    people: [
+      {
+        id: 1,
+        planId: 1,
+        role: "primary",
+        name: "Primary",
+        dateOfBirth: new Date("1981-01-01"),
+        retirementYear: 2046,
+      },
+      {
+        id: 2,
+        planId: 1,
+        role: "partner",
+        name: "Partner",
+        dateOfBirth: new Date("1983-01-01"),
+        retirementYear: 2050,
+      },
+    ],
+    accounts: [
+      { id: 1, planId: 1, personId: 1, name: "Primary SIPP", type: "sipp", openingBalance: 100000, annualContribution: 10000 },
+      { id: 2, planId: 1, personId: 2, name: "Partner SIPP", type: "sipp", openingBalance: 100000, annualContribution: 10000 },
+    ],
+    incomeStreams: [],
+    spending: {
+      id: 1,
+      planId: 1,
+      annualSpendingTarget: 30000,
+      isIndexed: true,
+    },
+    startYear: 2026,
+    endYear: 2030,
+    expectedRows: [
+      { year: 2026, totalHouseholdIncome: 0, totalHouseholdTax: 0, totalHouseholdAssets: 232160 },
+      { year: 2027, totalHouseholdIncome: 0, totalHouseholdTax: 0, totalHouseholdAssets: 266276 },
+      { year: 2028, totalHouseholdIncome: 0, totalHouseholdTax: 0, totalHouseholdAssets: 302466 },
+      { year: 2029, totalHouseholdIncome: 0, totalHouseholdTax: 0, totalHouseholdAssets: 340856 },
+      { year: 2030, totalHouseholdIncome: 0, totalHouseholdTax: 0, totalHouseholdAssets: 381580 },
+    ],
+  },
+  {
     id: "sipp-heavy-drawdown",
     description: "SIPP-only drawdown validates tax treatment across repeated years.",
     people: [
@@ -231,10 +279,11 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
         role: "primary",
         name: "Morgan",
         dateOfBirth: new Date("1964-01-01"),
+        retirementYear: 2000,
       },
     ],
     accounts: [
-      { id: 40, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 300000 },
+      { id: 40, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 300000, annualContribution: 0 },
     ],
     incomeStreams: [],
     spending: {
