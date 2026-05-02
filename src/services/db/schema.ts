@@ -28,6 +28,7 @@ export const people = sqliteTable(
     dateOfBirth: text("date_of_birth"),
     retirementAge: integer("retirement_age"),
     statePensionAge: integer("state_pension_age"),
+    longevityTargetAge: integer("longevity_target_age"),
     createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`)
   },
   (table) => ({

@@ -4,6 +4,7 @@ export {
   calculatePersonalTax,
   calculatePersonTaxResult,
   findGapToTarget,
+  findSafeAnnualSpend,
   projectPersonYear,
   runProjection,
 } from "./index";

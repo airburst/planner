@@ -13,6 +13,7 @@ import {
   calculatePersonalTax,
   calculatePersonTaxResult,
   findGapToTarget,
+  findSafeAnnualSpend,
   isIncomeStreamActive,
   runProjection,
 } from "./index";
@@ -1488,6 +1489,36 @@ describe("One-off events (G2-T7, G2-T8)", () => {
     expect(withCar[1].totalHouseholdWithdrawals).toBe(
       baseline[1].totalHouseholdWithdrawals + 20000
     );
+  });
+
+  it("findSafeAnnualSpend returns a number close to a known sustainable rate", () => {
+    // £500k ISA, retired, no income streams, 30-year horizon. The sustainable
+    // rate should be roughly the assets / years = £16,667/yr — give or take
+    // growth and tax effects.
+    const accounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 500000, annualContribution: 0, employerContribution: 0 },
+    ];
+
+    const safeSpend = findSafeAnnualSpend(
+      [retiree], accounts, [], baseAssumptions,
+      { id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false },
+      baseStrategy, 2026, 2055, [], []
+    );
+
+    // Should be > 0 and somewhere in a reasonable range for a £500k pot over 30 years.
+    expect(safeSpend).toBeGreaterThan(10000);
+    expect(safeSpend).toBeLessThan(40000);
+  });
+
+  it("findSafeAnnualSpend returns 0 if nothing is sustainable", () => {
+    // No accounts, no income → nothing is sustainable in drawdown.
+    const safeSpend = findSafeAnnualSpend(
+      [retiree], [], [], baseAssumptions,
+      { id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false },
+      baseStrategy, 2026, 2030, [], []
+    );
+    expect(safeSpend).toBe(0);
   });
 
   it("ignores one-off events outside the projection window", () => {

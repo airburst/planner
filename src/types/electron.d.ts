@@ -58,6 +58,7 @@ type ProjectionResult = {
   recommendations: Recommendation[];
   retirementPotByPerson: Record<number, RetirementPotEntry>;
   accumulationShortfall: AccumulationShortfall;
+  safeAnnualSpend: number;
 };
 
 declare global {

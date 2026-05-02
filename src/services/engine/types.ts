@@ -205,6 +205,8 @@ export interface Recommendation {
   description: string;
   rationale: string; // Why this recommendation
   yearTriggered: number; // Year in projection where issue occurred
+  impactScore?: number; // Headline £/yr or £ figure to surface in the UI
+  impactLabel?: string; // Suffix for the impact figure (e.g. "/yr saved")
 }
 
 /**

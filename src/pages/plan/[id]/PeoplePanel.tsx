@@ -10,6 +10,7 @@ type Person = {
   dateOfBirth: string | null;
   retirementAge: number | null;
   statePensionAge: number | null;
+  longevityTargetAge: number | null;
 };
 
 interface Props {
@@ -21,6 +22,7 @@ interface DraftPerson {
   dateOfBirth: string;
   retirementAge: number;
   statePensionAge: number;
+  longevityTargetAge: number;
 }
 
 const ROLE_LABEL = { primary: "Primary", partner: "Partner" };
@@ -35,7 +37,7 @@ function currentAge(dob: string | null): number | null {
 export function PeoplePanel({ people }: Props) {
   const updatePerson = useUpdatePerson();
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [draft, setDraft] = useState<DraftPerson>({ firstName: "", dateOfBirth: "", retirementAge: 65, statePensionAge: 67 });
+  const [draft, setDraft] = useState<DraftPerson>({ firstName: "", dateOfBirth: "", retirementAge: 65, statePensionAge: 67, longevityTargetAge: 95 });
 
   const startEdit = (p: Person) => {
     setEditingId(p.id);
@@ -44,6 +46,7 @@ export function PeoplePanel({ people }: Props) {
       dateOfBirth: p.dateOfBirth ?? "",
       retirementAge: p.retirementAge ?? 65,
       statePensionAge: p.statePensionAge ?? 67,
+      longevityTargetAge: p.longevityTargetAge ?? 95,
     });
   };
 
@@ -55,6 +58,7 @@ export function PeoplePanel({ people }: Props) {
         dateOfBirth: draft.dateOfBirth || null,
         retirementAge: draft.retirementAge,
         statePensionAge: draft.statePensionAge,
+        longevityTargetAge: draft.longevityTargetAge,
       },
     });
     setEditingId(null);
@@ -116,6 +120,17 @@ export function PeoplePanel({ people }: Props) {
                     className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
+                <div className="space-y-1 col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground">Plan funded until age</label>
+                  <input
+                    type="number"
+                    min={80}
+                    max={105}
+                    value={draft.longevityTargetAge}
+                    onChange={(e) => setDraft((d) => ({ ...d, longevityTargetAge: Number(e.target.value) }))}
+                    className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-2 pt-1">
@@ -136,6 +151,7 @@ export function PeoplePanel({ people }: Props) {
                   {currentAge(person.dateOfBirth) !== null ? `Age ${currentAge(person.dateOfBirth)}` : "No DOB"}
                   {person.retirementAge ? ` · Retires at ${person.retirementAge}` : ""}
                   {person.statePensionAge ? ` · SP at ${person.statePensionAge}` : ""}
+                  {person.longevityTargetAge ? ` · Funded to ${person.longevityTargetAge}` : ""}
                 </p>
               </div>
               <Button size="sm" variant="ghost" onClick={() => startEdit(person)}>Edit</Button>

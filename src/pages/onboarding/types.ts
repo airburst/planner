@@ -26,6 +26,8 @@ export interface OnboardingState {
   // Retirement timing
   primaryRetirementAge: number;
   partnerRetirementAge?: number;
+  primaryLongevityAge: number;
+  partnerLongevityAge?: number;
 
   // Assets — one or more accounts
   accounts: OnboardingAccount[];

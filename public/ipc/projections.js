@@ -1,6 +1,7 @@
 const { eq } = require("drizzle-orm");
 const {
   findGapToTarget,
+  findSafeAnnualSpend,
   generateRecommendations,
   runProjection,
 } = require("../engine.js");
@@ -176,7 +177,14 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
 
     const currentYear = new Date().getFullYear();
     const startYear = options.startYear ?? currentYear;
-    const endYear = options.endYear ?? (startYear + 30);
+    // Default end year = max(birthYear + longevityTargetAge), fallback 95.
+    const longevityEndYear = people.reduce((max, p) => {
+      if (!p.dateOfBirth) return max;
+      const birthYear = new Date(p.dateOfBirth).getFullYear();
+      const target = p.longevityTargetAge ?? 95;
+      return Math.max(max, birthYear + target);
+    }, 0);
+    const endYear = options.endYear ?? (longevityEndYear || startYear + 30);
 
     const enginePeople = people.map((person) => {
       if (!person.dateOfBirth) {
@@ -248,6 +256,11 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       oneOffExpenses
     );
 
+    const safeAnnualSpend = findSafeAnnualSpend(
+      enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+      spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+    );
+
     return {
       planId,
       scenarioId: scenario?.id ?? null,
@@ -256,7 +269,10 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       startYear,
       endYear,
       years,
-      recommendations: generateRecommendations(0, years),
+      recommendations: generateRecommendations(0, years, {
+        targetSpending: spending.annualSpendingTarget,
+        safeAnnualSpend,
+      }),
       retirementPotByPerson: computeRetirementPotByPerson(enginePeople, years, startYear),
       accumulationShortfall: findGapToTarget(
         enginePeople,
@@ -270,6 +286,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
         oneOffIncomes,
         oneOffExpenses
       ),
+      safeAnnualSpend,
     };
   });
 
@@ -345,7 +362,14 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
 
     const currentYear = new Date().getFullYear();
     const startYear = options.startYear ?? currentYear;
-    const endYear = options.endYear ?? (startYear + 30);
+    // Default end year = max(birthYear + longevityTargetAge), fallback 95.
+    const longevityEndYear = people.reduce((max, p) => {
+      if (!p.dateOfBirth) return max;
+      const birthYear = new Date(p.dateOfBirth).getFullYear();
+      const target = p.longevityTargetAge ?? 95;
+      return Math.max(max, birthYear + target);
+    }, 0);
+    const endYear = options.endYear ?? (longevityEndYear || startYear + 30);
 
     let enginePeople = people.map((person) => {
       if (!person.dateOfBirth) {
@@ -431,6 +455,11 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       oneOffExpenses
     );
 
+    const safeAnnualSpend = findSafeAnnualSpend(
+      enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+      spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+    );
+
     return {
       planId,
       scenarioId: scenario.id,
@@ -439,7 +468,10 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       startYear,
       endYear,
       years,
-      recommendations: generateRecommendations(0, years),
+      recommendations: generateRecommendations(0, years, {
+        targetSpending: spending.annualSpendingTarget,
+        safeAnnualSpend,
+      }),
       retirementPotByPerson: computeRetirementPotByPerson(enginePeople, years, startYear),
       accumulationShortfall: findGapToTarget(
         enginePeople,
@@ -453,6 +485,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
         oneOffIncomes,
         oneOffExpenses
       ),
+      safeAnnualSpend,
     };
   });
 };

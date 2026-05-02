@@ -70,6 +70,11 @@ export function RecommendationPanel({ recommendations, accumulationShortfall }: 
                 <span className="text-xs text-muted-foreground">triggered {rec.yearTriggered}</span>
               </div>
               <p className="mt-2 font-medium">{rec.title}</p>
+              {typeof rec.impactScore === "number" && rec.impactScore > 0 && (
+                <p className="mt-1 text-sm font-semibold text-sw-on-error-container">
+                  {fmt(rec.impactScore)}{rec.impactLabel ?? ""}
+                </p>
+              )}
               <p className="mt-1 text-sm text-muted-foreground">{rec.rationale}</p>
             </li>
           ))}

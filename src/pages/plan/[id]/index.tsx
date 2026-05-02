@@ -149,6 +149,7 @@ export function PlanDetailPage() {
             startYear={projectionQuery.data.startYear}
             endYear={projectionQuery.data.endYear}
             retirementPotByPerson={projectionQuery.data.retirementPotByPerson}
+            safeAnnualSpend={projectionQuery.data.safeAnnualSpend}
             people={people}
           />
           <IncomePhaseChart

@@ -309,7 +309,14 @@ previous step, correct it, and return to review before committing.
 
 ---
 
-### G3-T2: Planning horizon / longevity setting
+### ~~G3-T2: Planning horizon / longevity setting~~ ✅ DONE
+`people.longevity_target_age` column (migration 0003). IPC computes `endYear`
+as max(birthYear + longevityTargetAge), default 95. Onboarding retirement-timing
+step adds a slider (80–105, default 95). PeoplePanel exposes the field for
+post-onboarding edits. ProjectionSummary shows "Funded to age X" instead of
+"All years funded".
+
+### G3-T2 (legacy spec):
 **Why**: The engine hardcodes end age at 95. Some users will want 90 or 100. This also
 affects sustainability labelling ("all years funded" vs "funded to age 95").
 
@@ -327,7 +334,17 @@ affects sustainability labelling ("all years funded" vs "funded to age 95").
 
 ---
 
-### G3-T3: Quantify and improve recommendations
+### ~~G3-T3: Quantify and improve recommendations~~ ✅ PARTIAL
+`Recommendation` type gains optional `impactScore` and `impactLabel`. The
+spending-shortfall rule now computes the £/yr reduction needed (target − safe
+annual spend) and surfaces it in both the rationale and a red badge in the
+panel. RecommendationPanel renders the impact figure prominently.
+
+NOT shipped: depletion-year quantification (years of runway from a 10% cut),
+"Defer retirement by N years" rule. Both require additional engine helpers and
+are deferred until users ask for them.
+
+### G3-T3 (legacy spec):
 **Why**: Recommendations currently say "reduce spending" but not "reduce by £4,200/yr
 to achieve sustainability". Without a number, users cannot act.
 
@@ -398,7 +415,13 @@ with base. No permanent scenario is created.
 
 ---
 
-### G3-T7: Safe spending estimate
+### ~~G3-T7: Safe spending estimate~~ ✅ DONE
+Engine helper `findSafeAnnualSpend` binary-searches the highest annual
+spending target where every year remains sustainable. Result rounded down
+to the nearest £100 (guaranteed-safe). IPC envelope adds `safeAnnualSpend`.
+ProjectionSummary shows it as a fifth metric.
+
+### G3-T7 (legacy spec):
 **Why**: The projection can answer "what is the maximum I can spend each year and
 still be funded to my longevity age?" This is a high-value output that is simple to
 derive once the engine runs.
@@ -558,8 +581,9 @@ onboarding), ~~G3-T8~~ (already shipped with G3-T4)
 ### Sprint 6 — One-off events ✅ COMPLETE
 ~~G2-T7~~ (windfalls), ~~G2-T8~~ (one-off expenses)
 
-### Sprint 7 — Planning depth
-G3-T2 (longevity setting), G3-T3 (quantified recommendations), G3-T7 (safe spending estimate)
+### Sprint 7 — Planning depth ✅ COMPLETE
+~~G3-T2~~ (longevity setting), ~~G3-T7~~ (safe spending estimate),
+~~G3-T3~~ partial (spending-shortfall quantified; depletion + defer-retirement deferred)
 
 ### Sprint 8 — Stress testing
 G3-T6 (presets), G4-T3 (Marriage Allowance)

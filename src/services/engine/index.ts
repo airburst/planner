@@ -703,6 +703,54 @@ function isProjectionSustainable(years: HouseholdYearState[]): boolean {
 }
 
 /**
+ * Find the highest annual spending target that keeps every year sustainable.
+ * Binary searches over the spending target with the same accounts, streams,
+ * and one-off events. Result rounded DOWN to the nearest £100 so the figure
+ * is guaranteed-safe.
+ */
+export function findSafeAnnualSpend(
+  people: PersonContext[],
+  accounts: AccountContext[],
+  incomeStreams: IncomeStreamContext[],
+  assumptions: AssumptionSet,
+  spending: SpendingAssumption,
+  withdrawalStrategy: WithdrawalStrategy,
+  startYear: number,
+  endYear: number,
+  oneOffIncomes: OneOffIncomeContext[] = [],
+  oneOffExpenses: OneOffExpenseContext[] = []
+): number {
+  const runWithSpend = (target: number): boolean => {
+    const trial: SpendingAssumption = { ...spending, annualSpendingTarget: target };
+    const years = runProjection(
+      people, accounts, incomeStreams, assumptions, trial, withdrawalStrategy,
+      startYear, endYear, oneOffIncomes, oneOffExpenses
+    );
+    return isProjectionSustainable(years);
+  };
+
+  // 0 may itself be unsustainable (e.g. mid-retirement person with debts).
+  if (!runWithSpend(0)) return 0;
+
+  // Find an upper bound that's not sustainable.
+  let hi = Math.max(spending.annualSpendingTarget, 1000) * 2;
+  while (runWithSpend(hi)) {
+    hi *= 2;
+    if (hi > 10_000_000) return hi; // unreasonable but stop here
+  }
+
+  let lo = 0;
+  for (let i = 0; i < 25; i++) {
+    const mid = (lo + hi) / 2;
+    if (runWithSpend(mid)) lo = mid;
+    else hi = mid;
+  }
+
+  // Round DOWN to nearest £100 so the figure is guaranteed-safe.
+  return Math.floor(lo / 100) * 100;
+}
+
+/**
  * Find the additional annual contribution needed to make an under-funded plan
  * sustainable. Binary-searches the £/yr extra to add to the primary person's
  * preferred account (SIPP > ISA > first available) until every year sustains.

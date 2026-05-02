@@ -1,5 +1,12 @@
 import { HouseholdYearState, Recommendation } from "./types";
 
+interface RecommendationContext {
+  /** The user's target annual spending (un-inflated). Used for impact figures. */
+  targetSpending?: number;
+  /** Result of findSafeAnnualSpend. Used to quantify the shortfall delta. */
+  safeAnnualSpend?: number;
+}
+
 function hasTaxTrapExposure(year: HouseholdYearState): boolean {
   for (const person of year.taxBreakdown.people.values()) {
     if (person.personalAllowance > 0 && person.personalAllowance < 12570) {
@@ -22,13 +29,27 @@ function hasTaxableWithdrawals(year: HouseholdYearState): boolean {
 
 export function generateRecommendations(
   projectionRunId: number,
-  years: HouseholdYearState[]
+  years: HouseholdYearState[],
+  context: RecommendationContext = {}
 ): Recommendation[] {
   const recommendations: Recommendation[] = [];
   let nextId = 1;
 
   const firstUnsustainableYear = years.find((year) => !year.canSustainSpending);
   if (firstUnsustainableYear) {
+    let impactScore: number | undefined;
+    let impactLabel: string | undefined;
+    let rationale = `Spending is no longer covered in ${firstUnsustainableYear.year}, creating a deficit or exhausting household assets.`;
+    if (
+      typeof context.targetSpending === "number" &&
+      typeof context.safeAnnualSpend === "number" &&
+      context.safeAnnualSpend < context.targetSpending
+    ) {
+      const reduction = context.targetSpending - context.safeAnnualSpend;
+      impactScore = reduction;
+      impactLabel = "/yr reduction needed";
+      rationale = `Reducing spending by £${reduction.toLocaleString("en-GB")} per year (down to about £${context.safeAnnualSpend.toLocaleString("en-GB")}/yr) would keep the plan sustainable through your longevity target.`;
+    }
     recommendations.push({
       id: nextId++,
       projectionRunId,
@@ -36,8 +57,10 @@ export function generateRecommendations(
       category: "spending",
       title: "Reduce planned spending or add guaranteed income",
       description: "The projection becomes unsustainable in this year under current assumptions.",
-      rationale: `Spending is no longer covered in ${firstUnsustainableYear.year}, creating a deficit or exhausting household assets.`,
+      rationale,
       yearTriggered: firstUnsustainableYear.year,
+      impactScore,
+      impactLabel,
     });
   }
 

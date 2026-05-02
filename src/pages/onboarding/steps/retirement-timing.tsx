@@ -86,6 +86,31 @@ export function OnboardingRetirementTimingStep({ state, onChange }: Props) {
             </div>
           </div>
         )}
+
+        {/* Primary longevity target */}
+        <div className="space-y-3 border-t pt-6">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">
+              Plan funded until age (longevity target)
+            </label>
+            <span className="text-lg font-semibold text-primary">{state.primaryLongevityAge}</span>
+          </div>
+          <Slider
+            value={state.primaryLongevityAge}
+            onValueChange={(v) => onChange({ primaryLongevityAge: v })}
+            min={80}
+            max={105}
+            step={1}
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>80</span>
+            <span>105</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            The projection runs to whichever person reaches this age last.
+            UK average life expectancy is around 82; most planners use 95 as a safety margin.
+          </p>
+        </div>
       </div>
 
       <div className="rounded-md bg-muted p-4">

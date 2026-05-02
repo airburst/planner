@@ -2,13 +2,14 @@ import type { HouseholdYearState } from "@/services/engine/types";
 import { fmt } from "./utils";
 
 type RetirementPotEntry = { pot: number; year: number; alreadyRetired: boolean };
-type Person = { id: number; firstName: string };
+type Person = { id: number; firstName: string; dateOfBirth?: string | null; longevityTargetAge?: number | null };
 
 interface ProjectionSummaryProps {
   years: HouseholdYearState[];
   startYear: number;
   endYear: number;
   retirementPotByPerson?: Record<number, RetirementPotEntry>;
+  safeAnnualSpend?: number;
   people?: Person[];
 }
 
@@ -17,6 +18,7 @@ export function ProjectionSummary({
   startYear,
   endYear,
   retirementPotByPerson,
+  safeAnnualSpend,
   people = [],
 }: ProjectionSummaryProps) {
   const allSustainable = years.every((y) => y.canSustainSpending);
@@ -24,6 +26,12 @@ export function ProjectionSummary({
   const lastYear = years.at(-1);
   const totalTax = years.reduce((sum, y) => sum + y.totalHouseholdTax, 0);
   const totalWithdrawals = years.reduce((sum, y) => sum + y.totalHouseholdWithdrawals, 0);
+
+  // Earliest longevity-target age across people for the "funded to age X" label.
+  const longevityAges = people
+    .map((p) => p.longevityTargetAge)
+    .filter((age): age is number => typeof age === "number");
+  const minLongevity = longevityAges.length > 0 ? Math.min(...longevityAges) : null;
 
   const potEntries = retirementPotByPerson
     ? Object.entries(retirementPotByPerson).map(([id, entry]) => ({
@@ -70,7 +78,7 @@ export function ProjectionSummary({
           <p className="text-xs text-muted-foreground">Sustainability</p>
           {allSustainable ? (
             <p className="mt-1 font-semibold text-green-600 dark:text-green-400">
-              All years funded
+              {minLongevity !== null ? `Funded to age ${minLongevity}` : "All years funded"}
             </p>
           ) : (
             <p className="mt-1 font-semibold text-red-600 dark:text-red-400">
@@ -92,6 +100,12 @@ export function ProjectionSummary({
           <p className="text-xs text-muted-foreground">Total drawdown</p>
           <p className="mt-1 font-semibold">{fmt(totalWithdrawals)}</p>
         </div>
+        {typeof safeAnnualSpend === "number" && (
+          <div>
+            <p className="text-xs text-muted-foreground">Safe annual spend</p>
+            <p className="mt-1 font-semibold">{fmt(safeAnnualSpend)}/yr</p>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -30,6 +30,7 @@ export function OnboardingPage() {
     primaryDateOfBirth: "",
     hasPartner: false,
     primaryRetirementAge: 65,
+    primaryLongevityAge: 95,
     accounts: [
       { wrapperType: "sipp", currentBalance: 0, annualContribution: 0, employerContribution: 0 },
     ],
@@ -82,6 +83,7 @@ export function OnboardingPage() {
         dateOfBirth: state.primaryDateOfBirth || null,
         retirementAge: state.primaryRetirementAge,
         statePensionAge: state.statePensionAge,
+        longevityTargetAge: state.primaryLongevityAge,
       });
       if (!primaryPerson) throw new Error("Failed to create primary person");
 
@@ -95,6 +97,7 @@ export function OnboardingPage() {
           dateOfBirth: state.partnerDateOfBirth || null,
           retirementAge: state.partnerRetirementAge ?? state.primaryRetirementAge,
           statePensionAge: state.partnerStatePensionAge ?? state.statePensionAge,
+          longevityTargetAge: state.partnerLongevityAge ?? state.primaryLongevityAge,
         });
       }
 

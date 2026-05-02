@@ -1,0 +1,1 @@
+ALTER TABLE `people` ADD `longevity_target_age` integer;
