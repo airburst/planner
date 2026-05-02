@@ -180,11 +180,11 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
     startYear: 2026,
     endYear: 2030,
     expectedRows: [
-      { year: 2026, totalHouseholdIncome: 22000, totalHouseholdTax: 9372, totalHouseholdAssets: 279166 },
-      { year: 2027, totalHouseholdIncome: 22440, totalHouseholdTax: 9806, totalHouseholdAssets: 201936 },
-      { year: 2028, totalHouseholdIncome: 22889, totalHouseholdTax: 10304, totalHouseholdAssets: 117825 },
-      { year: 2029, totalHouseholdIncome: 23347, totalHouseholdTax: 7944, totalHouseholdAssets: 47277 },
-      { year: 2030, totalHouseholdIncome: 23814, totalHouseholdTax: 2249, totalHouseholdAssets: 15752 },
+      { year: 2026, totalHouseholdIncome: 22000, totalHouseholdTax: 1886, totalHouseholdAssets: 339692 },
+      { year: 2027, totalHouseholdIncome: 22440, totalHouseholdTax: 1974, totalHouseholdAssets: 328074 },
+      { year: 2028, totalHouseholdIncome: 22889, totalHouseholdTax: 2064, totalHouseholdAssets: 315055 },
+      { year: 2029, totalHouseholdIncome: 23347, totalHouseholdTax: 2155, totalHouseholdAssets: 300536 },
+      { year: 2030, totalHouseholdIncome: 23814, totalHouseholdTax: 2249, totalHouseholdAssets: 284409 },
     ],
   },
   {
@@ -297,10 +297,10 @@ export const goldenProjectionFixtures: GoldenProjectionFixture[] = [
     startYear: 2026,
     endYear: 2029,
     expectedRows: [
-      { year: 2026, totalHouseholdIncome: 0, totalHouseholdTax: 6486, totalHouseholdAssets: 264018 },
-      { year: 2027, totalHouseholdIncome: 0, totalHouseholdTax: 6666, totalHouseholdAssets: 224714 },
-      { year: 2028, totalHouseholdIncome: 0, totalHouseholdTax: 6850, totalHouseholdAssets: 181862 },
-      { year: 2029, totalHouseholdIncome: 0, totalHouseholdTax: 7037, totalHouseholdAssets: 135225 },
+      { year: 2026, totalHouseholdIncome: 0, totalHouseholdTax: 4236, totalHouseholdAssets: 266268 },
+      { year: 2027, totalHouseholdIncome: 0, totalHouseholdTax: 4371, totalHouseholdAssets: 229395 },
+      { year: 2028, totalHouseholdIncome: 0, totalHouseholdTax: 4509, totalHouseholdAssets: 189169 },
+      { year: 2029, totalHouseholdIncome: 0, totalHouseholdTax: 4649, totalHouseholdAssets: 145364 },
     ],
   },
 ];

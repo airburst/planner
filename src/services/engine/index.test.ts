@@ -13,7 +13,6 @@ import {
   calculatePersonalTax,
   calculatePersonTaxResult,
   isIncomeStreamActive,
-  projectPersonYear,
   runProjection,
 } from "./index";
 import {
@@ -427,76 +426,67 @@ describe("Core Simulation Engine", () => {
     });
   });
 
-  describe("projectPersonYear", () => {
+  describe("single-person drawdown via runProjection", () => {
     it("projects first year with no income (age 66 < activation 67)", () => {
-      const year = projectPersonYear(
-        person,
+      const [householdYear] = runProjection(
+        [{ ...person, retirementYear: 2025 }],
         accounts,
         incomeStreams,
         assumptions,
         spending,
         withdrawalStrategy,
-        2026, // Year where person is age 66
-        2026, // Base year
-        new Map([
-          [1, 100000],
-          [2, 150000],
-          [3, 250000],
-        ])
+        2026,
+        2026
       );
+      const year = householdYear.people.get(person.id)!;
 
       expect(year.year).toBe(2026);
       expect(year.age).toBe(66);
-      expect(year.totalIncome).toBe(0); // No income yet
-      expect(year.totalWithdrawals).toBeGreaterThan(0); // Must draw to meet spending
+      expect(year.totalIncome).toBe(0); // SP activates at 67
+      expect(year.totalWithdrawals).toBeGreaterThan(0); // Bridge year — must draw
+
       let totalClosing = 0;
       for (const balance of year.closingBalances.values()) {
         totalClosing += balance;
       }
-      expect(totalClosing > 0).toBe(true); // Should still have assets
+      expect(totalClosing).toBeGreaterThan(0); // assets remain
     });
 
     it("projects year with active income", () => {
-      const year = projectPersonYear(
-        person,
+      const [householdYear] = runProjection(
+        [{ ...person, retirementYear: 2025 }],
         accounts,
         incomeStreams,
         assumptions,
         spending,
         withdrawalStrategy,
-        2027, // Year where person is age 67 (activates SP)
-        2026,
-        new Map([
-          [1, 95000],
-          [2, 148000],
-          [3, 250000],
-        ])
+        2027,
+        2027
       );
+      const year = householdYear.people.get(person.id)!;
 
       expect(year.year).toBe(2027);
       expect(year.age).toBe(67);
       expect(year.totalIncome).toBeGreaterThan(0); // State pension active
-      expect(incomeStreams[0].isIndexed).toBe(true); // Should be indexed from 2026
     });
 
     it("applies withdrawal strategy in correct order", () => {
-      const year = projectPersonYear(
-        person,
+      const [householdYear] = runProjection(
+        [{ ...person, retirementYear: 2025 }],
         accounts,
         incomeStreams,
         assumptions,
         spending,
         withdrawalStrategy,
         2026,
-        2026,
-        new Map([
-          [1, 100000], // Cash
-          [2, 150000], // ISA
-          [3, 250000], // SIPP
-        ])
+        2026
       );
+      const year = householdYear.people.get(person.id)!;
 
-      // ISA withdrawals should have zero taxable component
+      // Strategy is cash → ISA → SIPP, so cash gets drawn first.
+      const cashWithdrawal = year.withdrawalDetails.find((w) => w.accountType === "cash");
+      expect(cashWithdrawal).toBeDefined();
+      // ISA withdrawals are tax-free (no taxable component).
       const isaWithdrawal = year.withdrawalDetails.find((w) => w.accountType === "isa");
       if (isaWithdrawal) {
         expect(isaWithdrawal.taxFreeComponent).toBe(isaWithdrawal.amountWithdrawn);
@@ -505,35 +495,28 @@ describe("Core Simulation Engine", () => {
     });
 
     it("calculates deterministic results for same inputs", () => {
-      const balances = new Map([
-        [1, 100000],
-        [2, 150000],
-        [3, 250000],
-      ]);
-
-      const year1 = projectPersonYear(
-        person,
+      const run1 = runProjection(
+        [{ ...person, retirementYear: 2025 }],
         accounts,
         incomeStreams,
         assumptions,
         spending,
         withdrawalStrategy,
         2026,
-        2026,
-        balances
+        2026
       );
-
-      const year2 = projectPersonYear(
-        person,
+      const run2 = runProjection(
+        [{ ...person, retirementYear: 2025 }],
         accounts,
         incomeStreams,
         assumptions,
         spending,
         withdrawalStrategy,
         2026,
-        2026,
-        balances
+        2026
       );
+      const year1 = run1[0].people.get(person.id)!;
+      const year2 = run2[0].people.get(person.id)!;
 
       expect(year1.totalWithdrawals).toBe(year2.totalWithdrawals);
       expect(year1.taxDue).toBe(year2.taxDue);
@@ -755,17 +738,17 @@ describe("Accumulation phase (ACC-T1)", () => {
       employerContribution: 0,
     };
 
-    const year = projectPersonYear(
-      accumulator,
+    const [hh] = runProjection(
+      [accumulator],
       [account],
       [],
       baseAssumptions,
       baseSpending,
       baseStrategy,
       2026,
-      2026,
-      new Map([[1, 100000]])
+      2026
     );
+    const year = hh.people.get(1)!;
 
     expect(year.totalWithdrawals).toBe(0);
     expect(year.withdrawalsByAccount.size).toBe(0);
@@ -792,17 +775,17 @@ describe("Accumulation phase (ACC-T1)", () => {
       employerContribution: 0,
     };
 
-    const year = projectPersonYear(
-      accumulator,
+    const [hh] = runProjection(
+      [accumulator],
       [account],
       [],
       baseAssumptions,
       baseSpending,
       baseStrategy,
       2026,
-      2026,
-      new Map([[1, 100000]])
+      2026
     );
+    const year = hh.people.get(1)!;
 
     // closing = opening (100000) + growth on opening + contribution (10000)
     // growth = round(100000 * ((1.04 * 1.02) - 1)) = round(100000 * 0.0608) = 6080
@@ -850,15 +833,15 @@ describe("Accumulation phase (ACC-T1)", () => {
       planId: 1,
       role: "primary",
       name: "Boundary",
-      dateOfBirth: new Date("1980-01-01"),
+      dateOfBirth: new Date("1965-01-01"), // age 62 in 2027 — SIPP accessible
       retirementYear: 2027,
     };
     const account: AccountContext = {
       id: 1,
       planId: 1,
       personId: 1,
-      name: "SIPP",
-      type: "sipp",
+      name: "ISA",
+      type: "isa", // ISA so age check doesn't gate drawdown
       openingBalance: 200000,
       annualContribution: 5000,
       employerContribution: 0,
@@ -911,17 +894,17 @@ describe("Accumulation phase (ACC-T1)", () => {
       isIndexed: false,
     };
 
-    const year = projectPersonYear(
-      earlyDbPerson,
+    const [hh] = runProjection(
+      [earlyDbPerson],
       [account],
       [dbStream],
       baseAssumptions,
       baseSpending,
       baseStrategy,
       2026,
-      2026,
-      new Map([[1, 50000]])
+      2026
     );
+    const year = hh.people.get(1)!;
 
     expect(year.totalIncome).toBe(30000);
     expect(year.taxDue).toBeGreaterThan(0); // £30k - £12,570 = £17,430 taxed at 20% ≈ £3,486
@@ -947,17 +930,17 @@ describe("Accumulation phase (ACC-T1)", () => {
       employerContribution: 0,
     };
 
-    const year = projectPersonYear(
-      person,
+    const [hh] = runProjection(
+      [person],
       [account],
       [],
       baseAssumptions,
       baseSpending,
       baseStrategy,
       2026,
-      2026,
-      new Map([[1, 100000]])
+      2026
     );
+    const year = hh.people.get(1)!;
 
     // 2026 == retirementYear → drawdown. With £40k spending and no income, withdrawal kicks in.
     expect(year.totalWithdrawals).toBeGreaterThan(0);
@@ -985,17 +968,17 @@ describe("Accumulation phase (ACC-T1)", () => {
       employerContribution: 3000,
     };
 
-    const year = projectPersonYear(
-      person,
+    const [hh] = runProjection(
+      [person],
       [sipp],
       [],
       baseAssumptions,
       baseSpending,
       baseStrategy,
       2026,
-      2026,
-      new Map([[1, 100000]])
+      2026
     );
+    const year = hh.people.get(1)!;
 
     // closing = opening (100000) + growth (6080) + personal (5000) + employer (3000)
     expect(year.closingBalances.get(1)).toBe(100000 + 6080 + 5000 + 3000);
@@ -1021,20 +1004,137 @@ describe("Accumulation phase (ACC-T1)", () => {
       employerContribution: 3000,
     };
 
-    const year = projectPersonYear(
-      retiree,
+    const [hh] = runProjection(
+      [retiree],
       [sipp],
       [],
       baseAssumptions,
       baseSpending,
       baseStrategy,
       2026,
-      2026,
-      new Map([[1, 200000]])
+      2026
     );
+    const year = hh.people.get(1)!;
 
     // Drawdown — no contribution should be added. Withdrawals reduce balance.
     expect(year.totalWithdrawals).toBeGreaterThan(0);
     expect(year.closingBalances.get(1)).toBeLessThan(200000);
+  });
+});
+
+describe("Household-level drawdown", () => {
+  const assumptions: AssumptionSet = {
+    id: 1, planId: 1, name: "Base",
+    inflationRate: 0, investmentReturn: 0,
+    personalAllowance: 12570, personalSavingsAllowance: 1000,
+    basicRateBand: 50270, higherRateBand: 125140,
+    basicRate: 0.2, higherRate: 0.4, additionalRate: 0.45,
+    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55,
+  };
+  const strategy: WithdrawalStrategy = {
+    accountTypeOrder: ["cash", "isa", "sipp", "other"],
+    optimizeForTaxEfficiency: true, sippWithdrawalApproach: "flexible",
+  };
+  const primary: PersonContext = {
+    id: 1, planId: 1, role: "primary", name: "P",
+    dateOfBirth: new Date("1960-01-01"), retirementYear: 2025,
+  };
+  const partner: PersonContext = {
+    id: 2, planId: 1, role: "partner", name: "Q",
+    dateOfBirth: new Date("1962-01-01"), retirementYear: 2025,
+  };
+
+  it("draws only the household deficit, not 2× when both partners retired", () => {
+    // Each has £15k state pension → household income £30k. Spending £50k → deficit £20k.
+    const streams: IncomeStreamContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "SP-1", type: "state_pension", activationAge: 60, annualAmount: 15000, isIndexed: false },
+      { id: 2, planId: 1, personId: 2, name: "SP-2", type: "state_pension", activationAge: 60, annualAmount: 15000, isIndexed: false },
+    ];
+    const accounts: AccountContext[] = [
+      { id: 10, planId: 1, personId: 1, name: "P-ISA", type: "isa", openingBalance: 100000, annualContribution: 0, employerContribution: 0 },
+      { id: 11, planId: 1, personId: 2, name: "Q-ISA", type: "isa", openingBalance: 100000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const spending: SpendingAssumption = { id: 1, planId: 1, annualSpendingTarget: 50000, isIndexed: false };
+
+    const [year] = runProjection(
+      [primary, partner], accounts, streams, assumptions, spending, strategy, 2026, 2026
+    );
+
+    expect(year.totalHouseholdIncome).toBe(30000);
+    expect(year.totalHouseholdWithdrawals).toBe(20000); // not 40000
+  });
+
+  it("does not draw from accounts owned by a partner still in accumulation", () => {
+    const accumulator: PersonContext = { ...partner, retirementYear: 2050 };
+    const accounts: AccountContext[] = [
+      { id: 10, planId: 1, personId: 1, name: "P-ISA", type: "isa", openingBalance: 100000, annualContribution: 0, employerContribution: 0 },
+      { id: 11, planId: 1, personId: 2, name: "Q-SIPP", type: "sipp", openingBalance: 200000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const spending: SpendingAssumption = { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: false };
+
+    const [year] = runProjection(
+      [primary, accumulator], accounts, [], assumptions, spending, strategy, 2026, 2026
+    );
+
+    // Drawdown only from primary's ISA. Partner's SIPP must be untouched.
+    const primaryYear = year.people.get(1);
+    const partnerYear = year.people.get(2);
+    expect(primaryYear?.totalWithdrawals).toBeGreaterThan(0);
+    expect(partnerYear?.totalWithdrawals).toBe(0);
+    expect(partnerYear?.closingBalances.get(11)).toBe(200000);
+  });
+
+  it("attributes SIPP withdrawal tax to the SIPP owner only", () => {
+    // Person A draws from SIPP. Person B has no taxable income.
+    // Each should keep their own £12,570 allowance.
+    const accounts: AccountContext[] = [
+      { id: 10, planId: 1, personId: 1, name: "P-SIPP", type: "sipp", openingBalance: 200000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const spending: SpendingAssumption = { id: 1, planId: 1, annualSpendingTarget: 25000, isIndexed: false };
+
+    const [year] = runProjection(
+      [primary, partner], accounts, [], assumptions, spending, strategy, 2026, 2026
+    );
+
+    const primaryTax = year.taxBreakdown.people.get(1);
+    const partnerTax = year.taxBreakdown.people.get(2);
+    expect(partnerTax?.totalTax).toBe(0); // no income at all
+    // Person A draws £25k from SIPP. 25% tax-free = £6,250. Taxable = £18,750. After PA = £6,180. Tax = £1,236.
+    expect(primaryTax?.totalTax).toBe(Math.round((25000 - Math.round(25000 * 0.25) - 12570) * 0.2));
+  });
+
+  it("populates SIPP withdrawal taxFreeComponent (25%) and taxableComponent (75%)", () => {
+    const accounts: AccountContext[] = [
+      { id: 10, planId: 1, personId: 1, name: "SIPP", type: "sipp", openingBalance: 200000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const spending: SpendingAssumption = { id: 1, planId: 1, annualSpendingTarget: 20000, isIndexed: false };
+
+    const [year] = runProjection(
+      [primary], accounts, [], assumptions, spending, strategy, 2026, 2026
+    );
+
+    const detail = year.people.get(1)?.withdrawalDetails.find((d) => d.accountType === "sipp");
+    expect(detail).toBeDefined();
+    expect(detail!.taxFreeComponent).toBe(Math.round(20000 * 0.25));
+    expect(detail!.taxableComponent).toBe(20000 - Math.round(20000 * 0.25));
+  });
+
+  it("calculates tax separately per person — two allowances of £12,570", () => {
+    // Each person has £20k taxable income. With separate allowances, each pays
+    // (20000 - 12570) * 0.2 = £1,486. Combined = £2,972. NOT (40000 - 12570) * 0.2 = £5,486.
+    const streams: IncomeStreamContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "P-Pension", type: "db_pension", activationAge: 60, annualAmount: 20000, isIndexed: false },
+      { id: 2, planId: 1, personId: 2, name: "Q-Pension", type: "db_pension", activationAge: 60, annualAmount: 20000, isIndexed: false },
+    ];
+    const spending: SpendingAssumption = { id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false };
+
+    const [year] = runProjection(
+      [primary, partner], [], streams, assumptions, spending, strategy, 2026, 2026
+    );
+
+    const expectedPerPerson = Math.round((20000 - 12570) * 0.2);
+    expect(year.taxBreakdown.people.get(1)?.totalTax).toBe(expectedPerPerson);
+    expect(year.taxBreakdown.people.get(2)?.totalTax).toBe(expectedPerPerson);
+    expect(year.totalHouseholdTax).toBe(2 * expectedPerPerson);
   });
 });

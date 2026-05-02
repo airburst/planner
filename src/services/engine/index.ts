@@ -234,33 +234,18 @@ export function calculateHouseholdTaxResult(
 }
 
 /**
- * Run a single year of projection for a person
+ * Compute a person's stream income for a given year (no withdrawals).
  */
-export function projectPersonYear(
+function computePersonStreamIncome(
   person: PersonContext,
-  accounts: AccountContext[],
   incomeStreams: IncomeStreamContext[],
   assumptions: AssumptionSet,
-  spending: SpendingAssumption,
-  withdrawalStrategy: WithdrawalStrategy,
   year: number,
-  baseYear: number,
-  previousYearBalances: Map<number, number>
-): PersonYearState {
-  const age = calculateAgeInYear(person, year);
-  const yearsFromBase = year - baseYear;
-  const isAccumulation = year < person.retirementYear;
-
-  // Initialize opening balances
-  const openingBalances = new Map(previousYearBalances);
-  let totalOpeningBalance = 0;
-  for (const balance of openingBalances.values()) {
-    totalOpeningBalance += balance;
-  }
-
-  // Calculate active income
+  baseYear: number
+): { incomeByStream: Map<number, number>; totalIncome: number } {
   const incomeByStream = new Map<number, number>();
   let totalIncome = 0;
+  const yearsFromBase = year - baseYear;
 
   for (const stream of incomeStreams) {
     if (stream.personId === person.id && isIncomeStreamActive(stream, person, year)) {
@@ -275,57 +260,136 @@ export function projectPersonYear(
     }
   }
 
-  // Calculate required withdrawals (if income insufficient).
-  // During accumulation no withdrawals occur — the user is funding spending from external income.
-  const adjustedSpending = spending.isIndexed
-    ? Math.round(spending.annualSpendingTarget * Math.pow(1 + assumptions.inflationRate, yearsFromBase))
-    : spending.annualSpendingTarget;
+  return { incomeByStream, totalIncome };
+}
 
-  const deficit = isAccumulation ? 0 : Math.max(0, adjustedSpending - totalIncome);
-
+/**
+ * Allocate a household-level deficit across drawable accounts, in strategy order.
+ *
+ * Only accounts owned by people in drawdown (year >= retirementYear) are touched.
+ * SIPP withdrawals split into 25% tax-free / 75% taxable (UFPLS approximation).
+ * Returns withdrawals indexed by account ID and per-person details for tax attribution.
+ */
+function allocateHouseholdWithdrawals(
+  people: PersonContext[],
+  accounts: AccountContext[],
+  balancesByPerson: Map<number, Map<number, number>>,
+  withdrawalStrategy: WithdrawalStrategy,
+  assumptions: AssumptionSet,
+  year: number,
+  deficit: number
+): {
+  withdrawalsByAccount: Map<number, number>;
+  withdrawalDetailsByPerson: Map<number, { accountId: number; accountType: AccountContext["type"]; amountWithdrawn: number; taxableComponent: number; taxFreeComponent: number; }[]>;
+} {
   const withdrawalsByAccount = new Map<number, number>();
-  const withdrawalDetails = [];
-  let totalWithdrawals = 0;
+  const withdrawalDetailsByPerson = new Map<number, { accountId: number; accountType: AccountContext["type"]; amountWithdrawn: number; taxableComponent: number; taxFreeComponent: number; }[]>();
+  if (deficit <= 0) {
+    return { withdrawalsByAccount, withdrawalDetailsByPerson };
+  }
 
-  // Simple withdrawal strategy: take from cash first, then ISA, then SIPP
-  if (deficit > 0) {
-    let remainingDeficit = deficit;
+  const peopleById = new Map(people.map((p) => [p.id, p] as const));
+  let remaining = deficit;
 
-    // Prioritize withdrawal order
-    for (const accountType of withdrawalStrategy.accountTypeOrder) {
-      for (const account of accounts) {
-        if (
-          account.personId === person.id &&
-          account.type === accountType &&
-          remainingDeficit > 0
-        ) {
-          const currentBalance = openingBalances.get(account.id) || 0;
-          const withdrawal = Math.min(remainingDeficit, currentBalance);
+  for (const accountType of withdrawalStrategy.accountTypeOrder) {
+    if (remaining <= 0) break;
+    for (const account of accounts) {
+      if (remaining <= 0) break;
+      if (account.type !== accountType) continue;
+      if (account.personId == null) continue;
 
-          if (withdrawal > 0) {
-            withdrawalsByAccount.set(account.id, withdrawal);
-
-            // Track withdrawal details for tax purposes
-            const taxableComponent = account.type === "isa" ? 0 : withdrawal;
-            withdrawalDetails.push({
-              accountId: account.id,
-              accountType: account.type,
-              amountWithdrawn: withdrawal,
-              taxableComponent,
-              taxFreeComponent: withdrawal - taxableComponent,
-            });
-
-            totalWithdrawals += withdrawal;
-            remainingDeficit -= withdrawal;
-          }
-        }
+      const owner = peopleById.get(account.personId);
+      if (!owner) continue;
+      // Only draw from accounts owned by people in drawdown.
+      if (year < owner.retirementYear) continue;
+      // SIPPs cannot be touched before minimum access age (e.g. 55).
+      if (account.type === "sipp") {
+        const ownerAge = calculateAgeInYear(owner, year);
+        if (ownerAge < assumptions.sippMinimumAgeAccess) continue;
       }
+
+      const opening = balancesByPerson.get(owner.id)?.get(account.id) ?? 0;
+      if (opening <= 0) continue;
+
+      const draw = Math.min(remaining, opening);
+      if (draw <= 0) continue;
+
+      let taxFreeComponent = 0;
+      let taxableComponent = 0;
+      if (account.type === "sipp") {
+        taxFreeComponent = Math.round(draw * assumptions.sippTaxFreePercentage);
+        taxableComponent = draw - taxFreeComponent;
+      } else if (account.type === "isa") {
+        taxFreeComponent = draw;
+      } else if (account.type === "cash") {
+        // Cash is post-tax savings — drawdown is not income; treat as tax-free.
+        taxFreeComponent = draw;
+      } else {
+        // Other (e.g. GIA) is taxable as a simplification.
+        taxableComponent = draw;
+      }
+
+      withdrawalsByAccount.set(account.id, draw);
+      const list = withdrawalDetailsByPerson.get(owner.id) ?? [];
+      list.push({
+        accountId: account.id,
+        accountType: account.type,
+        amountWithdrawn: draw,
+        taxableComponent,
+        taxFreeComponent,
+      });
+      withdrawalDetailsByPerson.set(owner.id, list);
+
+      remaining -= draw;
     }
   }
 
-  // Calculate taxable income (income + taxable portion of withdrawals)
+  return { withdrawalsByAccount, withdrawalDetailsByPerson };
+}
+
+/**
+ * Build a person's year state given pre-allocated household withdrawals.
+ *
+ * The withdrawal decisions are made at household level by the caller; this function
+ * only applies them: computes tax on the person's stream income + their attributed
+ * SIPP withdrawals, applies growth/contributions/closing balances. Each person's
+ * tax uses their own personal allowance independently.
+ */
+export function projectPersonYear(
+  person: PersonContext,
+  accounts: AccountContext[],
+  incomeStreams: IncomeStreamContext[],
+  assumptions: AssumptionSet,
+  year: number,
+  baseYear: number,
+  previousYearBalances: Map<number, number>,
+  withdrawalsForPerson: Map<number, number>,
+  withdrawalDetailsForPerson: { accountId: number; accountType: AccountContext["type"]; amountWithdrawn: number; taxableComponent: number; taxFreeComponent: number; }[]
+): PersonYearState {
+  const age = calculateAgeInYear(person, year);
+  const isAccumulation = year < person.retirementYear;
+
+  const openingBalances = new Map(previousYearBalances);
+  let totalOpeningBalance = 0;
+  for (const balance of openingBalances.values()) {
+    totalOpeningBalance += balance;
+  }
+
+  const { incomeByStream, totalIncome } = computePersonStreamIncome(
+    person,
+    incomeStreams,
+    assumptions,
+    year,
+    baseYear
+  );
+
+  let totalWithdrawals = 0;
+  for (const amount of withdrawalsForPerson.values()) {
+    totalWithdrawals += amount;
+  }
+
   let incomeSubjectToTax = totalIncome;
-  for (const detail of withdrawalDetails) {
+  for (const detail of withdrawalDetailsForPerson) {
     incomeSubjectToTax += detail.taxableComponent;
   }
 
@@ -334,25 +398,22 @@ export function projectPersonYear(
     year,
     incomeStreams.filter((stream) => stream.personId === person.id),
     incomeByStream,
-    withdrawalDetails,
+    withdrawalDetailsForPerson,
     assumptions
   );
   const taxDue = taxBreakdown.totalTax;
 
-  // Calculate growth and inflation adjustment
   const growthOnBalances = calculateGrowth(
     totalOpeningBalance - totalWithdrawals,
     assumptions.investmentReturn,
     assumptions.inflationRate
   );
 
-  // Calculate closing balances
   const closingBalances = new Map<number, number>();
-
   for (const account of accounts) {
     if (account.personId === person.id) {
       const opening = openingBalances.get(account.id) || 0;
-      const withdrawal = withdrawalsByAccount.get(account.id) || 0;
+      const withdrawal = withdrawalsForPerson.get(account.id) || 0;
       const proRataGrowth = opening > 0 && totalOpeningBalance > 0
         ? Math.round((opening / totalOpeningBalance) * growthOnBalances)
         : 0;
@@ -376,21 +437,27 @@ export function projectPersonYear(
     openingBalances,
     incomeByStream,
     totalIncome,
-    withdrawalsByAccount,
+    withdrawalsByAccount: withdrawalsForPerson,
     totalWithdrawals,
-    withdrawalDetails,
+    withdrawalDetails: withdrawalDetailsForPerson,
     incomeSubjectToTax,
     taxDue,
     effectiveTaxRate,
     taxBreakdown,
     growthOnBalances,
-    inflationAdjustment: 0, // Track separately if needed
+    inflationAdjustment: 0,
     closingBalances,
   };
 }
 
 /**
- * Run a full projection from start year to end year
+ * Run a full projection from start year to end year.
+ *
+ * Drawdown decisions are household-level: stream income from all people is summed,
+ * the household deficit (target spending minus household income) is allocated across
+ * all drawable accounts in `withdrawalStrategy.accountTypeOrder`. SIPP withdrawals
+ * split into 25% tax-free + 75% taxable. Each person's tax is computed against
+ * their own personal allowance.
  */
 export function runProjection(
   people: PersonContext[],
@@ -404,7 +471,6 @@ export function runProjection(
 ): HouseholdYearState[] {
   const years: HouseholdYearState[] = [];
 
-  // Track balances by person
   const balancesByPerson = new Map<number, Map<number, number>>();
   for (const person of people) {
     const personBalances = new Map<number, number>();
@@ -416,7 +482,6 @@ export function runProjection(
     balancesByPerson.set(person.id, personBalances);
   }
 
-  // Project each year
   for (let year = startYear; year <= endYear; year++) {
     const householdYear: HouseholdYearState = {
       year,
@@ -426,31 +491,62 @@ export function runProjection(
       totalHouseholdGrowth: 0,
       totalHouseholdTax: 0,
       totalHouseholdAssets: 0,
-      taxBreakdown: {
-        year,
-        people: new Map(),
-        totalTax: 0,
-        effectiveRate: 0,
-      },
+      taxBreakdown: { year, people: new Map(), totalTax: 0, effectiveRate: 0 },
       canSustainSpending: false,
       deficitOrSurplus: 0,
       spendingCoverage: 0,
     };
 
-    // Project each person
+    // Pass 1: stream income for every person, summed to household income.
+    let householdStreamIncome = 0;
+    const incomesByPerson = new Map<number, ReturnType<typeof computePersonStreamIncome>>();
+    for (const person of people) {
+      const income = computePersonStreamIncome(person, incomeStreams, assumptions, year, startYear);
+      incomesByPerson.set(person.id, income);
+      householdStreamIncome += income.totalIncome;
+    }
+
+    // Pass 2: household deficit (only if at least one person is drawing down).
+    const anyoneRetired = people.some((p) => year >= p.retirementYear);
+    const adjustedSpending = spending.isIndexed
+      ? Math.round(spending.annualSpendingTarget * Math.pow(1 + assumptions.inflationRate, year - startYear))
+      : spending.annualSpendingTarget;
+    const householdDeficit = anyoneRetired
+      ? Math.max(0, adjustedSpending - householdStreamIncome)
+      : 0;
+
+    // Pass 3: allocate withdrawals across drawable accounts in strategy order.
+    const { withdrawalsByAccount, withdrawalDetailsByPerson } = allocateHouseholdWithdrawals(
+      people,
+      accounts,
+      balancesByPerson,
+      withdrawalStrategy,
+      assumptions,
+      year,
+      householdDeficit
+    );
+
+    // Pass 4: per-person year state (tax, growth, contributions, closing balances).
     for (const person of people) {
       const personBalances = balancesByPerson.get(person.id) || new Map();
+      const personWithdrawals = new Map<number, number>();
+      for (const account of accounts) {
+        if (account.personId !== person.id) continue;
+        const amt = withdrawalsByAccount.get(account.id);
+        if (amt) personWithdrawals.set(account.id, amt);
+      }
+      const personDetails = withdrawalDetailsByPerson.get(person.id) ?? [];
 
       const personYear = projectPersonYear(
         person,
         accounts,
         incomeStreams,
         assumptions,
-        spending,
-        withdrawalStrategy,
         year,
         startYear,
-        personBalances
+        personBalances,
+        personWithdrawals,
+        personDetails
       );
 
       householdYear.people.set(person.id, personYear);
@@ -459,10 +555,7 @@ export function runProjection(
       householdYear.totalHouseholdGrowth += personYear.growthOnBalances;
       householdYear.totalHouseholdTax += personYear.taxDue;
 
-      // Update balances for next year
       balancesByPerson.set(person.id, personYear.closingBalances);
-
-      // Track total assets
       for (const balance of personYear.closingBalances.values()) {
         householdYear.totalHouseholdAssets += balance;
       }
@@ -471,13 +564,12 @@ export function runProjection(
     householdYear.taxBreakdown = calculateHouseholdTaxResult(year, householdYear.people);
     householdYear.totalHouseholdTax = householdYear.taxBreakdown.totalTax;
 
-    // Calculate household sustainability
-    const adjustedSpending = spending.isIndexed
-      ? Math.round(spending.annualSpendingTarget * Math.pow(1 + assumptions.inflationRate, year - startYear))
-      : spending.annualSpendingTarget;
-
     householdYear.deficitOrSurplus = householdYear.totalHouseholdIncome - adjustedSpending;
-    householdYear.canSustainSpending = householdYear.totalHouseholdAssets > 0 || householdYear.deficitOrSurplus >= 0;
+    // During accumulation, sustainability is meaningless; otherwise the household is
+    // sustainable if income covers spending, or if assets remain to draw from.
+    householdYear.canSustainSpending = !anyoneRetired
+      || householdYear.totalHouseholdAssets > 0
+      || householdYear.deficitOrSurplus >= 0;
     householdYear.spendingCoverage = householdYear.totalHouseholdIncome / Math.max(1, adjustedSpending);
 
     years.push(householdYear);

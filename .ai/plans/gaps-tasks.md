@@ -221,7 +221,20 @@ years, and see the delta in end assets and total tax. Projection runs for both.
 
 ---
 
-### G2-T6: Wire up bridge-year optimisation
+### ~~G2-T6: Wire up bridge-year optimisation~~ ✅ DONE
+Withdrawal logic refactored to household level. `runProjection` now: sums per-person
+stream income → computes single household deficit → walks accounts in strategy order
+(cash → ISA → SIPP → other), drawing from people in drawdown only. SIPP withdrawals
+split 25% tax-free (UFPLS) + 75% taxable. SIPP draws blocked before
+`sippMinimumAgeAccess`. Each person's tax computed against their own personal
+allowance independently. ProjectionTable shows per-source breakdown
+(cash · ISA · SIPP TFLS · SIPP taxed).
+
+Major bug fix: previously each partner independently tried to fund full household
+spending → 2× over-drawing. Golden fixture values updated for `couple-db-plus-state`
+and `sipp-heavy-drawdown`.
+
+### G2-T6 (legacy spec):
 **Why**: `withdrawal-strategy.ts` has `analyzeBridgeYear()` and
 `generateBridgeYearPlan()` fully implemented and tested but they are never called from
 the engine. The projection currently uses a fixed cash→ISA→SIPP ordering with no
