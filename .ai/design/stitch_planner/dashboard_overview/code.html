@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#444749",
+                    "error": "#ba1a1a",
+                    "outline": "#76777d",
+                    "on-tertiary-container": "#818486",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-secondary-fixed-variant": "#005048",
+                    "on-primary-fixed": "#131b2e",
+                    "primary-container": "#131b2e",
+                    "surface-container": "#e5eeff",
+                    "secondary-fixed-dim": "#4fdbc8",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "surface-container-highest": "#d3e4fe",
+                    "primary-fixed-dim": "#bec6e0",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-primary": "#bec6e0",
+                    "tertiary-fixed": "#e0e3e5",
+                    "secondary-fixed": "#71f8e4",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-fixed": "#191c1e",
+                    "secondary-container": "#6df5e1",
+                    "inverse-surface": "#213145",
+                    "outline-variant": "#c6c6cd",
+                    "surface-container-high": "#dce9ff",
+                    "on-error-container": "#93000a",
+                    "surface-dim": "#cbdbf5",
+                    "surface-bright": "#f8f9ff",
+                    "on-secondary": "#ffffff",
+                    "surface-tint": "#565e74",
+                    "tertiary": "#000000",
+                    "secondary": "#006b5f",
+                    "primary": "#000000",
+                    "tertiary-container": "#191c1e",
+                    "error-container": "#ffdad6",
+                    "surface-container-low": "#eff4ff",
+                    "on-primary-container": "#7c839b",
+                    "on-surface": "#0b1c30",
+                    "on-secondary-fixed": "#00201c",
+                    "on-background": "#0b1c30",
+                    "on-surface-variant": "#45464d",
+                    "on-secondary-container": "#006f64",
+                    "tertiary-fixed-dim": "#c4c7c9",
+                    "surface-variant": "#d3e4fe",
+                    "surface": "#f8f9ff",
+                    "on-error": "#ffffff",
+                    "background": "#f8f9ff",
+                    "primary-fixed": "#dae2fd"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "unit": "8px",
+                    "gutter": "24px",
+                    "section-gap": "64px",
+                    "container-max": "1280px",
+                    "margin-desktop": "40px"
+            },
+            "fontFamily": {
+                    "headline-sm": ["Manrope"],
+                    "body-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Manrope"],
+                    "display-lg": ["Manrope"],
+                    "body-sm": ["Inter"],
+                    "label-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-sm": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .chart-gradient {
+            background: linear-gradient(180deg, rgba(0, 107, 95, 0.1) 0%, rgba(0, 107, 95, 0) 100%);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen">
+<header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 sticky top-0 z-40">
+<div class="flex justify-between items-center w-full px-6 py-4 max-w-screen-2xl mx-auto">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white font-headline-sm">SerenityPlan</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="font-manrope antialiased text-sm font-medium text-teal-600 dark:text-teal-400 border-b-2 border-teal-600 pb-1" href="#">Overview</a>
+<a class="font-manrope antialiased text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-teal-500 transition-all" href="#">Assets</a>
+<a class="font-manrope antialiased text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-teal-500 transition-all" href="#">Expenses</a>
+<a class="font-manrope antialiased text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-teal-500 transition-all" href="#">Strategy</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:text-teal-500 transition-all active:opacity-70">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:text-teal-500 transition-all active:opacity-70">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-container-highest overflow-hidden border border-outline-variant">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a mature businessman with a confident and serene expression, captured in high-key natural lighting. The background is a blurred modern office interior with soft teal and white tones that match the application's color scheme. The image has a clean, editorial aesthetic with sharp focus and professional color grading." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqWU5fEv4VARNQf-wSZViFiEfc1sF-vvKtz1g9Gb7_6po0Fc-WhdShCjMwYkH7-ddUtqG14E5wZLdMUJ1zqSyBDpt7FzH2mbeFnCMFwhId8U3Q0pYzCwz1LPNFzHlAIf7-1ixieer_2ndkiAqrrXCqWYuB-OfpDkG2mqeZ54iBQuPyVoBFHaQTk2ghBAO8LeVrWICCmLPMTSP4vAVqWYvpZOK9fVtx_d5M6ne2ysqQd-YMFuAXNrAjr_bCpxgtolllj-g8MlNMZoLh"/>
+</div>
+</div>
+</div>
+</header>
+<div class="max-w-screen-2xl mx-auto flex">
+<aside class="hidden md:flex flex-col w-64 h-[calc(100vh-72px)] sticky top-[72px] bg-surface-container-low/50 border-r border-slate-100 p-6 space-y-8">
+<div class="space-y-1">
+<p class="text-label-sm text-on-surface-variant px-3 mb-2">MANAGEMENT</p>
+<a class="flex items-center gap-3 px-3 py-2 bg-teal-50/50 text-teal-600 rounded-lg font-medium transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-md">Overview</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:bg-slate-50 rounded-lg font-medium transition-all" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="text-label-md">Income</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:bg-slate-50 rounded-lg font-medium transition-all" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="text-label-md">Expenses</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:bg-slate-50 rounded-lg font-medium transition-all" href="#">
+<span class="material-symbols-outlined">query_stats</span>
+<span class="text-label-md">Strategy</span>
+</a>
+</div>
+<div class="space-y-1">
+<p class="text-label-sm text-on-surface-variant px-3 mb-2">SYSTEM</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 hover:bg-slate-50 rounded-lg font-medium transition-all" href="#">
+<span class="material-symbols-outlined">manage_accounts</span>
+<span class="text-label-md">Settings</span>
+</a>
+</div>
+<div class="mt-auto p-4 bg-white border border-outline-variant rounded-xl">
+<p class="text-label-sm text-slate-500">Wealth Pro Tip</p>
+<p class="text-body-sm mt-1 font-medium text-on-surface">Diversifying your strategy can yield 1.2% higher returns.</p>
+</div>
+</aside>
+<main class="flex-1 p-6 md:p-10 space-y-8 overflow-x-hidden">
+<section class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<div>
+<h1 class="font-headline-md text-on-surface">Financial Overview</h1>
+<p class="text-body-md text-on-surface-variant">Welcome back. Your retirement plan is performing above target.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 bg-white border border-outline-variant rounded-lg text-label-md hover:bg-slate-50 transition-colors">Generate Report</button>
+<button class="px-4 py-2 bg-secondary text-white rounded-lg text-label-md shadow-sm hover:opacity-90 transition-opacity">Adjust Goals</button>
+</div>
+</section>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<div class="md:col-span-4 bg-white p-6 border border-slate-200 rounded-xl relative overflow-hidden group hover:border-teal-200 transition-colors">
+<div class="flex items-center justify-between mb-8">
+<h3 class="text-label-md text-on-surface-variant uppercase tracking-wider">Retirement Readiness</h3>
+<span class="material-symbols-outlined text-secondary">verified</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-on-surface">82</span>
+<span class="text-body-lg text-on-surface-variant">/ 100</span>
+</div>
+<div class="mt-6 h-2 bg-surface-container-low rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[82%] rounded-full"></div>
+</div>
+<p class="mt-4 text-body-sm text-on-surface-variant">You are <span class="text-secondary font-semibold">12% ahead</span> of your primary milestone for 2024.</p>
+</div>
+<div class="md:col-span-8 bg-white border border-slate-200 rounded-xl p-8">
+<div class="flex justify-between items-center mb-8">
+<h3 class="font-headline-sm">Wealth Projection</h3>
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-slate-50 text-label-sm rounded border border-slate-200">5Y</button>
+<button class="px-3 py-1 bg-secondary text-white text-label-sm rounded">Max</button>
+</div>
+</div>
+<div class="relative h-64 w-full">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 1000 300">
+<path d="M0,280 Q250,260 500,180 T1000,20" fill="none" stroke="#006b5f" stroke-linecap="round" stroke-width="4"></path>
+<path class="fill-teal-50/30" d="M0,280 Q250,260 500,180 T1000,20 V300 H0 Z"></path>
+<line stroke="#E2E8F0" stroke-dasharray="4" x1="650" x2="650" y1="0" y2="300"></line>
+<circle cx="650" cy="115" fill="#006b5f" r="6"></circle>
+</svg>
+<div class="absolute top-[100px] left-[660px] bg-white border border-slate-200 p-3 rounded-lg shadow-xl pointer-events-none">
+<p class="text-label-sm text-slate-500">Year 2045</p>
+<p class="text-label-md font-bold text-on-surface">$2,450,000</p>
+</div>
+<div class="absolute bottom-0 left-0 w-full flex justify-between px-2 text-label-sm text-slate-400">
+<span>2024</span>
+<span>2034</span>
+<span>2044</span>
+<span>2054</span>
+</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-white p-6 border border-slate-200 rounded-xl">
+<div class="flex items-center gap-3 mb-4">
+<div class="p-2 bg-teal-50 rounded-lg">
+<span class="material-symbols-outlined text-secondary">account_balance</span>
+</div>
+<h4 class="text-label-md text-on-surface-variant">Total Assets</h4>
+</div>
+<p class="font-headline-sm">$1,248,500</p>
+<div class="mt-2 flex items-center gap-1 text-secondary">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span class="text-label-sm">+4.2% this year</span>
+</div>
+</div>
+<div class="bg-white p-6 border border-slate-200 rounded-xl">
+<div class="flex items-center gap-3 mb-4">
+<div class="p-2 bg-teal-50 rounded-lg">
+<span class="material-symbols-outlined text-secondary">payments</span>
+</div>
+<h4 class="text-label-md text-on-surface-variant">Projected Annual Income</h4>
+</div>
+<p class="font-headline-sm">$92,000</p>
+<p class="mt-2 text-body-sm text-on-surface-variant">Adjusted for inflation (2.5%)</p>
+</div>
+<div class="bg-white p-6 border border-slate-200 rounded-xl">
+<div class="flex items-center gap-3 mb-4">
+<div class="p-2 bg-teal-50 rounded-lg">
+<span class="material-symbols-outlined text-secondary">event</span>
+</div>
+<h4 class="text-label-md text-on-surface-variant">Retirement Age</h4>
+</div>
+<p class="font-headline-sm">62 Years</p>
+<div class="mt-2 flex items-center gap-4">
+<input class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-secondary" max="75" min="55" type="range" value="62"/>
+</div>
+</div>
+</div>
+<section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+<div class="p-6 border-b border-slate-100 flex justify-between items-center">
+<h3 class="font-headline-sm">Asset Allocation</h3>
+<button class="text-secondary text-label-md font-semibold">View Breakdown</button>
+</div>
+<div class="p-8 flex items-center justify-around gap-8">
+<div class="relative w-40 h-40">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<circle cx="18" cy="18" fill="none" r="16" stroke="#E2E8F0" stroke-width="4"></circle>
+<circle cx="18" cy="18" fill="none" r="16" stroke="#006b5f" stroke-dasharray="65, 100" stroke-width="4"></circle>
+<circle cx="18" cy="18" fill="none" r="16" stroke="#4fdbc8" stroke-dasharray="25, 100" stroke-dashoffset="-65" stroke-width="4"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center flex-col">
+<span class="text-label-sm text-slate-400">Total</span>
+<span class="font-bold text-on-surface">100%</span>
+</div>
+</div>
+<div class="space-y-3">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-secondary"></div>
+<span class="text-body-sm text-on-surface">Equities (65%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-secondary-fixed-dim"></div>
+<span class="text-body-sm text-on-surface">Bonds (25%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-slate-200"></div>
+<span class="text-body-sm text-on-surface">Cash (10%)</span>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-primary-container text-on-primary p-8 rounded-xl relative overflow-hidden flex flex-col justify-between">
+<div class="relative z-10">
+<h3 class="font-headline-md text-white">Strategy Insights</h3>
+<p class="text-on-primary-container mt-4 body-md max-w-sm">Based on current market volatility, rebalancing your portfolio now could secure an additional $40k in your 5-year projection.</p>
+</div>
+<div class="relative z-10 mt-8">
+<button class="px-6 py-3 bg-white text-primary-container font-semibold rounded-lg hover:bg-slate-50 transition-colors">Apply Strategy</button>
+</div>
+<div class="absolute -right-10 -bottom-10 opacity-20 transform rotate-12">
+<span class="material-symbols-outlined text-[200px]" style="font-variation-settings: 'FILL' 1;">insights</span>
+</div>
+</div>
+</section>
+</main>
+</div>
+<nav class="md:hidden fixed bottom-0 left-0 right-0 flex justify-around items-center px-2 pb-safe pt-2 w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_-5px_rgba(15,23,42,0.05)] z-50">
+<a class="flex flex-col items-center justify-center text-teal-600 dark:text-teal-400 bg-teal-50/50 dark:bg-teal-900/20 rounded-2xl py-2 px-4 transition-transform active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-wider mt-1">Overview</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-2 px-4 hover:bg-slate-50 transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-wider mt-1">Assets</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-2 px-4 hover:bg-slate-50 transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-wider mt-1">Expenses</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-2 px-4 hover:bg-slate-50 transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">query_stats</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-wider mt-1">Strategy</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-2 px-4 hover:bg-slate-50 transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">manage_accounts</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-wider mt-1">Settings</span>
+</a>
+</nav>
+</body></html>
