@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { useCreateScenario, useSetScenarioOverrides } from "@/hooks/use-scenarios";
 import { useState } from "react";
 
+type NewScenarioOverride = Parameters<Window["api"]["setScenarioOverrides"]>[1][number];
+
 interface ScenarioModalProps {
   planId: number;
   open: boolean;

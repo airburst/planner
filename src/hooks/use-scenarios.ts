@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
+type NewScenario = Parameters<Window["api"]["createScenario"]>[0];
+type NewScenarioOverride = Parameters<Window["api"]["setScenarioOverrides"]>[1][number];
+
 const PROJECTION_YEARS = 30;
 
 export function useScenariosByPlan(planId: number) {

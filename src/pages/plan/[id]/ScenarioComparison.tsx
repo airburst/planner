@@ -19,15 +19,15 @@ function computeMetrics(years: HouseholdYearState[]) {
     };
   }
 
-  const totalTax = years.reduce((sum, y) => sum + y.totalTax, 0);
+  const totalTax = years.reduce((sum, y) => sum + y.totalHouseholdTax, 0);
   const totalDrawdown = years.reduce((sum, y) => {
-    const income = y.totalIncome || 0;
-    const spending = y.totalSpending || 0;
-    return sum + Math.max(0, spending - income);
+    const income = y.totalHouseholdIncome || 0;
+    const withdrawals = y.totalHouseholdWithdrawals || 0;
+    return sum + Math.max(0, withdrawals - income);
   }, 0);
   const avgDrawdown = totalDrawdown / years.length;
-  const endAssets = years[years.length - 1]?.endNetWorth ?? 0;
-  const hasShortfall = years.some((y) => y.shortfall > 0);
+  const endAssets = years[years.length - 1]?.totalHouseholdAssets ?? 0;
+  const hasShortfall = years.some((y) => !y.canSustainSpending);
 
   return {
     endAssets,
