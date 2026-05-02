@@ -36,6 +36,55 @@ interface SeriesMeta {
   group: "income" | "drawdown";
 }
 
+const SEGMENT_GAP = 2;
+const TOP_RADIUS = 6;
+
+interface BarShapeProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  fill?: string;
+  payload?: Record<string, unknown>;
+}
+
+/**
+ * Render a stacked-bar segment with:
+ *   - rounded top corners only on the topmost visible segment of each row
+ *   - 2px gap above each non-topmost segment (so the segments don't touch)
+ */
+function makeBarShape(seriesKey: string, alwaysTopmost: boolean) {
+  return function BarShape(props: BarShapeProps) {
+    const { x = 0, y = 0, width = 0, height = 0, fill, payload } = props;
+    if (height <= 0 || width <= 0) return null;
+    const isTopmost = alwaysTopmost || payload?._topmostKey === seriesKey;
+
+    if (isTopmost) {
+      const r = Math.min(TOP_RADIUS, width / 2, height);
+      const d = [
+        `M ${x} ${y + height}`,
+        `L ${x} ${y + r}`,
+        `Q ${x} ${y} ${x + r} ${y}`,
+        `L ${x + width - r} ${y}`,
+        `Q ${x + width} ${y} ${x + width} ${y + r}`,
+        `L ${x + width} ${y + height}`,
+        `Z`,
+      ].join(" ");
+      return <path d={d} fill={fill} />;
+    }
+    // Non-topmost: shrink by 2px from the top to create the inter-segment gap.
+    return (
+      <rect
+        x={x}
+        y={y + SEGMENT_GAP}
+        width={width}
+        height={Math.max(0, height - SEGMENT_GAP)}
+        fill={fill}
+      />
+    );
+  };
+}
+
 // Voyant-inspired palette: streams in warm green/teal/purple, drawdowns in cool blue family.
 const STREAM_COLORS = [
   "#0f766e", // dark teal — primary stream (state pension)
@@ -160,6 +209,23 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
     return list;
   }, [activeStreamIds, activeDrawdownKeys, streamMeta]);
 
+  // Annotate each row with its currently-visible topmost stack key.
+  // Recomputed when hiddenKeys changes so toggling visibility updates rounding.
+  const dataWithTopmost = useMemo(() => {
+    const visibleKeys = series.filter((s) => !hiddenKeys.has(s.key)).map((s) => s.key);
+    return data.map((row) => {
+      let topmostKey: string | undefined;
+      for (let i = visibleKeys.length - 1; i >= 0; i--) {
+        const k = visibleKeys[i];
+        if ((row[k] ?? 0) > 0) {
+          topmostKey = k;
+          break;
+        }
+      }
+      return { ...row, _topmostKey: topmostKey };
+    });
+  }, [data, series, hiddenKeys]);
+
   const toggle = (key: string) => {
     setHiddenKeys((prev) => {
       const next = new Set(prev);
@@ -255,8 +321,8 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
       <div className="h-96 w-full rounded-md border bg-background/40 p-2">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
-            data={data}
-            barCategoryGap="14%"
+            data={dataWithTopmost}
+            barCategoryGap={2}
             margin={{ top: 8, right: 16, left: 12, bottom: 0 }}
           >
             <defs>
@@ -315,9 +381,7 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
                   dataKey={s.key}
                   stackId={viewMode === "stacked" ? "cashflow" : s.key}
                   fill={`url(#grad-${s.key})`}
-                  stroke="hsl(var(--card))"
-                  strokeWidth={1.5}
-                  radius={[6, 6, 0, 0]}
+                  shape={makeBarShape(s.key, viewMode === "separated")}
                   isAnimationActive={false}
                 />
               );
