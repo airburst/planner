@@ -111,8 +111,10 @@ const DRAWDOWN_LABELS: Record<string, string> = {
 
 const SPENDING_TARGET_COLOR = "var(--sw-error)";
 
+const SPENDING_TARGET_KEY = "spendingTarget";
+
 export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps) {
-  const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
+  const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(() => new Set([SPENDING_TARGET_KEY]));
 
   // Build per-stream metadata using a stable colour assignment.
   const streamMeta = useMemo(() => {
@@ -281,13 +283,26 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
             </button>
           );
         })}
-        <span className="inline-flex items-center gap-2 rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground">
-          <span
-            className="h-0.5 w-4 rounded-full"
-            style={{ backgroundColor: SPENDING_TARGET_COLOR }}
-          />
-          <span>Spending target</span>
-        </span>
+        {(() => {
+          const isHidden = hiddenKeys.has(SPENDING_TARGET_KEY);
+          return (
+            <button
+              type="button"
+              onClick={() => toggle(SPENDING_TARGET_KEY)}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors ${
+                isHidden
+                  ? "border-border text-muted-foreground"
+                  : "border-foreground/20 bg-muted/40 text-foreground"
+              }`}
+            >
+              <span
+                className="h-0.5 w-4 rounded-full"
+                style={{ backgroundColor: SPENDING_TARGET_COLOR, opacity: isHidden ? 0.3 : 1 }}
+              />
+              <span>Spending target</span>
+            </button>
+          );
+        })()}
         <Button
           size="sm"
           variant="ghost"
@@ -368,16 +383,18 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
               );
             })}
 
-            <Line
-              type="step"
-              dataKey="spendingTarget"
-              name="Spending target"
-              stroke={SPENDING_TARGET_COLOR}
-              strokeWidth={2.5}
-              strokeDasharray="6 3"
-              dot={false}
-              isAnimationActive={false}
-            />
+            {!hiddenKeys.has(SPENDING_TARGET_KEY) && (
+              <Line
+                type="step"
+                dataKey="spendingTarget"
+                name="Spending target"
+                stroke={SPENDING_TARGET_COLOR}
+                strokeWidth={2.5}
+                strokeDasharray="6 3"
+                dot={false}
+                isAnimationActive={false}
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
