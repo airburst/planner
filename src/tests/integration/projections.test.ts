@@ -167,8 +167,9 @@ describe("projections IPC", () => {
 
       // No state pension income in 2026 (age 66)
       expect(result.years[0].totalHouseholdIncome).toBe(0);
-      // £12k state pension income from 2027 (age 67)
-      expect(result.years[1].totalHouseholdIncome).toBe(12000);
+      // 2027 is the activation year — January birth → 11/12 pro-rated.
+      expect(result.years[1].totalHouseholdIncome).toBe(Math.round(12000 * 11 / 12));
+      // Full year from 2028 onwards.
       expect(result.years[2].totalHouseholdIncome).toBe(12000);
     });
 
@@ -181,7 +182,7 @@ describe("projections IPC", () => {
         personId,
         streamType: "state_pension",
         name: "State Pension",
-        startAge: 66,         // active from first year
+        startAge: 65,         // already activated by 2026 (age 66) — full year
         annualAmount: 10000,  // below personal allowance
         inflationLinked: false,
       });

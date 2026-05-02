@@ -234,6 +234,24 @@ export function calculateHouseholdTaxResult(
 }
 
 /**
+ * Pro-rata factor for the activation year of an income stream.
+ *
+ * The engine uses calendar-year ages (`year - birthYear`) for activation, so
+ * someone born late in the year would otherwise be credited a full year of
+ * pension in their activation year. We pro-rata by the number of whole calendar
+ * months remaining strictly after the birth month.
+ *
+ * Examples for activation year:
+ *   - DOB 31 Dec → birthMonth=11 → 0/12 (no whole months left after December)
+ *   - DOB 15 Jun → birthMonth=5  → 6/12
+ *   - DOB  1 Jan → birthMonth=0  → 11/12 (conservative — treats Jan as partial)
+ */
+export function activationYearProRataFactor(person: PersonContext): number {
+  const birthMonth = person.dateOfBirth.getMonth(); // 0-indexed
+  return Math.max(0, 11 - birthMonth) / 12;
+}
+
+/**
  * Compute a person's stream income for a given year (no withdrawals).
  */
 function computePersonStreamIncome(
@@ -246,15 +264,19 @@ function computePersonStreamIncome(
   const incomeByStream = new Map<number, number>();
   let totalIncome = 0;
   const yearsFromBase = year - baseYear;
+  const birthYear = person.dateOfBirth.getFullYear();
 
   for (const stream of incomeStreams) {
     if (stream.personId === person.id && isIncomeStreamActive(stream, person, year)) {
-      const amount = calculateIncomeForStream(
+      const fullAmount = calculateIncomeForStream(
         stream,
         stream.annualAmount,
         yearsFromBase,
         assumptions.inflationRate
       );
+      const activationYear = birthYear + stream.activationAge;
+      const proRata = year === activationYear ? activationYearProRataFactor(person) : 1;
+      const amount = Math.round(fullAmount * proRata);
       incomeByStream.set(stream.id, amount);
       totalIncome += amount;
     }

@@ -1119,6 +1119,53 @@ describe("Household-level drawdown", () => {
     expect(detail!.taxableComponent).toBe(20000 - Math.round(20000 * 0.25));
   });
 
+  it("pro-rates pension income in the activation year by birth month", () => {
+    // DOB 1969-12-31 → turns 60 on 2029-12-31. Whole months remaining after birth month = 0.
+    const personDecBirth: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "Late",
+      dateOfBirth: new Date("1969-12-31"), retirementYear: 2025,
+    };
+    const dbStream: IncomeStreamContext = {
+      id: 1, planId: 1, personId: 1, name: "DB", type: "db_pension",
+      activationAge: 60, annualAmount: 24000, isIndexed: false,
+    };
+    const noInflation: AssumptionSet = { ...assumptions, inflationRate: 0 };
+
+    const years = runProjection(
+      [personDecBirth], [], [dbStream], noInflation,
+      { id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false },
+      strategy, 2029, 2030
+    );
+
+    // Activation year 2029: December birthday → 0/12 of year.
+    expect(years[0].people.get(1)?.totalIncome).toBe(0);
+    // Year after activation: full year.
+    expect(years[1].people.get(1)?.totalIncome).toBe(24000);
+  });
+
+  it("pro-rates by 6/12 for a mid-year birthday in the activation year", () => {
+    // DOB 1969-06-15 → June birth, 5 months whole remaining (Jul-Nov; Dec is the 6th).
+    // Formula: (11 - birthMonth0Indexed) / 12 = (11 - 5) / 12 = 6/12.
+    const personJune: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "Mid",
+      dateOfBirth: new Date("1969-06-15"), retirementYear: 2025,
+    };
+    const stream: IncomeStreamContext = {
+      id: 1, planId: 1, personId: 1, name: "DB", type: "db_pension",
+      activationAge: 60, annualAmount: 24000, isIndexed: false,
+    };
+    const noInflation: AssumptionSet = { ...assumptions, inflationRate: 0 };
+
+    const [year] = runProjection(
+      [personJune], [], [stream], noInflation,
+      { id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false },
+      strategy, 2029, 2029
+    );
+
+    // 6/12 of £24k = £12,000.
+    expect(year.people.get(1)?.totalIncome).toBe(12000);
+  });
+
   it("calculates tax separately per person — two allowances of £12,570", () => {
     // Each person has £20k taxable income. With separate allowances, each pays
     // (20000 - 12570) * 0.2 = £1,486. Combined = £2,972. NOT (40000 - 12570) * 0.2 = £5,486.
