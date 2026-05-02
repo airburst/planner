@@ -1,4 +1,4 @@
-# Gap Tasks — updated 2026-05-01
+# Gap Tasks — updated 2026-05-02
 
 Prioritised engineering backlog derived from `gaps.md`. Tasks are ordered by impact on
 usability. Each task is self-contained: it states what to build, why it matters, what
@@ -7,16 +7,23 @@ files to touch, and the definition of done.
 Task ID format: G<priority>-T<seq>
 Priority tiers: P1 = critical path, P2 = high value, P3 = medium, P4 = low/deferred
 
-## Status Checkpoint — 2026-05-01 (paused)
+## Status Checkpoint — 2026-05-02
 
-- Completed in this session:
-  - G2-T4 Partner income streams in onboarding
-  - G2-T5 Scenario creation and comparison (a/b/c)
-  - Husky pre-commit gate added for lint + test + check-types
-- Next suggested task when resuming:
-  - G2-T7 One-off income / windfalls (or G2-T3 multi-account onboarding)
-- Resume note:
-  - Continue from Priority 2 list below; keep G2-T6 pending after tax-threshold work.
+Recent landed work:
+- ACC-T1 Accumulation engine (year < retirementYear branch, contributions applied)
+- ACC-T2 Employer pension contributions (column + UI for SIPP)
+- ACC-T5 Onboarding contribution capture (annual + employer)
+- ACC-T4 Retirement-pot metric in ProjectionSummary (partial)
+- G2-T6 Household-level drawdown + SIPP TFLS + per-person tax (major fix — was 2× over-drawing)
+- Cash-flow chart redesign — stacked sources, gradients, rounded tops, toggleable spending target
+- DOB pro-rata fixes:
+  - Income stream activation year (whole months after birthday)
+  - Retirement year contributions (months before birthday)
+  - Retirement year drawdown (months after birthday)
+
+**Next suggested task**: ACC-T6 (gap-to-target recommendation).
+
+Sprint sequence below has been re-ordered to reflect actual remaining work.
 
 ---
 
@@ -476,29 +483,50 @@ projection data.
 ### Sprint 1 — Make existing plans usable ✅ COMPLETE
 ~~G1-T1~~, ~~G1-T2~~, ~~G1-T3a~~, ~~G1-T3b~~, ~~G1-T3c~~, ~~G1-T3d~~, ~~G3-T5~~
 
-### Sprint 2 — Independent accuracy improvements (safe before engine changes)
-G2-T1 (tax thresholds), G2-T2 (SP forecast)
+### Sprint 2 — Independent accuracy improvements ✅ COMPLETE
+~~G2-T1~~ (tax thresholds), ~~G2-T4~~ (partner income), ~~G2-T5~~ (scenarios)
+G2-T2 (SP forecast) — small, can fold into next onboarding pass
 
-### Sprint 3 — Accumulation engine foundation (unlocks sprints 4–5)
-ACC-T1 (engine phase split), ACC-T2 (employer contributions), ACC-T5 (onboarding contributions capture)
+### Sprint 3 — Accumulation engine foundation ✅ COMPLETE
+~~ACC-T1~~ (engine phase split), ~~ACC-T2~~ (employer contributions), ~~ACC-T5~~ (onboarding contributions capture)
 
-### Sprint 4 — Account and partner improvements (phase-aware)
-ACC-T2+G2-T3 (multi-account + employer contributions in one pass), G2-T4 (partner income), G3-T4 (employment income), ACC-T3 (salary in accumulation chart)
+### Sprint 3.5 — Drawdown correctness ✅ COMPLETE
+~~G2-T6~~ (household-level drawdown + SIPP TFLS + per-person tax)
+DOB pro-rata for activation, retirement contributions, retirement drawdown
+Cash-flow chart redesign
 
-### Sprint 5 — One-off events (phase-aware)
-G2-T7 (windfalls), G2-T8 (one-off expenses), G3-T8 (income stream end dates)
+---
 
-### Sprint 6 — Accumulation UI and insights
-ACC-T4 (retirement pot view), ACC-T6 (gap-to-target recommendation), G3-T7 (safe spend)
+### Sprint 4 — Pre-retiree insight (next up)
+- **ACC-T6** (gap-to-target recommendation) — first
+  - Highest ROI follow-up to ACC-T4. Engine binary-searches the sustainable opening
+    pot, surfaces "Save £X/yr more for N years to close the gap" recommendation.
+- **G3-T4 + ACC-T3 together** (employment income + salary band in chart)
+  - The chart already has a colour slot for `salary` streams. Adding the onboarding
+    capture and threading through is one PR.
+- **ACC-T4 polish** — vertical retirement-year marker on the chart, "Pot at start"
+  vs "Pot at retirement" naming when scenarios cross the boundary.
 
-### Sprint 7 — Scenarios and bridge years
-G2-T5a, G2-T5b, G2-T5c, G2-T6 (bridge-year wiring)
+### Sprint 5 — Onboarding & input depth
+- **G2-T3** (multi-account onboarding) — last in this group; AccountsPanel already
+  supports multi-account post-onboarding so this is polish, not a missing capability.
+- **G2-T2** (state pension forecast field)
+- **G3-T1** (review & confirm step)
+- **G3-T8** (income stream end dates)
 
-### Sprint 8 — Planning depth and polish
-G3-T1 (review step), G3-T2 (longevity), G3-T3 (quantified recs)
+### Sprint 6 — One-off events
+G2-T7 (windfalls), G2-T8 (one-off expenses)
 
-### Sprint 9 — Stress testing
-G3-T6, G4-T3 (Marriage Allowance)
+### Sprint 7 — Planning depth
+G3-T2 (longevity setting), G3-T3 (quantified recommendations), G3-T7 (safe spending estimate)
+
+### Sprint 8 — Stress testing
+G3-T6 (presets), G4-T3 (Marriage Allowance)
+
+### Known DOB-related limitations (defer until they hit)
+- SIPP minimum-access age uses calendar-year age — can over-allow SIPP draws
+  in the year someone turns 55 if they retired before 55. Edge case.
+- Income stream `endAge` in schema is never read by engine (G3-T8 covers).
 
 ### Deferred (v1.1+)
 G4-T1, G4-T2, G4-T5, G4-T6, G4-T7
