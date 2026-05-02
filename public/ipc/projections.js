@@ -206,6 +206,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       name: stream.name,
       type: mapIncomeStreamType(stream.streamType),
       activationAge: stream.startAge,
+      endAge: stream.endAge ?? undefined,
       annualAmount: stream.annualAmount,
       isIndexed: stream.inflationLinked,
     }));
@@ -360,6 +361,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       name: stream.name,
       type: mapIncomeStreamType(stream.streamType),
       activationAge: stream.startAge,
+      endAge: stream.endAge ?? undefined,
       annualAmount: stream.annualAmount,
       isIndexed: stream.inflationLinked,
     }));

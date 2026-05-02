@@ -35,7 +35,22 @@ export function isIncomeStreamActive(
   year: number
 ): boolean {
   const age = calculateAgeInYear(person, year);
-  return age >= stream.activationAge;
+  if (age < stream.activationAge) return false;
+  if (stream.endAge != null && age > stream.endAge) return false;
+  return true;
+}
+
+/**
+ * Pro-rata factor for the end year of an income stream (e.g. salary endAge).
+ * Symmetric with the activation factor: months strictly BEFORE birth month.
+ *
+ *   31 Dec → 11/12 (worked Jan-Nov, last day of December is the cutoff)
+ *   15 Jun →  5/12 (worked Jan-May)
+ *    1 Jan →  0    (already past on 1 Jan)
+ */
+export function endYearProRataFactor(person: PersonContext): number {
+  const birthMonth = person.dateOfBirth.getMonth();
+  return Math.max(0, birthMonth) / 12;
 }
 
 /**
@@ -309,7 +324,10 @@ function computePersonStreamIncome(
         assumptions.inflationRate
       );
       const activationYear = birthYear + stream.activationAge;
-      const proRata = year === activationYear ? activationYearProRataFactor(person) : 1;
+      const endYear = stream.endAge != null ? birthYear + stream.endAge : null;
+      let proRata = 1;
+      if (year === activationYear) proRata = activationYearProRataFactor(person);
+      else if (endYear != null && year === endYear) proRata = endYearProRataFactor(person);
       const amount = Math.round(fullAmount * proRata);
       incomeByStream.set(stream.id, amount);
       totalIncome += amount;

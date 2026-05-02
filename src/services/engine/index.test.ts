@@ -1236,6 +1236,34 @@ describe("Household-level drawdown", () => {
     expect(year.totalHouseholdWithdrawals).toBe(30000);
   });
 
+  it("deactivates an income stream after endAge with end-year pro-rata", () => {
+    // DOB 1969-06-15. Salary endAge = 65 (year 2034). In 2034, salary should run
+    // for whole months strictly before birth month = 5/12 (Jan-May).
+    // Years before 2034: full salary. Year 2034: 5/12. Year 2035+: nothing.
+    const earner: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "Earner",
+      dateOfBirth: new Date("1969-06-15"), retirementYear: 2034,
+    };
+    const salary: IncomeStreamContext = {
+      id: 1, planId: 1, personId: 1, name: "Salary", type: "salary",
+      activationAge: 18, annualAmount: 60000, isIndexed: false, endAge: 65,
+    };
+    const noInflation: AssumptionSet = { ...assumptions, inflationRate: 0 };
+
+    const years = runProjection(
+      [earner], [], [salary], noInflation,
+      { id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false },
+      strategy, 2033, 2035
+    );
+
+    // 2033 (age 64): full salary
+    expect(years[0].people.get(1)?.totalIncome).toBe(60000);
+    // 2034 (age 65, end year): 5/12 — the months Jan-May
+    expect(years[1].people.get(1)?.totalIncome).toBe(Math.round(60000 * 5 / 12));
+    // 2035 (age 66, post-end): no salary
+    expect(years[2].people.get(1)?.totalIncome).toBe(0);
+  });
+
   it("calculates tax separately per person — two allowances of £12,570", () => {
     // Each person has £20k taxable income. With separate allowances, each pays
     // (20000 - 12570) * 0.2 = £1,486. Combined = £2,972. NOT (40000 - 12570) * 0.2 = £5,486.

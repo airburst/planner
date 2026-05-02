@@ -11,6 +11,10 @@ const formatCurrency = (value: number) =>
 
 function PersonIncomeSection({
   title,
+  hasSalary,
+  onHasSalaryChange,
+  salaryAnnual,
+  onSalaryAnnualChange,
   hasDbPension,
   onHasDbPensionChange,
   dbPensionAge,
@@ -23,6 +27,10 @@ function PersonIncomeSection({
   onStatePensionAgeChange,
 }: {
   title: string;
+  hasSalary: boolean;
+  onHasSalaryChange: (next: boolean) => void;
+  salaryAnnual: number;
+  onSalaryAnnualChange: (next: number) => void;
   hasDbPension: boolean;
   onHasDbPensionChange: (next: boolean) => void;
   dbPensionAge: number;
@@ -37,6 +45,40 @@ function PersonIncomeSection({
   return (
     <section className="space-y-4 rounded-md border p-4">
       <h3 className="text-sm font-semibold text-muted-foreground">{title}</h3>
+
+      <div className="space-y-3 rounded-md border p-4">
+        <label className="flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            checked={hasSalary}
+            onChange={(e) => onHasSalaryChange(e.target.checked)}
+            className="h-4 w-4 rounded border border-input"
+          />
+          <span className="text-sm font-medium">Salary / employment income (until retirement)</span>
+        </label>
+
+        {hasSalary && (
+          <div className="mt-4 space-y-2 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Annual salary (gross)</label>
+              <span className="text-lg font-semibold text-primary">
+                {formatCurrency(salaryAnnual)}
+              </span>
+            </div>
+            <Slider
+              value={salaryAnnual}
+              onValueChange={onSalaryAnnualChange}
+              min={0}
+              max={200000}
+              step={1000}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>£0</span>
+              <span>£200k</span>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="space-y-3 rounded-md border p-4">
         <label className="flex cursor-pointer items-center gap-2">
@@ -156,7 +198,11 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
 
       <div className="space-y-6">
         <PersonIncomeSection
-          title={`${primaryLabel}'s pensions`}
+          title={`${primaryLabel}'s income`}
+          hasSalary={state.hasSalary}
+          onHasSalaryChange={(next) => onChange({ hasSalary: next })}
+          salaryAnnual={state.salaryAnnual ?? 0}
+          onSalaryAnnualChange={(next) => onChange({ salaryAnnual: next })}
           hasDbPension={state.hasDbPension}
           onHasDbPensionChange={(next) => onChange({ hasDbPension: next })}
           dbPensionAge={state.dbPensionAge ?? 60}
@@ -171,7 +217,11 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
 
         {state.hasPartner && (
           <PersonIncomeSection
-            title={`${partnerLabel}'s pensions`}
+            title={`${partnerLabel}'s income`}
+            hasSalary={state.partnerHasSalary ?? false}
+            onHasSalaryChange={(next) => onChange({ partnerHasSalary: next })}
+            salaryAnnual={state.partnerSalaryAnnual ?? 0}
+            onSalaryAnnualChange={(next) => onChange({ partnerSalaryAnnual: next })}
             hasDbPension={state.partnerHasDbPension ?? false}
             onHasDbPensionChange={(next) => onChange({ partnerHasDbPension: next })}
             dbPensionAge={state.partnerDbPensionAge ?? 60}

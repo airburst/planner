@@ -41,6 +41,7 @@ export interface IncomeStreamContext {
   name: string;
   type: "db_pension" | "dc_pension" | "state_pension" | "salary" | "other";
   activationAge: number; // Age at which income begins
+  endAge?: number; // Age after which income stops (e.g. salary stops at retirement)
   annualAmount: number; // GBP pence (if fixed) or starting amount
   isIndexed: boolean; // If true, increases with inflation
 }

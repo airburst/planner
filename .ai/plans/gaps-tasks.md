@@ -318,7 +318,16 @@ amount. `impactScore` is non-zero and displayed in the UI.
 
 ---
 
-### G3-T4: Employment income stream
+### ~~G3-T4: Employment income stream~~ ✅ DONE
+Onboarding income-phases step gains a "Salary / employment income (until retirement)"
+toggle per person with annual amount slider (£0–£200k). Submit creates an `employment`
+stream with `startAge=18` and `endAge` set to that person's retirement age.
+Engine respects `endAge` (stream deactivates after that age). End-year pro-rata uses
+`birthMonth/12` (months strictly before birth) — symmetric with the activation factor.
+IncomeStreamsPanel already exposed `employment` as a type option for post-onboarding
+edits.
+
+### G3-T4 (legacy spec):
 **Why**: Many users have salary or part-time work income before retirement. Currently
 there is no way to enter employment income; only DB pension and State Pension are
 captured in onboarding.
@@ -377,7 +386,13 @@ unsustainable plan, higher in a well-funded one.
 
 ---
 
-### G3-T8: Income stream end dates
+### ~~G3-T8: Income stream end dates~~ ✅ DONE
+Engine respects `IncomeStreamContext.endAge`. IPC maps `stream.endAge` from DB.
+End-year pro-rata = months strictly before birth. Salary streams created via G3-T4
+already use this (endAge = retirement age). Income stream edit panel surfaces
+endAge as an optional field.
+
+### G3-T8 (legacy spec):
 **Why**: `end_age` exists in the schema but there is no UI to set it. DB pensions
 that end (e.g. on death of spouse) or employment income that ends at retirement cannot
 be modelled correctly.
@@ -608,7 +623,16 @@ both during accumulation years.
 
 ---
 
-### ACC-T3: Pre-retirement salary / employment income
+### ~~ACC-T3: Pre-retirement salary / employment income~~ ✅ PARTIAL
+Captured via G3-T4 (onboarding salary capture, engine `employment` streams, end-age
+pro-rata). Salary income now flows through the cash-flow chart automatically as a
+distinct band during accumulation years (no special chart code — uses the existing
+stream-colour assignment).
+
+NOT shipped: dedicated chart styling for salary band (it gets the next available
+palette colour), recommendation flagging if salary < contribution rate.
+
+### ACC-T3 (legacy spec):
 **Why**: For users currently employed, their salary funds their contributions. The
 app currently has no way to model this or show gross income → contributions →
 remaining cash flow during accumulation years.

@@ -23,6 +23,12 @@ export interface OnboardingState {
   annualContribution: number;
   employerContribution: number;
 
+  // Current employment (pre-retirement salary)
+  hasSalary: boolean;
+  salaryAnnual?: number;
+  partnerHasSalary?: boolean;
+  partnerSalaryAnnual?: number;
+
   // Income phases
   hasDbPension: boolean;
   dbPensionAge?: number;

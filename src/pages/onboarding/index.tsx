@@ -33,6 +33,8 @@ export function OnboardingPage() {
     accountType: "mixed",
     annualContribution: 0,
     employerContribution: 0,
+    hasSalary: false,
+    partnerHasSalary: false,
     hasDbPension: false,
     hasStatePension: true,
     statePensionAge: 67,
@@ -111,6 +113,34 @@ export function OnboardingPage() {
       });
 
       // 5. Income streams
+      if (state.hasSalary && state.salaryAnnual && state.salaryAnnual > 0) {
+        await createIncomeStream.mutateAsync({
+          planId: plan.id,
+          personId: primaryPerson.id,
+          streamType: "employment",
+          name: "Salary",
+          startAge: 18,
+          endAge: state.primaryRetirementAge,
+          annualAmount: state.salaryAnnual,
+          inflationLinked: true,
+          taxable: true,
+        });
+      }
+
+      if (partnerPerson && state.partnerHasSalary && state.partnerSalaryAnnual && state.partnerSalaryAnnual > 0) {
+        await createIncomeStream.mutateAsync({
+          planId: plan.id,
+          personId: partnerPerson.id,
+          streamType: "employment",
+          name: `${partnerPerson.firstName}'s Salary`,
+          startAge: 18,
+          endAge: state.partnerRetirementAge ?? state.primaryRetirementAge,
+          annualAmount: state.partnerSalaryAnnual,
+          inflationLinked: true,
+          taxable: true,
+        });
+      }
+
       if (state.hasStatePension) {
         await createIncomeStream.mutateAsync({
           planId: plan.id,
