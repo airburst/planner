@@ -256,9 +256,24 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={data}
-            barCategoryGap={2}
+            barCategoryGap="14%"
             margin={{ top: 8, right: 16, left: 12, bottom: 0 }}
           >
+            <defs>
+              {series.map((s) => (
+                <linearGradient
+                  key={`grad-${s.key}`}
+                  id={`grad-${s.key}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="0%" stopColor={s.color} stopOpacity={0.55} />
+                  <stop offset="100%" stopColor={s.color} stopOpacity={1} />
+                </linearGradient>
+              ))}
+            </defs>
             <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="year"
@@ -299,8 +314,10 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
                   key={s.key}
                   dataKey={s.key}
                   stackId={viewMode === "stacked" ? "cashflow" : s.key}
-                  fill={s.color}
-                  fillOpacity={0.9}
+                  fill={`url(#grad-${s.key})`}
+                  stroke="hsl(var(--card))"
+                  strokeWidth={1.5}
+                  radius={[6, 6, 0, 0]}
                   isAnimationActive={false}
                 />
               );
