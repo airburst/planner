@@ -617,7 +617,18 @@ what the drawdown phase needs, a recommendation fires: "Increase contributions b
 
 ---
 
-### ACC-T5: Accumulation onboarding — contributions and salary capture
+### ~~ACC-T5: Accumulation onboarding — contributions and salary capture~~ ✅ PARTIAL
+Contributions captured. Salary deferred to G3-T4.
+
+`OnboardingState.annualContribution` and `employerContribution` added (default 0).
+Assets step shows Annual Contribution slider (£0–£60k). Employer Contribution
+slider (£0–£30k) only renders for `accountType === "sipp" | "mixed"`. Index
+handler passes both to `createAccount`; employer is forced to 0 unless wrapper
+is SIPP. Summary line: "Adding £X/yr (incl. £Y employer)".
+
+NOT VERIFIED IN BROWSER — dev server start was denied. Ship with caveat or open
+tester for manual smoke before merging.
+
 **Why**: The current onboarding only captures current balance and account type. It
 does not ask about annual contributions, employer contributions, or salary. Plans
 created through onboarding will always show flat or zero accumulation.

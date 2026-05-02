@@ -20,6 +20,8 @@ export interface OnboardingState {
   // Assets
   currentSavings: number;
   accountType: "cash" | "isa" | "sipp" | "mixed";
+  annualContribution: number;
+  employerContribution: number;
 
   // Income phases
   hasDbPension: boolean;

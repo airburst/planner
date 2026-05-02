@@ -75,11 +75,68 @@ export function OnboardingAssetsStep({ state, onChange }: Props) {
             ))}
           </div>
         </div>
+
+        {/* Annual contribution */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label htmlFor="contribution" className="text-sm font-medium">
+              Annual Contribution
+            </label>
+            <span className="text-lg font-semibold text-primary">
+              {formatCurrency(state.annualContribution)}/yr
+            </span>
+          </div>
+          <Slider
+            value={state.annualContribution}
+            onValueChange={(v) => onChange({ annualContribution: v })}
+            min={0}
+            max={60000}
+            step={500}
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>£0</span>
+            <span>£60k</span>
+          </div>
+        </div>
+
+        {/* Employer contribution — SIPP / mixed only */}
+        {(state.accountType === "sipp" || state.accountType === "mixed") && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label htmlFor="employer-contribution" className="text-sm font-medium">
+                Employer Contribution
+              </label>
+              <span className="text-lg font-semibold text-primary">
+                {formatCurrency(state.employerContribution)}/yr
+              </span>
+            </div>
+            <Slider
+              value={state.employerContribution}
+              onValueChange={(v) => onChange({ employerContribution: v })}
+              min={0}
+              max={30000}
+              step={500}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>£0</span>
+              <span>£30k</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="rounded-md bg-muted p-4">
         <p className="text-sm text-muted-foreground">
           {formatCurrency(state.currentSavings)} in {state.accountType === "cash" ? "cash savings" : state.accountType === "isa" ? "ISA accounts" : state.accountType === "sipp" ? "SIPP/pension" : "mixed accounts"}.
+          {(() => {
+            const employerVisible = state.employerContribution > 0 && (state.accountType === "sipp" || state.accountType === "mixed");
+            const total = state.annualContribution + (employerVisible ? state.employerContribution : 0);
+            if (total === 0) return null;
+            const employerPart = employerVisible && state.employerContribution > 0
+              ? ` (incl. ${formatCurrency(state.employerContribution)} employer)`
+              : "";
+            return ` Adding ${formatCurrency(total)}/yr${employerPart}.`;
+          })()}
         </p>
       </div>
     </div>

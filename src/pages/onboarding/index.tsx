@@ -31,6 +31,8 @@ export function OnboardingPage() {
     primaryRetirementAge: 65,
     currentSavings: 0,
     accountType: "mixed",
+    annualContribution: 0,
+    employerContribution: 0,
     hasDbPension: false,
     hasStatePension: true,
     statePensionAge: 67,
@@ -97,13 +99,15 @@ export function OnboardingPage() {
       // 4. Account
       const wrapperTypeMap = { cash: "cash", isa: "isa", sipp: "sipp", mixed: "sipp" } as const;
       const accountNameMap = { cash: "Cash Savings", isa: "ISA", sipp: "SIPP", mixed: "SIPP" };
+      const wrapperType = wrapperTypeMap[state.accountType];
       await createAccount.mutateAsync({
         planId: plan.id,
         personId: primaryPerson.id,
         name: accountNameMap[state.accountType],
-        wrapperType: wrapperTypeMap[state.accountType],
+        wrapperType,
         currentBalance: state.currentSavings,
-        annualContribution: 0,
+        annualContribution: state.annualContribution,
+        employerContribution: wrapperType === "sipp" ? state.employerContribution : 0,
       });
 
       // 5. Income streams
