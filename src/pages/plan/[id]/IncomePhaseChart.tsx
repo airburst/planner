@@ -36,7 +36,7 @@ interface SeriesMeta {
   group: "income" | "drawdown";
 }
 
-const SEGMENT_GAP = 2;
+const SEGMENT_GAP = 1;
 const TOP_RADIUS = 6;
 
 interface BarShapeProps {
@@ -111,7 +111,7 @@ const DRAWDOWN_LABELS: Record<string, string> = {
   drawdown_other: "Other drawdown",
 };
 
-const SPENDING_TARGET_COLOR = "#22c55e";
+const SPENDING_TARGET_COLOR = "var(--sw-error)";
 
 export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("stacked");
@@ -253,7 +253,7 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
         <div>
           <h3 className="mb-1 text-lg font-semibold">Cash Flow</h3>
           <p className="text-sm text-muted-foreground">
-            Annual income sources and bridge-year drawdowns. The green line marks your spending target.
+            Annual income sources and bridge-year drawdowns. The dashed line marks your spending target.
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-lg border bg-background/60 p-1 shadow-sm">
@@ -322,7 +322,7 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={dataWithTopmost}
-            barCategoryGap={2}
+            barCategoryGap={1}
             margin={{ top: 8, right: 16, left: 12, bottom: 0 }}
           >
             <defs>
@@ -388,7 +388,7 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
             })}
 
             <Line
-              type="stepAfter"
+              type="step"
               dataKey="spendingTarget"
               name="Spending target"
               stroke={SPENDING_TARGET_COLOR}
@@ -402,8 +402,8 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
       </div>
 
       <p className="mt-3 text-xs text-muted-foreground">
-        Click a legend chip to hide that series. Drawdown bars are stacked above stream income so the green
-        line shows when external income alone covers spending.
+        Click a legend chip to hide that series. Drawdown bars are stacked above stream income; the
+        dashed target line shows when external income alone covers spending.
       </p>
     </section>
   );
