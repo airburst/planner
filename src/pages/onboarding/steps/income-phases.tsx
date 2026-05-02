@@ -25,6 +25,8 @@ function PersonIncomeSection({
   onHasStatePensionChange,
   statePensionAge,
   onStatePensionAgeChange,
+  statePensionAnnualAmount,
+  onStatePensionAnnualAmountChange,
 }: {
   title: string;
   hasSalary: boolean;
@@ -41,6 +43,8 @@ function PersonIncomeSection({
   onHasStatePensionChange: (next: boolean) => void;
   statePensionAge: number;
   onStatePensionAgeChange: (next: number) => void;
+  statePensionAnnualAmount: number;
+  onStatePensionAnnualAmountChange: (next: number) => void;
 }) {
   return (
     <section className="space-y-4 rounded-md border p-4">
@@ -158,6 +162,27 @@ function PersonIncomeSection({
               <span>60</span>
               <span>75</span>
             </div>
+
+            <div className="mt-4 flex items-center justify-between">
+              <label className="text-sm font-medium">Annual State Pension forecast</label>
+              <span className="text-lg font-semibold text-primary">
+                {formatCurrency(statePensionAnnualAmount)}
+              </span>
+            </div>
+            <Slider
+              value={statePensionAnnualAmount}
+              onValueChange={onStatePensionAnnualAmountChange}
+              min={0}
+              max={15000}
+              step={100}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>£0</span>
+              <span>£15k</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Default £11,502/yr (2024/25 full new SP). Check your forecast at gov.uk/check-state-pension.
+            </p>
           </div>
         )}
       </div>
@@ -213,6 +238,8 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
           onHasStatePensionChange={(next) => onChange({ hasStatePension: next })}
           statePensionAge={state.statePensionAge ?? 67}
           onStatePensionAgeChange={(next) => onChange({ statePensionAge: next })}
+          statePensionAnnualAmount={state.statePensionAnnualAmount ?? 11502}
+          onStatePensionAnnualAmountChange={(next) => onChange({ statePensionAnnualAmount: next })}
         />
 
         {state.hasPartner && (
@@ -232,6 +259,8 @@ export function OnboardingIncomePhesesStep({ state, onChange }: Props) {
             onHasStatePensionChange={(next) => onChange({ partnerHasStatePension: next })}
             statePensionAge={state.partnerStatePensionAge ?? state.statePensionAge ?? 67}
             onStatePensionAgeChange={(next) => onChange({ partnerStatePensionAge: next })}
+            statePensionAnnualAmount={state.partnerStatePensionAnnualAmount ?? state.statePensionAnnualAmount ?? 11502}
+            onStatePensionAnnualAmountChange={(next) => onChange({ partnerStatePensionAnnualAmount: next })}
           />
         )}
       </div>

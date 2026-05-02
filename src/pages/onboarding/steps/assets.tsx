@@ -1,143 +1,163 @@
-import { Slider } from "@/components/ui/slider";
-import { OnboardingState } from "../types";
+import { Button } from "@/components/ui/button";
+import { OnboardingAccount, OnboardingAccountWrapper, OnboardingState } from "../types";
 
 interface Props {
   state: OnboardingState;
   onChange: (updates: Partial<OnboardingState>) => void;
 }
 
+const WRAPPER_LABELS: Record<OnboardingAccountWrapper, string> = {
+  sipp: "SIPP",
+  isa: "ISA",
+  gia: "GIA",
+  cash: "Cash",
+};
+
+const WRAPPER_OPTIONS: { value: OnboardingAccountWrapper; label: string }[] = [
+  { value: "sipp", label: "SIPP (pension)" },
+  { value: "isa", label: "ISA (tax-free)" },
+  { value: "gia", label: "GIA (general investment)" },
+  { value: "cash", label: "Cash savings" },
+];
+
+const fmt = (v: number) =>
+  new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(v);
+
+const BLANK_ACCOUNT: OnboardingAccount = {
+  wrapperType: "sipp",
+  currentBalance: 0,
+  annualContribution: 0,
+  employerContribution: 0,
+};
+
 export function OnboardingAssetsStep({ state, onChange }: Props) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency: "GBP",
-      maximumFractionDigits: 0,
-    }).format(value);
+  const accounts = state.accounts;
+
+  const updateAccount = (index: number, patch: Partial<OnboardingAccount>) => {
+    const next = accounts.map((a, i) => (i === index ? { ...a, ...patch } : a));
+    onChange({ accounts: next });
   };
+
+  const addAccount = () => {
+    onChange({ accounts: [...accounts, { ...BLANK_ACCOUNT }] });
+  };
+
+  const removeAccount = (index: number) => {
+    onChange({ accounts: accounts.filter((_, i) => i !== index) });
+  };
+
+  const totalBalance = accounts.reduce((sum, a) => sum + a.currentBalance, 0);
+  const totalContribution = accounts.reduce(
+    (sum, a) => sum + a.annualContribution + (a.wrapperType === "sipp" ? a.employerContribution : 0),
+    0
+  );
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold mb-4">Current Assets</h2>
-        <p className="text-muted-foreground text-sm mb-6">
-          How much have you saved for retirement?
-        </p>
-      </div>
-
-      <div className="space-y-6">
-        {/* Current savings */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <label htmlFor="savings" className="text-sm font-medium">
-              Total Savings
-            </label>
-            <span className="text-lg font-semibold text-primary">
-              {formatCurrency(state.currentSavings)}
-            </span>
-          </div>
-          <Slider
-            value={state.currentSavings}
-            onValueChange={(v) => onChange({ currentSavings: v })}
-            min={0}
-            max={1000000}
-            step={5000}
-          />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>£0</span>
-            <span>£1M</span>
-          </div>
-        </div>
-
-        {/* Account type */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium">Where are your savings?</label>
-          <div className="space-y-2">
-            {[
-              { value: "cash", label: "Cash savings" },
-              { value: "isa", label: "ISA (tax-free)" },
-              { value: "sipp", label: "SIPP (pension)" },
-              { value: "mixed", label: "Mix of different accounts" },
-            ].map(({ value, label }) => (
-              <label
-                key={value}
-                className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:bg-muted"
-              >
-                <input
-                  type="radio"
-                  name="account-type"
-                  value={value}
-                  checked={state.accountType === value}
-                  onChange={(e) => onChange({ accountType: e.target.value as typeof state.accountType })}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm font-medium">{label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Annual contribution */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <label htmlFor="contribution" className="text-sm font-medium">
-              Annual Contribution
-            </label>
-            <span className="text-lg font-semibold text-primary">
-              {formatCurrency(state.annualContribution)}/yr
-            </span>
-          </div>
-          <Slider
-            value={state.annualContribution}
-            onValueChange={(v) => onChange({ annualContribution: v })}
-            min={0}
-            max={60000}
-            step={500}
-          />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>£0</span>
-            <span>£60k</span>
-          </div>
-        </div>
-
-        {/* Employer contribution — SIPP / mixed only */}
-        {(state.accountType === "sipp" || state.accountType === "mixed") && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label htmlFor="employer-contribution" className="text-sm font-medium">
-                Employer Contribution
-              </label>
-              <span className="text-lg font-semibold text-primary">
-                {formatCurrency(state.employerContribution)}/yr
-              </span>
-            </div>
-            <Slider
-              value={state.employerContribution}
-              onValueChange={(v) => onChange({ employerContribution: v })}
-              min={0}
-              max={30000}
-              step={500}
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>£0</span>
-              <span>£30k</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-md bg-muted p-4">
+        <h2 className="mb-1 text-xl font-semibold">Current Assets</h2>
         <p className="text-sm text-muted-foreground">
-          {formatCurrency(state.currentSavings)} in {state.accountType === "cash" ? "cash savings" : state.accountType === "isa" ? "ISA accounts" : state.accountType === "sipp" ? "SIPP/pension" : "mixed accounts"}.
-          {(() => {
-            const employerVisible = state.employerContribution > 0 && (state.accountType === "sipp" || state.accountType === "mixed");
-            const total = state.annualContribution + (employerVisible ? state.employerContribution : 0);
-            if (total === 0) return null;
-            const employerPart = employerVisible && state.employerContribution > 0
-              ? ` (incl. ${formatCurrency(state.employerContribution)} employer)`
-              : "";
-            return ` Adding ${formatCurrency(total)}/yr${employerPart}.`;
-          })()}
+          Add each retirement account separately. Most people have at least one SIPP and an ISA.
         </p>
+      </div>
+
+      <div className="space-y-3">
+        {accounts.map((account, idx) => (
+          <div key={idx} className="space-y-3 rounded-md border bg-sw-surface-container-low p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Account {idx + 1}
+              </p>
+              {accounts.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                  onClick={() => removeAccount(idx)}
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Account type</label>
+                <select
+                  value={account.wrapperType}
+                  onChange={(e) => updateAccount(idx, { wrapperType: e.target.value as OnboardingAccountWrapper })}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {WRAPPER_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Current balance (£)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={account.currentBalance}
+                  onChange={(e) => updateAccount(idx, { currentBalance: Number(e.target.value) })}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Annual contribution (£)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={100}
+                  value={account.annualContribution}
+                  onChange={(e) => updateAccount(idx, { annualContribution: Number(e.target.value) })}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+
+              {account.wrapperType === "sipp" && (
+                <div className="space-y-1 col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground">Employer contribution (£/yr)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={100}
+                    value={account.employerContribution}
+                    onChange={(e) => updateAccount(idx, { employerContribution: Number(e.target.value) })}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+        <Button size="sm" variant="outline" onClick={addAccount}>
+          + Add another account
+        </Button>
+      </div>
+
+      <div className="rounded-md bg-muted p-4 text-sm text-muted-foreground">
+        <p>
+          {accounts.length} {accounts.length === 1 ? "account" : "accounts"} totalling {fmt(totalBalance)}.
+          {totalContribution > 0 && ` Adding ${fmt(totalContribution)}/yr.`}
+        </p>
+        {accounts.length > 0 && (
+          <ul className="mt-2 space-y-0.5 text-xs">
+            {accounts.map((a, i) => (
+              <li key={i}>
+                {WRAPPER_LABELS[a.wrapperType]}: {fmt(a.currentBalance)}
+                {a.annualContribution > 0 && ` · ${fmt(a.annualContribution)}/yr`}
+                {a.wrapperType === "sipp" && a.employerContribution > 0 && ` · ${fmt(a.employerContribution)}/yr employer`}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

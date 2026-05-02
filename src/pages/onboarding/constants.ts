@@ -6,4 +6,5 @@ export const STEPS: OnboardingStepKey[] = [
   "assets",
   "income-phases",
   "spending-target",
+  "review",
 ];

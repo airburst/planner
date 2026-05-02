@@ -11,6 +11,7 @@ import { OnboardingAssetsStep } from "./steps/assets";
 import { OnboardingHouseholdStep } from "./steps/household";
 import { OnboardingIncomePhesesStep } from "./steps/income-phases";
 import { OnboardingRetirementTimingStep } from "./steps/retirement-timing";
+import { OnboardingReviewStep } from "./steps/review";
 import { OnboardingSpendingTargetStep } from "./steps/spending-target";
 import type { OnboardingState } from "./types";
 
@@ -29,10 +30,9 @@ export function OnboardingPage() {
     primaryDateOfBirth: "",
     hasPartner: false,
     primaryRetirementAge: 65,
-    currentSavings: 0,
-    accountType: "mixed",
-    annualContribution: 0,
-    employerContribution: 0,
+    accounts: [
+      { wrapperType: "sipp", currentBalance: 0, annualContribution: 0, employerContribution: 0 },
+    ],
     hasSalary: false,
     partnerHasSalary: false,
     hasDbPension: false,
@@ -98,19 +98,24 @@ export function OnboardingPage() {
         });
       }
 
-      // 4. Account
-      const wrapperTypeMap = { cash: "cash", isa: "isa", sipp: "sipp", mixed: "sipp" } as const;
-      const accountNameMap = { cash: "Cash Savings", isa: "ISA", sipp: "SIPP", mixed: "SIPP" };
-      const wrapperType = wrapperTypeMap[state.accountType];
-      await createAccount.mutateAsync({
-        planId: plan.id,
-        personId: primaryPerson.id,
-        name: accountNameMap[state.accountType],
-        wrapperType,
-        currentBalance: state.currentSavings,
-        annualContribution: state.annualContribution,
-        employerContribution: wrapperType === "sipp" ? state.employerContribution : 0,
-      });
+      // 4. Accounts (one or more)
+      const accountNameByWrapper: Record<typeof state.accounts[number]["wrapperType"], string> = {
+        cash: "Cash Savings",
+        isa: "ISA",
+        sipp: "SIPP",
+        gia: "GIA",
+      };
+      for (const acc of state.accounts) {
+        await createAccount.mutateAsync({
+          planId: plan.id,
+          personId: primaryPerson.id,
+          name: accountNameByWrapper[acc.wrapperType],
+          wrapperType: acc.wrapperType,
+          currentBalance: acc.currentBalance,
+          annualContribution: acc.annualContribution,
+          employerContribution: acc.wrapperType === "sipp" ? acc.employerContribution : 0,
+        });
+      }
 
       // 5. Income streams
       if (state.hasSalary && state.salaryAnnual && state.salaryAnnual > 0) {
@@ -262,6 +267,18 @@ export function OnboardingPage() {
         )}
         {currentStep === "spending-target" && (
           <OnboardingSpendingTargetStep state={state} onChange={handleStateChange} />
+        )}
+        {currentStep === "review" && (
+          <OnboardingReviewStep
+            state={state}
+            onJumpTo={(step) => {
+              const idx = STEPS.indexOf(step);
+              if (idx >= 0) {
+                setCurrentStepIndex(idx);
+                setSubmitError(null);
+              }
+            }}
+          />
         )}
       </div>
 

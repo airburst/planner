@@ -161,7 +161,15 @@ constant is removed from `handleComplete`.
 
 ---
 
-### G2-T3: Multi-account input in onboarding
+### ~~G2-T3: Multi-account input in onboarding~~ ✅ DONE
+Replaced the single `accountType` radio with a multi-row builder. Each row gets
+type (SIPP/ISA/GIA/Cash), balance, annual contribution, and employer contribution
+(only shown for SIPP). "+ Add another account" button. Submit handler loops over
+the accounts array calling `createAccount.mutateAsync` per row. Review step
+shows each row with its values. The `mixed` placeholder type is gone — users
+add specific accounts now.
+
+### G2-T3 (legacy spec):
 **Why**: The current onboarding forces a single account type. A user with £150k SIPP
 and £50k ISA must either pick one or create a misleading "SIPP" account. The engine
 supports multiple accounts correctly.
@@ -264,7 +272,13 @@ updated to verify SIPP tax-free component is non-zero.
 
 ## Priority 3 — Medium (depth and polish)
 
-### G3-T1: Onboarding review & confirm step
+### ~~G3-T1: Onboarding review & confirm step~~ ✅ DONE
+New "review" step appended to the onboarding flow (last step before submit).
+Shows household, retirement timing, accounts, income streams (salary, DB,
+state pension), and spending in read-only sections. Each section has an
+"Edit" button that jumps back to the relevant step.
+
+### G3-T1 (legacy spec):
 **Why**: Users go from spending straight to "Complete & Create Plan" with no summary.
 A mistake in any earlier step (wrong retirement age, wrong savings) is only discovered
 on the plan page.
@@ -500,7 +514,7 @@ projection data.
 
 ### Sprint 2 — Independent accuracy improvements ✅ COMPLETE
 ~~G2-T1~~ (tax thresholds), ~~G2-T4~~ (partner income), ~~G2-T5~~ (scenarios)
-G2-T2 (SP forecast) — small, can fold into next onboarding pass
+~~G2-T2~~ (SP forecast) ✅ DONE — slider added to income-phases step (£0–£15k, default £11,502)
 
 ### Sprint 3 — Accumulation engine foundation ✅ COMPLETE
 ~~ACC-T1~~ (engine phase split), ~~ACC-T2~~ (employer contributions), ~~ACC-T5~~ (onboarding contributions capture)
@@ -522,12 +536,9 @@ Cash-flow chart redesign
 - **ACC-T4 polish** — vertical retirement-year marker on the chart, "Pot at start"
   vs "Pot at retirement" naming when scenarios cross the boundary.
 
-### Sprint 5 — Onboarding & input depth
-- **G2-T3** (multi-account onboarding) — last in this group; AccountsPanel already
-  supports multi-account post-onboarding so this is polish, not a missing capability.
-- **G2-T2** (state pension forecast field)
-- **G3-T1** (review & confirm step)
-- **G3-T8** (income stream end dates)
+### Sprint 5 — Onboarding & input depth ✅ COMPLETE
+~~G2-T2~~ (SP forecast slider), ~~G3-T1~~ (review step), ~~G2-T3~~ (multi-account
+onboarding), ~~G3-T8~~ (already shipped with G3-T4)
 
 ### Sprint 6 — One-off events
 G2-T7 (windfalls), G2-T8 (one-off expenses)

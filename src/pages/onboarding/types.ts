@@ -1,9 +1,19 @@
+export type OnboardingAccountWrapper = "sipp" | "isa" | "gia" | "cash";
+
+export interface OnboardingAccount {
+  wrapperType: OnboardingAccountWrapper;
+  currentBalance: number;
+  annualContribution: number;
+  employerContribution: number; // 0 for non-SIPP
+}
+
 export type OnboardingStepKey =
   | "household"
   | "retirement-timing"
   | "assets"
   | "income-phases"
-  | "spending-target";
+  | "spending-target"
+  | "review";
 
 export interface OnboardingState {
   // Household
@@ -17,11 +27,8 @@ export interface OnboardingState {
   primaryRetirementAge: number;
   partnerRetirementAge?: number;
 
-  // Assets
-  currentSavings: number;
-  accountType: "cash" | "isa" | "sipp" | "mixed";
-  annualContribution: number;
-  employerContribution: number;
+  // Assets — one or more accounts
+  accounts: OnboardingAccount[];
 
   // Current employment (pre-retirement salary)
   hasSalary: boolean;
