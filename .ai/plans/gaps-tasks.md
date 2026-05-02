@@ -549,6 +549,29 @@ G3-T2 (longevity setting), G3-T3 (quantified recommendations), G3-T7 (safe spend
 ### Sprint 8 — Stress testing
 G3-T6 (presets), G4-T3 (Marriage Allowance)
 
+### Sprint 9 — End-to-end tests (final sprint)
+**Why**: Unit + integration tests cover engine and IPC. There is no test that
+exercises the actual Electron app: onboarding flow → DB persistence → projection
+render → editing post-onboarding. The browser smoke this session proved that
+checks-types-and-tests-pass does NOT catch Electron-preload-only regressions.
+
+**Scope**:
+- E2E-T1: Pick framework. Playwright supports Electron via `_electron.launch()`
+  with `npm test` integration. Spawn the built app from `out/`, drive UI, assert.
+- E2E-T2: Onboarding happy path. Couple, two accounts (SIPP + ISA), salary,
+  state pension. Submit → land on plan detail with non-zero projection.
+- E2E-T3: Persistence round-trip. Restart app, plan loads with same values.
+- E2E-T4: Edit flow. Change account balance via AccountsPanel → projection
+  re-runs and assets-at-end shifts.
+- E2E-T5: Scenario comparison. Create scenario, override retirement age,
+  comparison view shows different end-assets.
+- E2E-T6: CI integration. Runs on PRs alongside unit tests. Use a temp
+  `--user-data-dir` so the test DB is isolated.
+
+**DoD**: `bun run test:e2e` spawns Electron, walks the onboarding, asserts the
+plan detail page renders projection rows and the recommendation panel. Test
+DB cleaned up. CI passes.
+
 ### Known DOB-related limitations (defer until they hit)
 - SIPP minimum-access age uses calendar-year age — can over-allow SIPP draws
   in the year someone turns 55 if they retired before 55. Edge case.
