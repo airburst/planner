@@ -86,7 +86,16 @@ from `assumptionSets` table and falls back to hardcoded 2026 UK defaults — no 
 
 ---
 
-### G2-T7: One-off income / windfalls
+### ~~G2-T7: One-off income / windfalls~~ ✅ DONE
+`one_off_incomes` table (migration 0002). Engine accepts an optional
+`oneOffIncomes` array; in the matching year, non-taxable amounts reduce the
+household deficit, taxable amounts also reduce deficit AND flow into the owner's
+tax base (folded into investmentIncome bucket). `findGapToTarget` threads them
+through the binary search. Full IPC + hooks + `OneOffIncomesPanel` rendered in
+plan-detail Setup grid. Optional `personId` for tax attribution; `null` =
+household-level non-taxable cash.
+
+### G2-T7 (legacy spec):
 **Why**: Users may receive a lump-sum inheritance, property sale proceeds, or bonus at
 a specific age/year. There is currently no way to model this. Without it, plans that
 depend on a windfall to bridge a gap are significantly under-projected.
@@ -115,7 +124,13 @@ a cash injection in that year reducing drawdown from savings.
 
 ---
 
-### G2-T8: One-off expenditures at specific dates
+### ~~G2-T8: One-off expenditures at specific dates~~ ✅ DONE
+`one_off_expenses` table. Engine adds matched-year expense to that year's
+adjusted spending → flows through the deficit calc. Full IPC + hooks +
+`OneOffExpensesPanel` rendered alongside the income panel. Optional notes
+field for human context.
+
+### G2-T8 (legacy spec):
 **Why**: Large one-off withdrawals (new car, home renovation, care costs, gifting)
 break the assumption of constant annual spending. Without them, plans that include
 known future costs are over-optimistic.
@@ -540,8 +555,8 @@ Cash-flow chart redesign
 ~~G2-T2~~ (SP forecast slider), ~~G3-T1~~ (review step), ~~G2-T3~~ (multi-account
 onboarding), ~~G3-T8~~ (already shipped with G3-T4)
 
-### Sprint 6 — One-off events
-G2-T7 (windfalls), G2-T8 (one-off expenses)
+### Sprint 6 — One-off events ✅ COMPLETE
+~~G2-T7~~ (windfalls), ~~G2-T8~~ (one-off expenses)
 
 ### Sprint 7 — Planning depth
 G3-T2 (longevity setting), G3-T3 (quantified recommendations), G3-T7 (safe spending estimate)

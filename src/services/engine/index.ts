@@ -11,6 +11,8 @@ import {
     HouseholdTaxResult,
     HouseholdYearState,
     IncomeStreamContext,
+    OneOffExpenseContext,
+    OneOffIncomeContext,
     PersonContext,
     PersonTaxResult,
     PersonYearState,
@@ -153,7 +155,8 @@ export function calculatePersonTaxResult(
   incomeStreams: IncomeStreamContext[],
   incomeByStream: Map<number, number>,
   withdrawalDetails: Array<{ accountType: string; taxableComponent: number }>,
-  assumptions: AssumptionSet
+  assumptions: AssumptionSet,
+  additionalTaxableIncome: number = 0
 ): PersonTaxResult {
   let tradingIncome = 0;
   let investmentIncome = 0;
@@ -181,6 +184,10 @@ export function calculatePersonTaxResult(
   const sippWithdrawals = withdrawalDetails
     .filter((detail) => detail.accountType === "sipp")
     .reduce((sum, detail) => sum + detail.taxableComponent, 0);
+
+  // Lump-sum taxable one-offs are reported alongside investmentIncome (closest
+  // semantic bucket: realised gains, bonuses, inheritance growth).
+  investmentIncome += additionalTaxableIncome;
 
   const totalIncome = tradingIncome + investmentIncome + pensionIncome + sippWithdrawals;
   const personalAllowance = calculateEffectivePersonalAllowance(
@@ -438,7 +445,8 @@ export function projectPersonYear(
   baseYear: number,
   previousYearBalances: Map<number, number>,
   withdrawalsForPerson: Map<number, number>,
-  withdrawalDetailsForPerson: { accountId: number; accountType: AccountContext["type"]; amountWithdrawn: number; taxableComponent: number; taxFreeComponent: number; }[]
+  withdrawalDetailsForPerson: { accountId: number; accountType: AccountContext["type"]; amountWithdrawn: number; taxableComponent: number; taxFreeComponent: number; }[],
+  oneOffTaxableIncome: number = 0
 ): PersonYearState {
   const age = calculateAgeInYear(person, year);
   const isAccumulation = year < person.retirementYear;
@@ -473,7 +481,8 @@ export function projectPersonYear(
     incomeStreams.filter((stream) => stream.personId === person.id),
     incomeByStream,
     withdrawalDetailsForPerson,
-    assumptions
+    assumptions,
+    oneOffTaxableIncome
   );
   const taxDue = taxBreakdown.totalTax;
 
@@ -551,7 +560,9 @@ export function runProjection(
   spending: SpendingAssumption,
   withdrawalStrategy: WithdrawalStrategy,
   startYear: number,
-  endYear: number
+  endYear: number,
+  oneOffIncomes: OneOffIncomeContext[] = [],
+  oneOffExpenses: OneOffExpenseContext[] = []
 ): HouseholdYearState[] {
   const years: HouseholdYearState[] = [];
 
@@ -590,16 +601,38 @@ export function runProjection(
       householdStreamIncome += income.totalIncome;
     }
 
+    // Pass 1b: collect one-off events for this calendar year.
+    const oneOffTaxableByPerson = new Map<number, number>();
+    let oneOffNonTaxableHousehold = 0;
+    let oneOffHouseholdCash = 0;
+    for (const event of oneOffIncomes) {
+      if (event.year !== year) continue;
+      oneOffHouseholdCash += event.amount;
+      if (event.taxable && event.personId != null) {
+        oneOffTaxableByPerson.set(
+          event.personId,
+          (oneOffTaxableByPerson.get(event.personId) ?? 0) + event.amount
+        );
+      } else if (!event.taxable) {
+        oneOffNonTaxableHousehold += event.amount;
+      }
+    }
+    const oneOffExpenseTotal = oneOffExpenses
+      .filter((e) => e.year === year)
+      .reduce((sum, e) => sum + e.amount, 0);
+
     // Pass 2: household deficit pro-rated by retirement-year boundary.
     // For people fully past retirement, factor = 1 (full year of drawdown).
     // For someone in their retirementYear, factor < 1 by birth month.
     const drawdownFactor = householdDrawdownFactor(people, year);
-    const adjustedSpending = spending.isIndexed
+    const adjustedSpending = (spending.isIndexed
       ? Math.round(spending.annualSpendingTarget * Math.pow(1 + assumptions.inflationRate, year - startYear))
-      : spending.annualSpendingTarget;
+      : spending.annualSpendingTarget) + oneOffExpenseTotal;
+    // One-off inflows (taxable + non-taxable) reduce the deficit just like stream income.
     const householdDeficit = drawdownFactor > 0
-      ? Math.max(0, Math.round((adjustedSpending - householdStreamIncome) * drawdownFactor))
+      ? Math.max(0, Math.round((adjustedSpending - householdStreamIncome - oneOffHouseholdCash) * drawdownFactor))
       : 0;
+    void oneOffNonTaxableHousehold;
 
     // Pass 3: allocate withdrawals across drawable accounts in strategy order.
     const { withdrawalsByAccount, withdrawalDetailsByPerson } = allocateHouseholdWithdrawals(
@@ -632,7 +665,8 @@ export function runProjection(
         startYear,
         personBalances,
         personWithdrawals,
-        personDetails
+        personDetails,
+        oneOffTaxableByPerson.get(person.id) ?? 0
       );
 
       householdYear.people.set(person.id, personYear);
@@ -686,14 +720,17 @@ export function findGapToTarget(
   spending: SpendingAssumption,
   withdrawalStrategy: WithdrawalStrategy,
   startYear: number,
-  endYear: number
+  endYear: number,
+  oneOffIncomes: OneOffIncomeContext[] = [],
+  oneOffExpenses: OneOffExpenseContext[] = []
 ): {
   isSustainable: boolean;
   additionalAnnualContribution: number;
   yearsToRetirement: number;
 } {
   const baselineYears = runProjection(
-    people, accounts, incomeStreams, assumptions, spending, withdrawalStrategy, startYear, endYear
+    people, accounts, incomeStreams, assumptions, spending, withdrawalStrategy,
+    startYear, endYear, oneOffIncomes, oneOffExpenses
   );
   if (isProjectionSustainable(baselineYears)) {
     return { isSustainable: true, additionalAnnualContribution: 0, yearsToRetirement: 0 };
@@ -728,7 +765,8 @@ export function findGapToTarget(
         : a
     );
     const years = runProjection(
-      people, augmented, incomeStreams, assumptions, spending, withdrawalStrategy, startYear, endYear
+      people, augmented, incomeStreams, assumptions, spending, withdrawalStrategy,
+      startYear, endYear, oneOffIncomes, oneOffExpenses
     );
     return isProjectionSustainable(years);
   };

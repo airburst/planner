@@ -7,6 +7,8 @@ export {};
         expenseProfiles,
         householdPlans,
         incomeStreams,
+        oneOffExpenses,
+        oneOffIncomes,
         people,
         scenarioOverrides,
         scenarios
@@ -29,6 +31,10 @@ type ScenarioOverride = InferSelectModel<typeof scenarioOverrides>;
 type NewScenarioOverride = InferInsertModel<typeof scenarioOverrides>;
 type AssumptionSet = InferSelectModel<typeof assumptionSets>;
 type NewAssumptionSet = InferInsertModel<typeof assumptionSets>;
+type OneOffIncome = InferSelectModel<typeof oneOffIncomes>;
+type NewOneOffIncome = InferInsertModel<typeof oneOffIncomes>;
+type OneOffExpense = InferSelectModel<typeof oneOffExpenses>;
+type NewOneOffExpense = InferInsertModel<typeof oneOffExpenses>;
 type RetirementPotEntry = {
   pot: number;
   year: number;
@@ -119,6 +125,16 @@ declare global {
       createAssumptionSet: (data: NewAssumptionSet) => Promise<AssumptionSet | null>;
       updateAssumptionSet: (id: number, data: Partial<NewAssumptionSet>) => Promise<AssumptionSet | null>;
       deleteAssumptionSet: (id: number) => Promise<{ success: boolean }>;
+
+      getOneOffIncomesByPlan: (planId: number) => Promise<OneOffIncome[]>;
+      createOneOffIncome: (data: NewOneOffIncome) => Promise<OneOffIncome | null>;
+      updateOneOffIncome: (id: number, data: Partial<NewOneOffIncome>) => Promise<OneOffIncome | null>;
+      deleteOneOffIncome: (id: number) => Promise<{ success: boolean }>;
+
+      getOneOffExpensesByPlan: (planId: number) => Promise<OneOffExpense[]>;
+      createOneOffExpense: (data: NewOneOffExpense) => Promise<OneOffExpense | null>;
+      updateOneOffExpense: (id: number, data: Partial<NewOneOffExpense>) => Promise<OneOffExpense | null>;
+      deleteOneOffExpense: (id: number) => Promise<{ success: boolean }>;
 
       runProjectionForPlan: (
         planId: number,

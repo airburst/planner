@@ -127,6 +127,16 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       .from(schema.incomeStreams)
       .where(eq(schema.incomeStreams.planId, planId));
 
+    const oneOffIncomes = await db
+      .select()
+      .from(schema.oneOffIncomes)
+      .where(eq(schema.oneOffIncomes.planId, planId));
+
+    const oneOffExpenses = await db
+      .select()
+      .from(schema.oneOffExpenses)
+      .where(eq(schema.oneOffExpenses.planId, planId));
+
     const scenarios = await db
       .select()
       .from(schema.scenarios)
@@ -233,7 +243,9 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       spending,
       withdrawalStrategy,
       startYear,
-      endYear
+      endYear,
+      oneOffIncomes,
+      oneOffExpenses
     );
 
     return {
@@ -254,7 +266,9 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
         spending,
         withdrawalStrategy,
         startYear,
-        endYear
+        endYear,
+        oneOffIncomes,
+        oneOffExpenses
       ),
     };
   });
@@ -285,6 +299,16 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       .select()
       .from(schema.incomeStreams)
       .where(eq(schema.incomeStreams.planId, planId));
+
+    const oneOffIncomes = await db
+      .select()
+      .from(schema.oneOffIncomes)
+      .where(eq(schema.oneOffIncomes.planId, planId));
+
+    const oneOffExpenses = await db
+      .select()
+      .from(schema.oneOffExpenses)
+      .where(eq(schema.oneOffExpenses.planId, planId));
 
     const assumptionSet = scenario.assumptionSetId
       ? (
@@ -402,7 +426,9 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       spending,
       withdrawalStrategy,
       startYear,
-      endYear
+      endYear,
+      oneOffIncomes,
+      oneOffExpenses
     );
 
     return {
@@ -423,7 +449,9 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
         spending,
         withdrawalStrategy,
         startYear,
-        endYear
+        endYear,
+        oneOffIncomes,
+        oneOffExpenses
       ),
     };
   });

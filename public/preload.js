@@ -74,4 +74,22 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("assumption-sets:update", id, data),
   deleteAssumptionSet: (id) =>
     ipcRenderer.invoke("assumption-sets:delete", id),
+
+  getOneOffIncomesByPlan: (planId) =>
+    ipcRenderer.invoke("one-off-incomes:getByPlan", planId),
+  createOneOffIncome: (data) =>
+    ipcRenderer.invoke("one-off-incomes:create", data),
+  updateOneOffIncome: (id, data) =>
+    ipcRenderer.invoke("one-off-incomes:update", id, data),
+  deleteOneOffIncome: (id) =>
+    ipcRenderer.invoke("one-off-incomes:delete", id),
+
+  getOneOffExpensesByPlan: (planId) =>
+    ipcRenderer.invoke("one-off-expenses:getByPlan", planId),
+  createOneOffExpense: (data) =>
+    ipcRenderer.invoke("one-off-expenses:create", data),
+  updateOneOffExpense: (id, data) =>
+    ipcRenderer.invoke("one-off-expenses:update", id, data),
+  deleteOneOffExpense: (id) =>
+    ipcRenderer.invoke("one-off-expenses:delete", id),
 });

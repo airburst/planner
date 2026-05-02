@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { useAccountsByPlan } from "@/hooks/use-accounts";
 import { useIncomeStreamsByPlan } from "@/hooks/use-income-streams";
+import { useOneOffExpensesByPlan } from "@/hooks/use-one-off-expenses";
+import { useOneOffIncomesByPlan } from "@/hooks/use-one-off-incomes";
 import { usePeopleByPlan } from "@/hooks/use-people";
 import { usePlans } from "@/hooks/use-plans";
 import { useProjection } from "@/hooks/use-projection";
@@ -10,6 +12,8 @@ import { AccountsPanel } from "./AccountsPanel";
 import { AssumptionsPanel } from "./AssumptionsPanel";
 import { IncomePhaseChart } from "./IncomePhaseChart";
 import { IncomeStreamsPanel } from "./IncomeStreamsPanel";
+import { OneOffExpensesPanel } from "./OneOffExpensesPanel";
+import { OneOffIncomesPanel } from "./OneOffIncomesPanel";
 import { PeoplePanel } from "./PeoplePanel";
 import { ProjectionError } from "./ProjectionError";
 import { ProjectionSummary } from "./ProjectionSummary";
@@ -31,12 +35,16 @@ export function PlanDetailPage() {
   const peopleQuery = usePeopleByPlan(planId);
   const accountsQuery = useAccountsByPlan(planId);
   const incomeStreamsQuery = useIncomeStreamsByPlan(planId);
+  const oneOffIncomesQuery = useOneOffIncomesByPlan(planId);
+  const oneOffExpensesQuery = useOneOffExpensesByPlan(planId);
   const projectionQuery = useProjection(planId);
 
   const selectedPlan = (plansQuery.data ?? []).find((p) => p.id === planId) ?? null;
   const people = peopleQuery.data ?? [];
   const accounts = accountsQuery.data ?? [];
   const incomeStreams = incomeStreamsQuery.data ?? [];
+  const oneOffIncomes = oneOffIncomesQuery.data ?? [];
+  const oneOffExpenses = oneOffExpensesQuery.data ?? [];
 
   if (!selectedPlan) {
     return (
@@ -93,6 +101,8 @@ export function PlanDetailPage() {
           <SpendingPanel planId={planId} />
           <AccountsPanel planId={planId} accounts={accounts} people={people} />
           <IncomeStreamsPanel planId={planId} incomeStreams={incomeStreams} people={people} />
+          <OneOffIncomesPanel planId={planId} oneOffIncomes={oneOffIncomes} people={people} />
+          <OneOffExpensesPanel planId={planId} oneOffExpenses={oneOffExpenses} />
           <AssumptionsPanel planId={planId} />
         </div>
       </section>

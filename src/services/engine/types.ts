@@ -73,6 +73,34 @@ export interface AssumptionSet {
 }
 
 /**
+ * A one-off income event (windfall, inheritance, property sale, bonus)
+ * applied in a single calendar year. Can optionally be attributed to a
+ * specific person for tax purposes; if no personId is set, the household
+ * gets a non-attributed cash inflow.
+ */
+export interface OneOffIncomeContext {
+  id: number;
+  planId: number;
+  personId: number | null;
+  name: string;
+  year: number;
+  amount: number;
+  taxable: boolean;
+}
+
+/**
+ * A one-off expenditure (car, renovation, gift, care cost) applied in a
+ * single calendar year. Increases that year's spending target.
+ */
+export interface OneOffExpenseContext {
+  id: number;
+  planId: number;
+  name: string;
+  year: number;
+  amount: number;
+}
+
+/**
  * Spending goal
  */
 export interface SpendingAssumption {

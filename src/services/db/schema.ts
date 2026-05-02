@@ -93,6 +93,43 @@ export const incomeStreams = sqliteTable(
   })
 );
 
+export const oneOffIncomes = sqliteTable(
+  "one_off_incomes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    planId: integer("plan_id")
+      .notNull()
+      .references(() => householdPlans.id),
+    personId: integer("person_id").references(() => people.id),
+    name: text("name").notNull(),
+    year: integer("year").notNull(),
+    amount: real("amount").notNull(),
+    taxable: integer("taxable", { mode: "boolean" }).notNull().default(false),
+    createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`)
+  },
+  (table) => ({
+    oneOffIncomesPlanIdx: index("one_off_incomes_plan_id_idx").on(table.planId)
+  })
+);
+
+export const oneOffExpenses = sqliteTable(
+  "one_off_expenses",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    planId: integer("plan_id")
+      .notNull()
+      .references(() => householdPlans.id),
+    name: text("name").notNull(),
+    year: integer("year").notNull(),
+    amount: real("amount").notNull(),
+    description: text("description"),
+    createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`)
+  },
+  (table) => ({
+    oneOffExpensesPlanIdx: index("one_off_expenses_plan_id_idx").on(table.planId)
+  })
+);
+
 export const expenseProfiles = sqliteTable(
   "expense_profiles",
   {

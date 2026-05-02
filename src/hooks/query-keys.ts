@@ -27,5 +27,11 @@ export const queryKeys = {
   },
   assumptionSets: {
     byPlan: (planId: number) => ["assumption-sets", "plan", planId] as const
+  },
+  oneOffIncomes: {
+    byPlan: (planId: number) => ["one-off-incomes", "plan", planId] as const
+  },
+  oneOffExpenses: {
+    byPlan: (planId: number) => ["one-off-expenses", "plan", planId] as const
   }
 };

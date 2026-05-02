@@ -15,6 +15,13 @@
       "when": 1777737906459,
       "tag": "0001_lethal_stryfe",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1777750420286,
+      "tag": "0002_parched_captain_america",
+      "breakpoints": true
     }
   ]
 }

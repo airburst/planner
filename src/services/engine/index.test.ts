@@ -20,6 +20,8 @@ import {
   AccountContext,
   AssumptionSet,
   IncomeStreamContext,
+  OneOffExpenseContext,
+  OneOffIncomeContext,
   PersonContext,
   SpendingAssumption,
   WithdrawalStrategy,
@@ -1394,5 +1396,121 @@ describe("Gap-to-target (ACC-T6)", () => {
     // No years left to add contributions → cannot recommend
     expect(result.yearsToRetirement).toBe(0);
     expect(result.additionalAnnualContribution).toBe(0);
+  });
+});
+
+describe("One-off events (G2-T7, G2-T8)", () => {
+  const baseAssumptions: AssumptionSet = {
+    id: 1, planId: 1, name: "Base",
+    inflationRate: 0, investmentReturn: 0,
+    personalAllowance: 12570, personalSavingsAllowance: 1000,
+    basicRateBand: 50270, higherRateBand: 125140,
+    basicRate: 0.2, higherRate: 0.4, additionalRate: 0.45,
+    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55,
+  };
+  const baseStrategy: WithdrawalStrategy = {
+    accountTypeOrder: ["cash", "isa", "sipp", "other"],
+    optimizeForTaxEfficiency: true, sippWithdrawalApproach: "flexible",
+  };
+  const retiree: PersonContext = {
+    id: 1, planId: 1, role: "primary", name: "P",
+    dateOfBirth: new Date("1960-01-01"), retirementYear: 2020,
+  };
+
+  it("non-taxable windfall reduces drawdown in that year only", () => {
+    const accounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 200000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const windfall: OneOffIncomeContext = {
+      id: 1, planId: 1, personId: 1, name: "Inheritance",
+      year: 2027, amount: 30000, taxable: false,
+    };
+    const spending: SpendingAssumption = { id: 1, planId: 1, annualSpendingTarget: 40000, isIndexed: false };
+
+    const baseline = runProjection(
+      [retiree], accounts, [], baseAssumptions, spending, baseStrategy, 2026, 2028, [], []
+    );
+    const withWindfall = runProjection(
+      [retiree], accounts, [], baseAssumptions, spending, baseStrategy, 2026, 2028, [windfall], []
+    );
+
+    // 2026 + 2028: same drawdown as baseline
+    expect(withWindfall[0].totalHouseholdWithdrawals).toBe(baseline[0].totalHouseholdWithdrawals);
+    expect(withWindfall[2].totalHouseholdWithdrawals).toBe(baseline[2].totalHouseholdWithdrawals);
+    // 2027: drawdown is reduced by £30k (the windfall covers part of spending)
+    expect(withWindfall[1].totalHouseholdWithdrawals).toBe(
+      baseline[1].totalHouseholdWithdrawals - 30000
+    );
+  });
+
+  it("taxable windfall is taxed at the recipient's marginal rate", () => {
+    const accounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 200000, annualContribution: 0, employerContribution: 0 },
+    ];
+    // Recipient has no other taxable income — full personal allowance available.
+    const taxableBonus: OneOffIncomeContext = {
+      id: 1, planId: 1, personId: 1, name: "Big bonus",
+      year: 2027, amount: 30000, taxable: true,
+    };
+    const spending: SpendingAssumption = { id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false };
+
+    const [, year2027] = runProjection(
+      [retiree], accounts, [], baseAssumptions, spending, baseStrategy, 2026, 2027, [taxableBonus], []
+    );
+
+    // Tax on £30k - £12,570 = £17,430 × 20% = £3,486
+    expect(year2027.totalHouseholdTax).toBe(Math.round((30000 - 12570) * 0.2));
+  });
+
+  it("one-off expense increases drawdown in that year only", () => {
+    const accounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 200000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const newCar: OneOffExpenseContext = {
+      id: 1, planId: 1, name: "New car", year: 2027, amount: 20000,
+    };
+    const spending: SpendingAssumption = { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: false };
+
+    const baseline = runProjection(
+      [retiree], accounts, [], baseAssumptions, spending, baseStrategy, 2026, 2028, [], []
+    );
+    const withCar = runProjection(
+      [retiree], accounts, [], baseAssumptions, spending, baseStrategy, 2026, 2028, [], [newCar]
+    );
+
+    // 2026 + 2028 unchanged
+    expect(withCar[0].totalHouseholdWithdrawals).toBe(baseline[0].totalHouseholdWithdrawals);
+    expect(withCar[2].totalHouseholdWithdrawals).toBe(baseline[2].totalHouseholdWithdrawals);
+    // 2027: drawdown is £20k more (the car expense)
+    expect(withCar[1].totalHouseholdWithdrawals).toBe(
+      baseline[1].totalHouseholdWithdrawals + 20000
+    );
+  });
+
+  it("ignores one-off events outside the projection window", () => {
+    const accounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 200000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const ancientWindfall: OneOffIncomeContext = {
+      id: 1, planId: 1, personId: 1, name: "Old inheritance",
+      year: 2010, amount: 999999, taxable: false,
+    };
+    const spending: SpendingAssumption = { id: 1, planId: 1, annualSpendingTarget: 40000, isIndexed: false };
+
+    const baseline = runProjection(
+      [retiree], accounts, [], baseAssumptions, spending, baseStrategy, 2026, 2028, [], []
+    );
+    const withOld = runProjection(
+      [retiree], accounts, [], baseAssumptions, spending, baseStrategy, 2026, 2028, [ancientWindfall], []
+    );
+
+    // Old windfall has no effect on current projection
+    for (let i = 0; i < baseline.length; i++) {
+      expect(withOld[i].totalHouseholdWithdrawals).toBe(baseline[i].totalHouseholdWithdrawals);
+    }
   });
 });
