@@ -335,8 +335,29 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
     const oneOffIncomes = await db.select().from(schema.oneOffIncomes).where(eq(schema.oneOffIncomes.planId, planId));
     const oneOffExpenses = await db.select().from(schema.oneOffExpenses).where(eq(schema.oneOffExpenses.planId, planId));
     const spendingPeriods = await db.select().from(schema.spendingPeriods).where(eq(schema.spendingPeriods.planId, planId));
-    const assumptionSet = (await db.select().from(schema.assumptionSets).where(eq(schema.assumptionSets.planId, planId)))[0] || null;
-    const expenseProfile = (await db.select().from(schema.expenseProfiles).where(eq(schema.expenseProfiles.planId, planId)))[0] || null;
+
+    // If the user is viewing a scenario, layer its overrides + custom assumption
+    // set / expense profile on top of the plan baseline before applying the stress.
+    let scenario = null;
+    let scenarioOverrides = [];
+    if (options.scenarioId != null) {
+      scenario = (await db
+        .select()
+        .from(schema.scenarios)
+        .where(eq(schema.scenarios.id, options.scenarioId)))[0] || null;
+      if (scenario) {
+        scenarioOverrides = await db
+          .select()
+          .from(schema.scenarioOverrides)
+          .where(eq(schema.scenarioOverrides.scenarioId, options.scenarioId));
+      }
+    }
+    const assumptionSet = scenario?.assumptionSetId
+      ? (await db.select().from(schema.assumptionSets).where(eq(schema.assumptionSets.id, scenario.assumptionSetId)))[0] || null
+      : (await db.select().from(schema.assumptionSets).where(eq(schema.assumptionSets.planId, planId)))[0] || null;
+    const expenseProfile = scenario?.expenseProfileId
+      ? (await db.select().from(schema.expenseProfiles).where(eq(schema.expenseProfiles.id, scenario.expenseProfileId)))[0] || null
+      : (await db.select().from(schema.expenseProfiles).where(eq(schema.expenseProfiles.planId, planId)))[0] || null;
 
     const currentYear = new Date().getFullYear();
     const startYear = options.startYear ?? currentYear;
@@ -372,7 +393,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       annualContribution: a.annualContribution ?? 0,
       employerContribution: a.employerContribution ?? 0,
     }));
-    const engineIncomeStreams = incomeStreams.map((s) => ({
+    let engineIncomeStreams = incomeStreams.map((s) => ({
       id: s.id, planId: s.planId, personId: s.personId, name: s.name,
       type: mapIncomeStreamType(s.streamType),
       activationAge: s.startAge,
@@ -399,6 +420,18 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       optimizeForTaxEfficiency: true,
       sippWithdrawalApproach: "flexible",
     };
+
+    // If a scenario is in scope, layer its overrides on top of the engine data
+    // BEFORE applying the stress preset.
+    if (scenarioOverrides && scenarioOverrides.length > 0) {
+      const overriddenData = applyOverridesToEngineData(
+        { people: enginePeople, accounts: engineAccounts, incomeStreams: engineIncomeStreams },
+        scenarioOverrides
+      );
+      enginePeople = overriddenData.people;
+      engineAccounts = overriddenData.accounts;
+      engineIncomeStreams = overriddenData.incomeStreams;
+    }
 
     switch (preset) {
       case "high-inflation":

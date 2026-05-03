@@ -157,7 +157,7 @@ declare global {
       runStressTest: (
         planId: number,
         preset: "high-inflation" | "lower-returns" | "early-death" | "market-crash",
-        options?: { startYear?: number; endYear?: number }
+        options?: { scenarioId?: number; startYear?: number; endYear?: number }
       ) => Promise<{
         preset: string;
         planId: number;

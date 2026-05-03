@@ -7,23 +7,34 @@ files to touch, and the definition of done.
 Task ID format: G<priority>-T<seq>
 Priority tiers: P1 = critical path, P2 = high value, P3 = medium, P4 = low/deferred
 
-## Status Checkpoint — 2026-05-02
+## Status Checkpoint — 2026-05-03
 
-Recent landed work:
-- ACC-T1 Accumulation engine (year < retirementYear branch, contributions applied)
-- ACC-T2 Employer pension contributions (column + UI for SIPP)
-- ACC-T5 Onboarding contribution capture (annual + employer)
-- ACC-T4 Retirement-pot metric in ProjectionSummary (partial)
-- G2-T6 Household-level drawdown + SIPP TFLS + per-person tax (major fix — was 2× over-drawing)
-- Cash-flow chart redesign — stacked sources, gradients, rounded tops, toggleable spending target
-- DOB pro-rata fixes:
-  - Income stream activation year (whole months after birthday)
-  - Retirement year contributions (months before birthday)
-  - Retirement year drawdown (months after birthday)
+Sprints 1–8.5 complete. App is feature-rich for an alpha-stage personal
+retirement planner. Remaining roadmap is at the bottom under "Remaining
+work (priority order)".
 
-**Next suggested task**: ACC-T6 (gap-to-target recommendation).
+**Headline state**:
+- Engine: household-level drawdown, SIPP 25% TFLS, per-person tax, Marriage
+  Allowance, accumulation phase, contributions, employer match, one-off
+  income/expense, retirement-year DOB pro-rata, time-banded spending periods.
+- Helpers: findGapToTarget, findSafeAnnualSpend, applyMarriageAllowance.
+- UI: onboarding with multi-account + review step, plan detail with people /
+  spending / accounts / income streams / one-offs / spending periods /
+  assumptions panels, scenario comparison, recommendations, stress test
+  presets, year-by-year table.
+- Cash flow chart: stacked stream income + drawdown sources + one-off
+  windfalls, dashed spending-target line, gradients, rounded tops, animated
+  transitions when scenarios change.
 
-Sprint sequence below has been re-ordered to reflect actual remaining work.
+**Outstanding** (see "Remaining work" section):
+1. G3-T3 part 2 — depletion runway + defer-retirement recommendations
+2. G4-T5 Monte Carlo — stochastic stress / probability of success
+3. G4-T2 Tax rule versioning — preserve historic projections
+4. G4-T6 PDF export
+5. UI redesign
+6. Sprint 14 E2E tests (blocked on UI redesign)
+
+**Dropped**: G4-T1 (Scotland tax), G4-T7 (accessibility hardening).
 
 ---
 
@@ -590,15 +601,10 @@ Cash-flow chart redesign
 
 ---
 
-### Sprint 4 — Pre-retiree insight (next up)
-- **ACC-T6** (gap-to-target recommendation) — first
-  - Highest ROI follow-up to ACC-T4. Engine binary-searches the sustainable opening
-    pot, surfaces "Save £X/yr more for N years to close the gap" recommendation.
-- **G3-T4 + ACC-T3 together** (employment income + salary band in chart)
-  - The chart already has a colour slot for `salary` streams. Adding the onboarding
-    capture and threading through is one PR.
-- **ACC-T4 polish** — vertical retirement-year marker on the chart, "Pot at start"
-  vs "Pot at retirement" naming when scenarios cross the boundary.
+### Sprint 4 — Pre-retiree insight ✅ COMPLETE
+~~ACC-T6~~ (gap-to-target recommendation), ~~G3-T4 + ACC-T3~~ (employment income +
+salary band in chart). Vertical retirement-year marker on the chart deferred at
+user request.
 
 ### Sprint 5 — Onboarding & input depth ✅ COMPLETE
 ~~G2-T2~~ (SP forecast slider), ~~G3-T1~~ (review step), ~~G2-T3~~ (multi-account
@@ -658,38 +664,95 @@ is materially wrong for anyone whose spending shape isn't flat.
 line stepping at the period boundaries. Existing single-target plans continue
 to work without migration pain.
 
-### Sprint 9 — End-to-end tests (final sprint)
+---
 
-### Sprint 9 — End-to-end tests (final sprint, was Sprint 9)
-**Why**: Unit + integration tests cover engine and IPC. There is no test that
-exercises the actual Electron app: onboarding flow → DB persistence → projection
-render → editing post-onboarding. The browser smoke this session proved that
-checks-types-and-tests-pass does NOT catch Electron-preload-only regressions.
+## Remaining work (priority order)
+
+### Sprint 9 — Quantified recommendations follow-up (G3-T3 part 2)
+Two recommendation rules deferred from Sprint 7:
+- **Depletion runway**: when the plan depletes assets, compute "a 10% spending
+  cut would extend runway by N years". Quantify the impact in the existing
+  asset-depletion recommendation card.
+- **Defer retirement**: new rule — find the smallest N where shifting both
+  primary's and partner's `retirementYear` by +N years makes the plan
+  sustainable. Surface as "Retire N years later to be sustainable." Builds
+  on the same binary-search shape as ACC-T6.
+
+### Sprint 10 — Monte Carlo simulation (G4-T5)
+**Why**: The deterministic projection shows one path. Monte Carlo wraps the
+engine in N iterations (default 1,000) with returns drawn from a normal
+distribution (mean = nominal growth rate, std dev = user-configured, default
+8%). Report median, 10th and 90th percentile outcomes — answers
+"what's the probability my plan succeeds?".
 
 **Scope**:
-- E2E-T1: Pick framework. Playwright supports Electron via `_electron.launch()`
-  with `npm test` integration. Spawn the built app from `out/`, drive UI, assert.
-- E2E-T2: Onboarding happy path. Couple, two accounts (SIPP + ISA), salary,
-  state pension. Submit → land on plan detail with non-zero projection.
-- E2E-T3: Persistence round-trip. Restart app, plan loads with same values.
-- E2E-T4: Edit flow. Change account balance via AccountsPanel → projection
-  re-runs and assets-at-end shifts.
-- E2E-T5: Scenario comparison. Create scenario, override retirement age,
-  comparison view shows different end-assets.
-- E2E-T6: CI integration. Runs on PRs alongside unit tests. Use a temp
-  `--user-data-dir` so the test DB is isolated.
+- Engine: `runMonteCarlo(inputs, iterations)` returns `{ p10Years, p50Years,
+  p90Years, successProbability }` where each is a HouseholdYearState[] sliced
+  at the requested percentile per year.
+- IPC + hooks: lazy — only run when the user opens the panel (1k runs is fast
+  but not free).
+- UI: confidence-band overlay on the existing cash-flow chart (p10–p90 shaded
+  area + p50 line) plus a "Probability of success: X%" headline metric.
+- Off-thread: run inside an Electron utility process or web worker so UI
+  doesn't freeze.
 
-**DoD**: `bun run test:e2e` spawns Electron, walks the onboarding, asserts the
-plan detail page renders projection rows and the recommendation panel. Test
-DB cleaned up. CI passes.
+### Sprint 11 — Tax rule versioning (G4-T2)
+**Why**: UK tax bands change every April. Today, editing assumption-set
+thresholds retroactively rewrites *all* historic projections, which corrupts
+saved scenarios. Need versioned rule sets.
+
+**Scope**:
+- Schema: `tax_rule_sets` table with effective-from year + sealed values.
+  `assumption_sets.taxRuleSetId` FK; old rule sets immutable.
+- Engine: pick the rule set whose effective year ≤ projection year.
+- Migration to seal current bands as the 2026 ruleset.
+- UI: assumption panel shows "Tax rules: 2026/27" with a dropdown to switch.
+
+### Sprint 12 — Export / print PDF (G4-T6)
+**Why**: Users want to share or archive their projection.
+
+**Scope**:
+- "Export PDF" button on plan detail.
+- Use Electron's `webContents.printToPDF()` to render a print-friendly route.
+- Include: summary metrics, income phase chart, year-by-year table,
+  recommendations, scenario comparison.
+
+### Sprint 13 — UI redesign
+**Why**: The current UI is functional but accumulated organically across
+sprints. Before shipping more features, do a holistic pass on layout,
+information hierarchy, mobile/responsive behaviour, and visual polish.
+
+**Scope** (placeholder — to be expanded with a brief):
+- Audit current pages: onboarding, plan detail, scenario comparison.
+- Information density on plan detail (lots of panels).
+- Mobile/narrow-viewport behaviour.
+- Visual treatment alignment with cash-flow chart's Voyant-inspired aesthetic.
+- Possible Sprint 13 sub-tasks once brief is settled.
+
+### Sprint 14 — End-to-end tests (final sprint, blocked on UI redesign)
+**Why**: Unit + integration tests cover engine and IPC. There is no test that
+exercises the actual Electron app: onboarding flow → DB persistence → projection
+render → editing post-onboarding. Browser smoke proved that
+`lint+types+unit-tests-pass` does NOT catch Electron-preload-only regressions.
+**Blocked on UI redesign** so we don't write E2E tests against a UI that's
+about to change.
+
+**Scope**:
+- E2E-T1: Pick framework (Playwright via `_electron.launch()`).
+- E2E-T2: Onboarding happy path → plan detail with non-zero projection.
+- E2E-T3: Persistence round-trip — restart app, plan loads with same values.
+- E2E-T4: Edit flow — change account balance, projection re-runs.
+- E2E-T5: Scenario comparison — create scenario, override retirement age.
+- E2E-T6: CI integration with temp `--user-data-dir` for test isolation.
 
 ### Known DOB-related limitations (defer until they hit)
 - SIPP minimum-access age uses calendar-year age — can over-allow SIPP draws
   in the year someone turns 55 if they retired before 55. Edge case.
 - Income stream `endAge` in schema is never read by engine (G3-T8 covers).
 
-### Deferred (v1.1+)
-G4-T1, G4-T2, G4-T5, G4-T6, G4-T7
+### Dropped / not building
+- **G4-T1** Scotland income tax — not needed for this user.
+- **G4-T7** Accessibility hardening — not needed for this user.
 
 ---
 

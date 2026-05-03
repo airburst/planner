@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { fmt } from "./utils";
 
 type StressPreset = "high-inflation" | "lower-returns" | "early-death" | "market-crash";
@@ -28,6 +28,7 @@ interface BaseSummary {
 
 interface Props {
   planId: number;
+  scenarioId?: number | null;
   baseSummary: BaseSummary | null;
 }
 
@@ -58,14 +59,23 @@ function deltaCell(base: number, stress: number, isNegativeBetter = false) {
   );
 }
 
-export function StressTestPanel({ planId, baseSummary }: Props) {
+export function StressTestPanel({ planId, scenarioId, baseSummary }: Props) {
   const [activePreset, setActivePreset] = useState<StressPreset | null>(null);
 
   const stressMutation = useMutation({
     mutationFn: async (preset: StressPreset) => {
-      return window.api.runStressTest(planId, preset);
+      return window.api.runStressTest(planId, preset, scenarioId ? { scenarioId } : {});
     },
   });
+
+  // Clear previous stress result when the underlying projection switches
+  // (e.g. user picks a different scenario). Otherwise the panel keeps showing
+  // the old delta against an outdated base.
+  const reset = stressMutation.reset;
+  useEffect(() => {
+    setActivePreset(null);
+    reset();
+  }, [scenarioId, reset]);
 
   const runPreset = (preset: StressPreset) => {
     setActivePreset(preset);
