@@ -214,7 +214,7 @@ export function OnboardingPage() {
         inflationLinked: true,
       });
 
-      navigate({ to: "/plan/$planId", params: { planId: String(plan.id) } });
+      navigate({ to: "/plan/$planId/overview", params: { planId: String(plan.id) } });
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "Something went wrong. Please try again."
