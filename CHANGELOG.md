@@ -1,5 +1,11 @@
 # planner
 
+## 0.4.0
+
+### Minor Changes
+
+- Add build publishing anf version toast
+
 ## 0.3.0
 
 ### Minor Changes
