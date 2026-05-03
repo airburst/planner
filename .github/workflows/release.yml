@@ -36,7 +36,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
+    # Wait for both jobs, but only require the Mac build to succeed. If
+    # Windows is broken we still publish the Mac assets — release is
+    # incomplete but usable.
     needs: [build-mac, build-windows]
+    if: ${{ !cancelled() && needs.build-mac.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Publish draft release
