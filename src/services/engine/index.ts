@@ -397,24 +397,25 @@ export function retirementYearAccumulationFactor(person: PersonContext): number 
 }
 
 /**
- * Household-level drawdown factor for a year:
- *   - 1 if any person is past their retirement year (post-retirement)
- *   - per-person retirement-year activation factor if at boundary
- *   - 0 if everyone is still in accumulation
+ * Household-level drawdown factor for a year, anchored on the *primary*
+ * earner. The primary is treated as the breadwinner whose unmodelled salary
+ * funds spending up to the moment they actually retire.
  *
- * Takes the maximum across people so a fully-retired partner triggers full
- * household drawdown even if another partner is mid-retirement-year.
+ *   - 1 once the year is past the primary's retirementYear
+ *   - the primary's birth-month pro-rata activation factor in their
+ *     retirementYear (0 for Dec-born, ~0.917 for Jan-born)
+ *   - 0 while the primary is still accumulating
+ *
+ * A partner retiring early does NOT trigger household drawdown — until the
+ * primary retires their salary covers spending. Partners' retirement only
+ * affects their own pension/income streams.
  */
 export function householdDrawdownFactor(people: PersonContext[], year: number): number {
-  let factor = 0;
-  for (const p of people) {
-    if (year > p.retirementYear) {
-      factor = 1;
-    } else if (year === p.retirementYear) {
-      factor = Math.max(factor, activationYearProRataFactor(p));
-    }
-  }
-  return factor;
+  if (people.length === 0) return 0;
+  const primary = people.find((p) => p.role === "primary") ?? people[0];
+  if (year > primary.retirementYear) return 1;
+  if (year === primary.retirementYear) return activationYearProRataFactor(primary);
+  return 0;
 }
 
 /**
@@ -688,26 +689,33 @@ export function runProjection(
 ): HouseholdYearState[] {
   const years: HouseholdYearState[] = [];
 
-  // Coerce the earliest spending period back to the household's *latest*
-  // retirement age. Until the last earner retires, their salary (often not
-  // modelled as an income stream) covers household spending — so we don't
-  // want spending to activate any earlier. Once the late retiree retires,
-  // the household has no salary cover, and the earliest period extends back
-  // to that point so users who set go-go to start at 65 don't silently see
-  // £0 spending if their last retirement is at 63.
+  // Coerce the earliest spending period back to the *primary earner's* first
+  // substantively-retired year. The primary's salary funds spending up to
+  // their retirement; once they retire, drawdown is needed.
+  //
+  // Birth-month timing matters: someone born late in the year (e.g. Dec 31)
+  // works almost the entire calendar year of their retirement age, so
+  // drawdown realistically begins the *following* year. Someone born early
+  // (e.g. Jan 1) is retired for almost all of the retirement year and
+  // drawdown begins immediately. We split at activationFactor < 0.5
+  // (months Jul–Dec → next-year start, Jan–Jun → same-year start).
   const effectiveSpending: SpendingAssumption = (() => {
     if (!spending.periods || spending.periods.length === 0 || people.length === 0) {
       return spending;
     }
     const primary = people.find((p) => p.role === "primary") ?? people[0];
-    const latestRetirementYear = Math.max(...people.map((p) => p.retirementYear));
-    const primaryAgeAtLatestRetirement =
-      latestRetirementYear - primary.dateOfBirth.getFullYear();
+    const primaryActivationFactor = activationYearProRataFactor(primary);
+    const drawdownStartYear =
+      primaryActivationFactor < 0.5
+        ? primary.retirementYear + 1
+        : primary.retirementYear;
+    const primaryAgeAtDrawdownStart =
+      drawdownStartYear - primary.dateOfBirth.getFullYear();
     const sortedPeriods = [...spending.periods].sort((a, b) => a.fromAge - b.fromAge);
-    if (primaryAgeAtLatestRetirement < sortedPeriods[0].fromAge) {
+    if (primaryAgeAtDrawdownStart < sortedPeriods[0].fromAge) {
       sortedPeriods[0] = {
         ...sortedPeriods[0],
-        fromAge: primaryAgeAtLatestRetirement,
+        fromAge: primaryAgeAtDrawdownStart,
       };
       return { ...spending, periods: sortedPeriods };
     }

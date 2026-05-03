@@ -1846,48 +1846,13 @@ describe("Spending periods (Sprint 8.5)", () => {
     expect(years[4].totalHouseholdWithdrawals).toBe(50000);
   });
 
-  it("extends to the latest household retirement year, not the earliest", () => {
-    // Primary retires at 60 (2029), partner at 65 (2036). The earlier retiree's
-    // partner is still earning until 2036 — their unmodelled salary funds
-    // spending. Coercion target is primary's age in the *latest* household
-    // retirement year (2036 → primary age 67). Period stays at 65, primary's
-    // age in 2030-2035 doesn't reach 65, so spending = 0 → no draw.
-    const primary: PersonContext = {
-      id: 1, planId: 1, role: "primary", name: "P",
-      dateOfBirth: new Date("1969-12-31"), retirementYear: 2029, // age 60
-    };
-    const partner: PersonContext = {
-      id: 2, planId: 1, role: "partner", name: "Q",
-      dateOfBirth: new Date("1971-05-22"), retirementYear: 2036, // age 65
-    };
-    const householdAccounts: AccountContext[] = [
-      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
-        openingBalance: 1_000_000, annualContribution: 0, employerContribution: 0 },
-    ];
-    const spending: SpendingAssumption = {
-      id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
-      periods: [
-        { fromAge: 65, toAge: 75, annualAmount: 50000, inflationLinked: false },
-      ],
-    };
-
-    const years = runProjection(
-      [primary, partner], householdAccounts, [], baseAssumptions, spending, strategy, 2030, 2037
-    );
-
-    // 2030-2033: primary retired but partner still working. No period covers
-    // primary's ages 61-64 (period starts at 65, fromAge unchanged because
-    // latest retirement is age 67 which is later than 65). Spending = 0.
-    expect(years[0].totalHouseholdWithdrawals).toBe(0);
-    expect(years[3].totalHouseholdWithdrawals).toBe(0);
-    // 2034 (primary age 65): period activates. Spending kicks in.
-    expect(years[4].totalHouseholdWithdrawals).toBe(50000);
-  });
-
-  it("extends earliest period back to latest retirement when period starts after it", () => {
-    // Primary retires at 63 (2032), partner at 60 (2031). Latest retirement
-    // year is 2032 (primary's). Period at 65 should extend back to age 63 so
-    // the gap year (2032) doesn't show £0 spending.
+  it("late-year-DOB primary: drawdown starts the year AFTER retirement, not in it", () => {
+    // Primary born 31 Dec 1969 retires at 63 → retirementYear = 2032 but they
+    // only actually stop earning on 31 Dec 2032. Almost all of 2032 they are
+    // working. Drawdown should not happen until 2033. Partner is past
+    // retirement long before this, but as the non-primary their early
+    // retirement does NOT trigger household drawdown — the primary's salary
+    // funds the household.
     const primary: PersonContext = {
       id: 1, planId: 1, role: "primary", name: "P",
       dateOfBirth: new Date("1969-12-31"), retirementYear: 2032, // age 63
@@ -1908,13 +1873,84 @@ describe("Spending periods (Sprint 8.5)", () => {
     };
 
     const years = runProjection(
-      [primary, partner], householdAccounts, [], baseAssumptions, spending, strategy, 2033, 2036
+      [primary, partner], householdAccounts, [], baseAssumptions, spending, strategy, 2031, 2034
     );
 
-    // 2033 onward (primary age 64+, both retired): period coerced from 65 to
-    // 63, so all years covered. Spending = £50k.
-    expect(years[0].totalHouseholdWithdrawals).toBe(50000);
-    expect(years[3].totalHouseholdWithdrawals).toBe(50000);
+    // 2031: partner retires but primary still earning. No drawdown.
+    expect(years[0].totalHouseholdWithdrawals).toBe(0);
+    // 2032: primary's retirement year. Born 31 Dec → activation factor 0,
+    // i.e. the entire year is still "working" in pro-rata terms. No drawdown.
+    expect(years[1].totalHouseholdWithdrawals).toBe(0);
+    // 2033: first full year of retirement. Period coerced to age 64 so it
+    // covers this year. Drawdown for the spending shortfall.
+    expect(years[2].totalHouseholdWithdrawals).toBeGreaterThan(0);
+    expect(years[3].totalHouseholdWithdrawals).toBeGreaterThan(0);
+  });
+
+  it("late-year-DOB primary retires before partner: drawdown starts the year AFTER primary retires", () => {
+    // Mirror of the user's 'retire at 60' alternative. Primary born Dec 31
+    // retires age 60 (2029), partner retires later (2031). Drawdown should
+    // begin in 2030 (the first year primary is fully retired) regardless of
+    // partner's status. The unmodelled-salary assumption is anchored on the
+    // primary, not on the partner.
+    const primary: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "P",
+      dateOfBirth: new Date("1969-12-31"), retirementYear: 2029, // age 60
+    };
+    const partner: PersonContext = {
+      id: 2, planId: 1, role: "partner", name: "Q",
+      dateOfBirth: new Date("1971-05-22"), retirementYear: 2031, // age 60
+    };
+    const householdAccounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 1_000_000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const spending: SpendingAssumption = {
+      id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
+      periods: [
+        { fromAge: 65, toAge: 75, annualAmount: 50000, inflationLinked: false },
+      ],
+    };
+
+    const years = runProjection(
+      [primary, partner], householdAccounts, [], baseAssumptions, spending, strategy, 2029, 2032
+    );
+
+    // 2029: primary's retirement year, Dec 31 DOB → still working. No draw.
+    expect(years[0].totalHouseholdWithdrawals).toBe(0);
+    // 2030: first full year of primary retirement. Period coerced to age 61.
+    // Drawdown should begin even though partner is still pre-retirement.
+    expect(years[1].totalHouseholdWithdrawals).toBeGreaterThan(0);
+    expect(years[2].totalHouseholdWithdrawals).toBeGreaterThan(0);
+    expect(years[3].totalHouseholdWithdrawals).toBeGreaterThan(0);
+  });
+
+  it("early-year-DOB primary: drawdown starts in retirement year (high prorata)", () => {
+    // Primary born 1 Jan 1965 retires age 60 → retirementYear 2025 and
+    // activation factor ≈ 0.917 (only Jan is "still working"). Drawdown
+    // should begin in 2025 because they're substantively retired all year.
+    const primary: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "P",
+      dateOfBirth: new Date("1965-01-01"), retirementYear: 2025, // age 60
+    };
+    const householdAccounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 1_000_000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const spending: SpendingAssumption = {
+      id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
+      periods: [
+        { fromAge: 65, toAge: 75, annualAmount: 50000, inflationLinked: false },
+      ],
+    };
+
+    const years = runProjection(
+      [primary], householdAccounts, [], baseAssumptions, spending, strategy, 2025, 2027
+    );
+
+    // 2025 (retirement year, Jan-1 DOB): substantial drawdown (factor 0.917).
+    expect(years[0].totalHouseholdWithdrawals).toBeGreaterThan(0);
+    expect(years[1].totalHouseholdWithdrawals).toBe(50000);
   });
 });
 
