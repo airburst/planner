@@ -1,5 +1,15 @@
 # planner
 
+## 0.3.0
+
+### Minor Changes
+
+- Improved UX by splitting screens. Added dark mode
+
+### Fixed
+
+- Drawdown calculations are clamped to the age of primary earner
+
 ## 0.2.0
 
 ### Minor Changes

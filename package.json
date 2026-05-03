@@ -1,6 +1,6 @@
 {
   "name": "planner",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Local-first retirement and long-term financial planning desktop app.",
   "main": "public/electron.js",
