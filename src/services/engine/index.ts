@@ -672,7 +672,10 @@ export function runProjection(
   startYear: number,
   endYear: number,
   oneOffIncomes: OneOffIncomeContext[] = [],
-  oneOffExpenses: OneOffExpenseContext[] = []
+  oneOffExpenses: OneOffExpenseContext[] = [],
+  // Optional per-year override of investmentReturn (for Monte Carlo). Index 0
+  // = startYear. Values outside the array fall back to assumptions.investmentReturn.
+  returnOverrides?: number[]
 ): HouseholdYearState[] {
   const years: HouseholdYearState[] = [];
 
@@ -688,6 +691,12 @@ export function runProjection(
   }
 
   for (let year = startYear; year <= endYear; year++) {
+    // Apply per-year return override (Monte Carlo) if provided.
+    const yearIdx = year - startYear;
+    const yearAssumptions =
+      returnOverrides && yearIdx < returnOverrides.length
+        ? { ...assumptions, investmentReturn: returnOverrides[yearIdx] }
+        : assumptions;
     const householdYear: HouseholdYearState = {
       year,
       people: new Map(),
@@ -776,7 +785,7 @@ export function runProjection(
         person,
         accounts,
         incomeStreams,
-        assumptions,
+        yearAssumptions,
         year,
         startYear,
         personBalances,
@@ -846,6 +855,122 @@ export function runProjection(
 
 function isProjectionSustainable(years: HouseholdYearState[]): boolean {
   return years.every((y) => y.canSustainSpending);
+}
+
+/** Mulberry32 — deterministic, 32-bit, fine for projection randomness. */
+function makeSeededRng(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Box-Muller transform: convert two uniform [0,1) samples into one normal. */
+function makeNormalSampler(rng: () => number): (mean: number, stdDev: number) => number {
+  return (mean: number, stdDev: number) => {
+    const u1 = Math.max(rng(), Number.EPSILON);
+    const u2 = rng();
+    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    return mean + z * stdDev;
+  };
+}
+
+function percentile(sortedValues: number[], p: number): number {
+  if (sortedValues.length === 0) return 0;
+  const idx = Math.min(sortedValues.length - 1, Math.max(0, Math.floor(p * sortedValues.length)));
+  return sortedValues[idx];
+}
+
+export interface MonteCarloOptions {
+  iterations?: number; // default 1000
+  volatility?: number; // std dev of investment return; default 0.10
+  seed?: number; // for reproducibility
+}
+
+export interface MonteCarloByYear {
+  year: number;
+  p10: number;
+  p50: number;
+  p90: number;
+}
+
+export interface MonteCarloResult {
+  iterations: number;
+  successProbability: number; // fraction of paths where every year sustains
+  byYear: MonteCarloByYear[];
+}
+
+/**
+ * Run N projections with year-by-year investment returns drawn from a normal
+ * distribution centred on `assumptions.investmentReturn`. Captures sequence-of-
+ * returns risk: the order of returns affects drawdown survival.
+ *
+ * Returns:
+ *   - successProbability: fraction of iterations where every year sustains
+ *   - byYear[i]: percentile (p10/p50/p90) of totalHouseholdAssets at year i
+ */
+export function runMonteCarlo(
+  people: PersonContext[],
+  accounts: AccountContext[],
+  incomeStreams: IncomeStreamContext[],
+  assumptions: AssumptionSet,
+  spending: SpendingAssumption,
+  withdrawalStrategy: WithdrawalStrategy,
+  startYear: number,
+  endYear: number,
+  oneOffIncomes: OneOffIncomeContext[] = [],
+  oneOffExpenses: OneOffExpenseContext[] = [],
+  options: MonteCarloOptions = {}
+): MonteCarloResult {
+  const iterations = options.iterations ?? 1000;
+  const volatility = options.volatility ?? 0.10;
+  const seed = options.seed ?? Math.floor(Math.random() * 0xffffffff);
+  const yearCount = endYear - startYear + 1;
+  const rng = makeSeededRng(seed);
+  const sampleNormal = makeNormalSampler(rng);
+
+  // assetsByYear[i] = sorted array of N totalHouseholdAssets values at year i.
+  const assetsByYear: number[][] = Array.from({ length: yearCount }, () => []);
+  let successCount = 0;
+
+  for (let i = 0; i < iterations; i++) {
+    let path: number[] | undefined;
+    if (volatility > 0) {
+      path = new Array(yearCount);
+      for (let y = 0; y < yearCount; y++) {
+        path[y] = sampleNormal(assumptions.investmentReturn, volatility);
+      }
+    }
+    const years = runProjection(
+      people, accounts, incomeStreams, assumptions, spending, withdrawalStrategy,
+      startYear, endYear, oneOffIncomes, oneOffExpenses, path
+    );
+    if (isProjectionSustainable(years)) successCount++;
+    for (let y = 0; y < years.length; y++) {
+      assetsByYear[y].push(years[y].totalHouseholdAssets);
+    }
+  }
+
+  const byYear: MonteCarloByYear[] = [];
+  for (let y = 0; y < yearCount; y++) {
+    const sorted = assetsByYear[y].slice().sort((a, b) => a - b);
+    byYear.push({
+      year: startYear + y,
+      p10: percentile(sorted, 0.1),
+      p50: percentile(sorted, 0.5),
+      p90: percentile(sorted, 0.9),
+    });
+  }
+
+  return {
+    iterations,
+    successProbability: successCount / iterations,
+    byYear,
+  };
 }
 
 /**

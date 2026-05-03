@@ -17,6 +17,7 @@ import {
   findRetirementDeferralYears,
   findSafeAnnualSpend,
   isIncomeStreamActive,
+  runMonteCarlo,
   runProjection,
 } from "./index";
 import {
@@ -1815,6 +1816,95 @@ describe("Spending periods (Sprint 8.5)", () => {
     expect(years[3].totalHouseholdWithdrawals).toBe(0);
     // Year 2030 (age 70): period kicks in.
     expect(years[4].totalHouseholdWithdrawals).toBe(50000);
+  });
+});
+
+describe("Monte Carlo (Sprint 10)", () => {
+  const flatAssumptions: AssumptionSet = {
+    id: 1, planId: 1, name: "Base",
+    inflationRate: 0, investmentReturn: 0.04,
+    personalAllowance: 12570, personalSavingsAllowance: 1000,
+    basicRateBand: 50270, higherRateBand: 125140,
+    basicRate: 0.2, higherRate: 0.4, additionalRate: 0.45,
+    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55,
+    marriageAllowanceTransfer: 0,
+  };
+  const strategy: WithdrawalStrategy = {
+    accountTypeOrder: ["cash", "isa", "sipp", "other"],
+    optimizeForTaxEfficiency: true, sippWithdrawalApproach: "flexible",
+  };
+  const wealthy: PersonContext = {
+    id: 1, planId: 1, role: "primary", name: "P",
+    dateOfBirth: new Date("1955-01-01"), retirementYear: 2020,
+  };
+  const wealthyAccounts: AccountContext[] = [
+    { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+      openingBalance: 5_000_000, annualContribution: 0, employerContribution: 0 },
+  ];
+  const lowSpending: SpendingAssumption = {
+    id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: false,
+  };
+
+  it("collapses to a single deterministic outcome when volatility = 0", () => {
+    // With zero std dev, every iteration gets the assumption's investmentReturn.
+    // All p10/p50/p90 should equal the deterministic baseline.
+    const baseline = runProjection(
+      [wealthy], wealthyAccounts, [], flatAssumptions, lowSpending, strategy, 2026, 2035
+    );
+    const mc = runMonteCarlo(
+      [wealthy], wealthyAccounts, [], flatAssumptions, lowSpending, strategy, 2026, 2035,
+      [], [], { iterations: 50, volatility: 0, seed: 42 }
+    );
+    expect(mc.successProbability).toBe(1);
+    for (let i = 0; i < baseline.length; i++) {
+      expect(mc.byYear[i].p50).toBe(baseline[i].totalHouseholdAssets);
+      expect(mc.byYear[i].p10).toBe(baseline[i].totalHouseholdAssets);
+      expect(mc.byYear[i].p90).toBe(baseline[i].totalHouseholdAssets);
+    }
+  });
+
+  it("produces a sensible spread when volatility > 0", () => {
+    const mc = runMonteCarlo(
+      [wealthy], wealthyAccounts, [], flatAssumptions, lowSpending, strategy, 2026, 2055,
+      [], [], { iterations: 200, volatility: 0.1, seed: 42 }
+    );
+    expect(mc.byYear).toHaveLength(30);
+    const last = mc.byYear[mc.byYear.length - 1];
+    // Strict ordering of percentiles.
+    expect(last.p10).toBeLessThanOrEqual(last.p50);
+    expect(last.p50).toBeLessThanOrEqual(last.p90);
+    // For a wealthy plan, p10 should still be > 0.
+    expect(last.p10).toBeGreaterThan(0);
+  });
+
+  it("is deterministic for a given seed", () => {
+    const a = runMonteCarlo(
+      [wealthy], wealthyAccounts, [], flatAssumptions, lowSpending, strategy, 2026, 2035,
+      [], [], { iterations: 50, volatility: 0.1, seed: 99 }
+    );
+    const b = runMonteCarlo(
+      [wealthy], wealthyAccounts, [], flatAssumptions, lowSpending, strategy, 2026, 2035,
+      [], [], { iterations: 50, volatility: 0.1, seed: 99 }
+    );
+    expect(a.successProbability).toBe(b.successProbability);
+    expect(a.byYear[5].p50).toBe(b.byYear[5].p50);
+  });
+
+  it("reports successProbability < 1 for a borderline plan with volatility", () => {
+    // Tight plan: spending high relative to pot. Some return paths fail.
+    const tight: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 500_000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const highSpend: SpendingAssumption = {
+      id: 1, planId: 1, annualSpendingTarget: 35000, isIndexed: false,
+    };
+    const mc = runMonteCarlo(
+      [wealthy], tight, [], flatAssumptions, highSpend, strategy, 2026, 2056,
+      [], [], { iterations: 200, volatility: 0.15, seed: 7 }
+    );
+    expect(mc.successProbability).toBeGreaterThan(0);
+    expect(mc.successProbability).toBeLessThan(1);
   });
 });
 

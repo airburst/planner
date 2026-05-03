@@ -166,6 +166,21 @@ declare global {
         years: HouseholdYearState[];
         safeAnnualSpend: number;
       }>;
+      runMonteCarlo: (
+        planId: number,
+        options?: {
+          scenarioId?: number;
+          startYear?: number;
+          endYear?: number;
+          iterations?: number;
+          volatility?: number;
+          seed?: number;
+        }
+      ) => Promise<{
+        iterations: number;
+        successProbability: number;
+        byYear: Array<{ year: number; p10: number; p50: number; p90: number }>;
+      }>;
     };
   }
 }

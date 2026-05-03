@@ -5,6 +5,7 @@ const {
   findRetirementDeferralYears,
   findSafeAnnualSpend,
   generateRecommendations,
+  runMonteCarlo,
   runProjection,
 } = require("../engine.js");
 
@@ -358,6 +359,95 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       ),
       safeAnnualSpend,
     };
+  });
+
+  ipcMain.handle("projections:runMonteCarlo", async (_, planId, options = {}) => {
+    const people = await db.select().from(schema.people).where(eq(schema.people.planId, planId));
+    const accounts = await db.select().from(schema.accounts).where(eq(schema.accounts.planId, planId));
+    const incomeStreams = await db.select().from(schema.incomeStreams).where(eq(schema.incomeStreams.planId, planId));
+    const oneOffIncomes = await db.select().from(schema.oneOffIncomes).where(eq(schema.oneOffIncomes.planId, planId));
+    const oneOffExpenses = await db.select().from(schema.oneOffExpenses).where(eq(schema.oneOffExpenses.planId, planId));
+    const spendingPeriods = await db.select().from(schema.spendingPeriods).where(eq(schema.spendingPeriods.planId, planId));
+
+    let scenario = null;
+    let scenarioOverrides = [];
+    if (options.scenarioId != null) {
+      scenario = (await db.select().from(schema.scenarios).where(eq(schema.scenarios.id, options.scenarioId)))[0] || null;
+      if (scenario) {
+        scenarioOverrides = await db.select().from(schema.scenarioOverrides).where(eq(schema.scenarioOverrides.scenarioId, options.scenarioId));
+      }
+    }
+    const assumptionSet = scenario?.assumptionSetId
+      ? (await db.select().from(schema.assumptionSets).where(eq(schema.assumptionSets.id, scenario.assumptionSetId)))[0] || null
+      : (await db.select().from(schema.assumptionSets).where(eq(schema.assumptionSets.planId, planId)))[0] || null;
+    const expenseProfile = scenario?.expenseProfileId
+      ? (await db.select().from(schema.expenseProfiles).where(eq(schema.expenseProfiles.id, scenario.expenseProfileId)))[0] || null
+      : (await db.select().from(schema.expenseProfiles).where(eq(schema.expenseProfiles.planId, planId)))[0] || null;
+
+    const currentYear = new Date().getFullYear();
+    const startYear = options.startYear ?? currentYear;
+
+    let enginePeople = people.map((person) => {
+      if (!person.dateOfBirth) throw new Error(`Person ${person.id} is missing dateOfBirth`);
+      const birthYear = new Date(person.dateOfBirth).getFullYear();
+      const retirementYear = person.retirementAge != null ? birthYear + person.retirementAge : startYear;
+      return {
+        id: person.id, planId: person.planId, role: person.role, name: person.firstName,
+        dateOfBirth: new Date(person.dateOfBirth), retirementYear,
+        longevityTargetAge: person.longevityTargetAge ?? 95,
+      };
+    });
+    let engineAccounts = accounts.map((a) => ({
+      id: a.id, planId: a.planId, personId: a.personId, name: a.name,
+      type: mapWrapperType(a.wrapperType), openingBalance: a.currentBalance,
+      annualContribution: a.annualContribution ?? 0,
+      employerContribution: a.employerContribution ?? 0,
+    }));
+    let engineIncomeStreams = incomeStreams.map((s) => ({
+      id: s.id, planId: s.planId, personId: s.personId, name: s.name,
+      type: mapIncomeStreamType(s.streamType),
+      activationAge: s.startAge, endAge: s.endAge ?? undefined,
+      annualAmount: s.annualAmount, isIndexed: s.inflationLinked,
+    }));
+    if (scenarioOverrides && scenarioOverrides.length > 0) {
+      const overridden = applyOverridesToEngineData(
+        { people: enginePeople, accounts: engineAccounts, incomeStreams: engineIncomeStreams },
+        scenarioOverrides
+      );
+      enginePeople = overridden.people;
+      engineAccounts = overridden.accounts;
+      engineIncomeStreams = overridden.incomeStreams;
+    }
+    const engineAssumptions = buildAssumptionSet(assumptionSet);
+    const enginePeriods = (spendingPeriods ?? []).map((p) => ({
+      fromAge: p.fromAge, toAge: p.toAge, annualAmount: p.annualAmount, inflationLinked: p.inflationLinked,
+    }));
+    const spending = {
+      id: expenseProfile?.id ?? 0,
+      planId,
+      annualSpendingTarget: (expenseProfile?.essentialAnnual ?? 0) + (expenseProfile?.discretionaryAnnual ?? 0),
+      isIndexed: expenseProfile?.inflationLinked ?? true,
+      periods: enginePeriods.length > 0 ? enginePeriods : undefined,
+    };
+    const withdrawalStrategy = {
+      accountTypeOrder: ["cash", "isa", "sipp", "other"],
+      optimizeForTaxEfficiency: true, sippWithdrawalApproach: "flexible",
+    };
+    const longevityEndYear = enginePeople.reduce((max, p) => {
+      const birthYear = p.dateOfBirth.getFullYear();
+      return Math.max(max, birthYear + p.longevityTargetAge);
+    }, 0);
+    const endYear = options.endYear ?? (longevityEndYear || startYear + 30);
+
+    return runMonteCarlo(
+      enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+      spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses,
+      {
+        iterations: options.iterations ?? 1000,
+        volatility: options.volatility ?? 0.10,
+        seed: options.seed,
+      }
+    );
   });
 
   ipcMain.handle("projections:runStressTest", async (_, planId, preset, options = {}) => {

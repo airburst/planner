@@ -49,6 +49,9 @@ contextBridge.exposeInMainWorld("api", {
   runStressTest: (planId, preset, options = {}) =>
     ipcRenderer.invoke("projections:runStressTest", planId, preset, options),
 
+  runMonteCarlo: (planId, options = {}) =>
+    ipcRenderer.invoke("projections:runMonteCarlo", planId, options),
+
   getExpenseProfileByPlan: (planId) =>
     ipcRenderer.invoke("expense-profiles:getByPlan", planId),
   createExpenseProfile: (data) =>

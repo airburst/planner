@@ -691,23 +691,32 @@ count-type impacts as raw numbers and currency-type as formatted £.
 
 Five new engine tests covering both helpers' happy + edge cases.
 
-### Sprint 10 — Monte Carlo simulation (G4-T5)
-**Why**: The deterministic projection shows one path. Monte Carlo wraps the
-engine in N iterations (default 1,000) with returns drawn from a normal
-distribution (mean = nominal growth rate, std dev = user-configured, default
-8%). Report median, 10th and 90th percentile outcomes — answers
-"what's the probability my plan succeeds?".
+### Sprint 10 — Monte Carlo simulation (G4-T5) ✅ DONE
+Engine: `runProjection` accepts an optional `returnOverrides: number[]` to
+override `assumptions.investmentReturn` per year. New `runMonteCarlo` helper
+draws year-by-year returns from a normal distribution (mean = configured
+real return, std dev = user-set volatility), runs N iterations, and computes
+per-year p10/p50/p90 of `totalHouseholdAssets` plus an overall success
+probability (fraction of paths sustaining every year). Mulberry32 RNG +
+Box-Muller for normal samples; results deterministic for a given seed.
 
-**Scope**:
-- Engine: `runMonteCarlo(inputs, iterations)` returns `{ p10Years, p50Years,
-  p90Years, successProbability }` where each is a HouseholdYearState[] sliced
-  at the requested percentile per year.
-- IPC + hooks: lazy — only run when the user opens the panel (1k runs is fast
-  but not free).
-- UI: confidence-band overlay on the existing cash-flow chart (p10–p90 shaded
-  area + p50 line) plus a "Probability of success: X%" headline metric.
-- Off-thread: run inside an Electron utility process or web worker so UI
-  doesn't freeze.
+IPC `projections:runMonteCarlo` loads plan + (optional) scenario + spending
+periods + one-offs, applies scenario overrides, then runs the simulation.
+Lazy — only fires on user click.
+
+UI `MonteCarloPanel` mounted after `StressTestPanel`. Inputs: iterations
+(200/500/1000/2000), volatility slider (0–25%), with sensible defaults
+(1000 / 10%). Click "Run simulation" → headline success probability with
+green/amber/red bracket plus p10/p50/p90 of end assets. Resets when the
+selected scenario changes.
+
+Sequence-of-returns risk captured because each year's return is drawn
+independently. Confidence-band overlay on the cash-flow chart deferred —
+the panel's percentiles cover most of the value.
+
+Four engine tests: collapses to deterministic at vol=0, percentile ordering
+holds at vol>0, deterministic for same seed, success probability between
+0 and 1 for a borderline plan.
 
 ### Sprint 11 — Tax rule versioning (G4-T2)
 **Why**: UK tax bands change every April. Today, editing assumption-set

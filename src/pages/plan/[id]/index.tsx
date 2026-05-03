@@ -15,6 +15,7 @@ import { AccountsPanel } from "./AccountsPanel";
 import { AssumptionsPanel } from "./AssumptionsPanel";
 import { IncomePhaseChart } from "./IncomePhaseChart";
 import { IncomeStreamsPanel } from "./IncomeStreamsPanel";
+import { MonteCarloPanel } from "./MonteCarloPanel";
 import { OneOffExpensesPanel } from "./OneOffExpensesPanel";
 import { OneOffIncomesPanel } from "./OneOffIncomesPanel";
 import { PeoplePanel } from "./PeoplePanel";
@@ -196,6 +197,7 @@ export function PlanDetailPage() {
               safeAnnualSpend: activeProjection.safeAnnualSpend,
             } : null}
           />
+          <MonteCarloPanel planId={planId} scenarioId={selectedScenarioId} />
           <ProjectionTable years={activeProjection.years} />
         </>
       )}
