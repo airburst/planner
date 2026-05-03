@@ -374,28 +374,29 @@ export function IncomePhaseChart({ years, incomeStreams, oneOffIncomes = [] }: I
                 </linearGradient>
               ))}
             </defs>
-            <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
+            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="year"
               tickLine={false}
               axisLine={false}
-              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+              tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
             />
             <YAxis
               tickLine={false}
               axisLine={false}
               width={90}
-              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+              tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
               tickFormatter={(value) => fmt(Number(value))}
             />
             <Tooltip
               contentStyle={{
                 borderRadius: 10,
-                border: "1px solid #e2e8f0",
-                backgroundColor: "#ffffff",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                border: "1px solid var(--border)",
+                backgroundColor: "var(--card)",
+                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.18)",
               }}
-              labelStyle={{ color: "#0f172a", fontWeight: 600 }}
+              labelStyle={{ color: "var(--card-foreground)", fontWeight: 600 }}
+              itemStyle={{ color: "var(--card-foreground)" }}
               formatter={(value, name) => {
                 const numericValue = Number(Array.isArray(value) ? value[0] : value ?? 0);
                 if (name === "Spending target") {
