@@ -6,6 +6,7 @@ import { useOneOffIncomesByPlan } from "@/hooks/use-one-off-incomes";
 import { usePeopleByPlan } from "@/hooks/use-people";
 import { usePlans } from "@/hooks/use-plans";
 import { useProjection } from "@/hooks/use-projection";
+import { useScenarioProjection } from "@/hooks/use-scenarios";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { AccountsPanel } from "./AccountsPanel";
@@ -38,6 +39,14 @@ export function PlanDetailPage() {
   const oneOffIncomesQuery = useOneOffIncomesByPlan(planId);
   const oneOffExpensesQuery = useOneOffExpensesByPlan(planId);
   const projectionQuery = useProjection(planId);
+  const scenarioProjectionQuery = useScenarioProjection(selectedScenarioId);
+
+  // The projection that drives the chart, table, summary, and recommendations.
+  // Falls back to the base plan when no scenario is selected.
+  const activeProjection =
+    selectedScenarioId && scenarioProjectionQuery.data
+      ? scenarioProjectionQuery.data
+      : projectionQuery.data;
 
   const selectedPlan = (plansQuery.data ?? []).find((p) => p.id === planId) ?? null;
   const people = peopleQuery.data ?? [];
@@ -138,29 +147,29 @@ export function PlanDetailPage() {
       )}
 
       {/* Projection results */}
-      {projectionQuery.data && projectionQuery.data.years.length > 0 && (
+      {activeProjection && activeProjection.years.length > 0 && (
         <>
           <ScenarioComparison
             planId={planId}
             selectedScenarioId={selectedScenarioId}
           />
           <ProjectionSummary
-            years={projectionQuery.data.years}
-            startYear={projectionQuery.data.startYear}
-            endYear={projectionQuery.data.endYear}
-            retirementPotByPerson={projectionQuery.data.retirementPotByPerson}
-            safeAnnualSpend={projectionQuery.data.safeAnnualSpend}
+            years={activeProjection.years}
+            startYear={activeProjection.startYear}
+            endYear={activeProjection.endYear}
+            retirementPotByPerson={activeProjection.retirementPotByPerson}
+            safeAnnualSpend={activeProjection.safeAnnualSpend}
             people={people}
           />
           <IncomePhaseChart
-            years={projectionQuery.data.years}
+            years={activeProjection.years}
             incomeStreams={incomeStreams}
           />
           <RecommendationPanel
-            recommendations={projectionQuery.data.recommendations}
-            accumulationShortfall={projectionQuery.data.accumulationShortfall}
+            recommendations={activeProjection.recommendations}
+            accumulationShortfall={activeProjection.accumulationShortfall}
           />
-          <ProjectionTable years={projectionQuery.data.years} />
+          <ProjectionTable years={activeProjection.years} />
         </>
       )}
 

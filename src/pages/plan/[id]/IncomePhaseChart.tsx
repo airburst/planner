@@ -378,7 +378,9 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
                   stackId="cashflow"
                   fill={`url(#grad-${s.key})`}
                   shape={makeBarShape(s.key)}
-                  isAnimationActive={false}
+                  isAnimationActive
+                  animationDuration={400}
+                  animationEasing="ease-out"
                 />
               );
             })}
@@ -392,7 +394,9 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
                 strokeWidth={2.5}
                 strokeDasharray="6 3"
                 dot={false}
-                isAnimationActive={false}
+                isAnimationActive
+                animationDuration={400}
+                animationEasing="ease-out"
               />
             )}
           </ComposedChart>
