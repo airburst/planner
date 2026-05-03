@@ -12,7 +12,9 @@ import {
   calculateIncomeForStream,
   calculatePersonalTax,
   calculatePersonTaxResult,
+  findDepletionYear,
   findGapToTarget,
+  findRetirementDeferralYears,
   findSafeAnnualSpend,
   isIncomeStreamActive,
   runProjection,
@@ -1813,5 +1815,117 @@ describe("Spending periods (Sprint 8.5)", () => {
     expect(years[3].totalHouseholdWithdrawals).toBe(0);
     // Year 2030 (age 70): period kicks in.
     expect(years[4].totalHouseholdWithdrawals).toBe(50000);
+  });
+});
+
+describe("Recommendation engine helpers (Sprint 9)", () => {
+  const noGrowth: AssumptionSet = {
+    id: 1, planId: 1, name: "Base",
+    inflationRate: 0, investmentReturn: 0,
+    personalAllowance: 12570, personalSavingsAllowance: 1000,
+    basicRateBand: 50270, higherRateBand: 125140,
+    basicRate: 0.2, higherRate: 0.4, additionalRate: 0.45,
+    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55,
+    marriageAllowanceTransfer: 0,
+  };
+  const strategy: WithdrawalStrategy = {
+    accountTypeOrder: ["cash", "isa", "sipp", "other"],
+    optimizeForTaxEfficiency: true, sippWithdrawalApproach: "flexible",
+  };
+
+  describe("findDepletionYear", () => {
+    it("returns null for a comfortably sustainable plan", () => {
+      const retiree: PersonContext = {
+        id: 1, planId: 1, role: "primary", name: "P",
+        dateOfBirth: new Date("1955-01-01"), retirementYear: 2020,
+      };
+      const accounts: AccountContext[] = [
+        { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+          openingBalance: 5_000_000, annualContribution: 0, employerContribution: 0 },
+      ];
+      const result = findDepletionYear(
+        [retiree], accounts, [], noGrowth,
+        { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: false },
+        strategy, 2026, 2056
+      );
+      expect(result).toBeNull();
+    });
+
+    it("returns the first year where assets fall to zero", () => {
+      // £50k pot, £20k/yr spend with no income → ~2.5 years runway.
+      const retiree: PersonContext = {
+        id: 1, planId: 1, role: "primary", name: "P",
+        dateOfBirth: new Date("1955-01-01"), retirementYear: 2020,
+      };
+      const accounts: AccountContext[] = [
+        { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+          openingBalance: 50000, annualContribution: 0, employerContribution: 0 },
+      ];
+      const result = findDepletionYear(
+        [retiree], accounts, [], noGrowth,
+        { id: 1, planId: 1, annualSpendingTarget: 20000, isIndexed: false },
+        strategy, 2026, 2056
+      );
+      expect(result).toBe(2028); // 2026 50→30, 2027 30→10, 2028 10→0 (depleted)
+    });
+  });
+
+  describe("findRetirementDeferralYears", () => {
+    it("returns 0 if the plan is already sustainable", () => {
+      const retiree: PersonContext = {
+        id: 1, planId: 1, role: "primary", name: "P",
+        dateOfBirth: new Date("1980-01-01"), retirementYear: 2045,
+      };
+      const accounts: AccountContext[] = [
+        { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+          openingBalance: 5_000_000, annualContribution: 0, employerContribution: 0 },
+      ];
+      const result = findRetirementDeferralYears(
+        [retiree], accounts, [], noGrowth,
+        { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: false },
+        strategy, 2026, 2056
+      );
+      expect(result).toBe(0);
+    });
+
+    it("returns null if everyone is already past retirement", () => {
+      const retiree: PersonContext = {
+        id: 1, planId: 1, role: "primary", name: "P",
+        dateOfBirth: new Date("1955-01-01"), retirementYear: 2020,
+      };
+      const accounts: AccountContext[] = [
+        { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+          openingBalance: 50000, annualContribution: 0, employerContribution: 0 },
+      ];
+      const result = findRetirementDeferralYears(
+        [retiree], accounts, [], noGrowth,
+        { id: 1, planId: 1, annualSpendingTarget: 100000, isIndexed: false },
+        strategy, 2026, 2056
+      );
+      expect(result).toBeNull();
+    });
+
+    it("finds the smallest deferral that makes the plan sustainable", () => {
+      // 45yo with £50k savings, £30k contributions, retiring at 60 (2041) and
+      // spending £30k/yr until 95. Tight — needs to defer.
+      const accumulator: PersonContext = {
+        id: 1, planId: 1, role: "primary", name: "P",
+        dateOfBirth: new Date("1981-01-01"), retirementYear: 2041,
+      };
+      const accounts: AccountContext[] = [
+        { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+          openingBalance: 50000, annualContribution: 30000, employerContribution: 0 },
+      ];
+      const result = findRetirementDeferralYears(
+        [accumulator], accounts, [], noGrowth,
+        { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: false },
+        strategy, 2026, 2076
+      );
+      // Some specific deferral N should make this sustainable. We don't
+      // pin the exact N — just verify the helper returns a positive number.
+      expect(result).not.toBeNull();
+      expect(result!).toBeGreaterThan(0);
+      expect(result!).toBeLessThanOrEqual(10);
+    });
   });
 });

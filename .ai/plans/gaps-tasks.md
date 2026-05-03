@@ -668,15 +668,28 @@ to work without migration pain.
 
 ## Remaining work (priority order)
 
-### Sprint 9 — Quantified recommendations follow-up (G3-T3 part 2)
-Two recommendation rules deferred from Sprint 7:
-- **Depletion runway**: when the plan depletes assets, compute "a 10% spending
-  cut would extend runway by N years". Quantify the impact in the existing
-  asset-depletion recommendation card.
-- **Defer retirement**: new rule — find the smallest N where shifting both
-  primary's and partner's `retirementYear` by +N years makes the plan
-  sustainable. Surface as "Retire N years later to be sustainable." Builds
-  on the same binary-search shape as ACC-T6.
+### Sprint 9 — Quantified recommendations follow-up (G3-T3 part 2) ✅ DONE
+Two new engine helpers exposed via runtime:
+- `findDepletionYear` — first year where assets fall to zero from previously
+  positive AND the household can no longer cover spending. Returns null if
+  the plan never depletes.
+- `findRetirementDeferralYears` — smallest N (1–10) such that shifting every
+  still-accumulating retirementYear by +N years makes the plan sustainable.
+  Returns 0 if already sustainable, null if everyone's already past
+  retirement or no shift saves it.
+
+Recommendations engine updated:
+- **Depletion** rule now quantifies via "A 10% spending cut would push depletion
+  to YYYY (+N years)" or "would keep the plan sustainable through your
+  longevity target". Surfaces N as `impactScore` with `impactFormat: "count"`
+  and label "years of extra runway from a 10% cut".
+- **Defer retirement** new rule — fires when plan unsustainable AND helper
+  found a deferral. "Retire N years later" with rationale + impactScore.
+
+`Recommendation.impactFormat` field added so RecommendationPanel renders
+count-type impacts as raw numbers and currency-type as formatted £.
+
+Five new engine tests covering both helpers' happy + edge cases.
 
 ### Sprint 10 — Monte Carlo simulation (G4-T5)
 **Why**: The deterministic projection shows one path. Monte Carlo wraps the

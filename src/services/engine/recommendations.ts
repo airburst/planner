@@ -5,6 +5,17 @@ interface RecommendationContext {
   targetSpending?: number;
   /** Result of findSafeAnnualSpend. Used to quantify the shortfall delta. */
   safeAnnualSpend?: number;
+  /**
+   * Years of additional runway gained from a 10% spending cut. Computed by
+   * comparing baseline depletion year vs the depletion year of a re-run with
+   * spending × 0.9. `null` if either run is sustainable or the helper bailed.
+   */
+  depletionRunwayDelta?: { yearsExtended: number; reducedDepletionYear: number | null } | null;
+  /**
+   * Smallest deferral in years that makes the plan sustainable, or null if
+   * the helper couldn't find one within its search bound.
+   */
+  retirementDeferralYears?: number | null;
 }
 
 function hasTaxTrapExposure(year: HouseholdYearState): boolean {
@@ -81,6 +92,19 @@ export function generateRecommendations(
   }
 
   if (assetDepletionYear) {
+    let rationale = `Household assets fall to zero in ${assetDepletionYear.year}, so the plan cannot fund later years without changes.`;
+    let impactScore: number | undefined;
+    let impactLabel: string | undefined;
+    let impactFormat: "currency" | "count" | undefined;
+    if (context.depletionRunwayDelta && context.depletionRunwayDelta.yearsExtended > 0) {
+      const { yearsExtended, reducedDepletionYear } = context.depletionRunwayDelta;
+      impactScore = yearsExtended;
+      impactFormat = "count";
+      impactLabel = " years of extra runway from a 10% cut";
+      rationale = reducedDepletionYear === null
+        ? `Household assets fall to zero in ${assetDepletionYear.year}. A 10% spending cut would keep the plan sustainable through your longevity target.`
+        : `Household assets fall to zero in ${assetDepletionYear.year}. A 10% spending cut would push depletion to ${reducedDepletionYear} (+${yearsExtended} years).`;
+    }
     recommendations.push({
       id: nextId++,
       projectionRunId,
@@ -88,8 +112,30 @@ export function generateRecommendations(
       category: "withdrawal",
       title: "Address asset depletion risk",
       description: "Projected assets are fully depleted in this year.",
-      rationale: `Household assets fall to zero in ${assetDepletionYear.year}, so the plan cannot fund later years without changes.`,
+      rationale,
       yearTriggered: assetDepletionYear.year,
+      impactScore,
+      impactLabel,
+      impactFormat,
+    });
+  }
+
+  // New rule: defer-retirement. Only fires when the plan is unsustainable AND
+  // we found a deferral that fixes it. Suppress the "0 years" trivially-OK case.
+  if (firstUnsustainableYear && typeof context.retirementDeferralYears === "number" && context.retirementDeferralYears > 0) {
+    const n = context.retirementDeferralYears;
+    recommendations.push({
+      id: nextId++,
+      projectionRunId,
+      priority: "medium",
+      category: "income",
+      title: `Retire ${n} year${n === 1 ? "" : "s"} later`,
+      description: "Working longer leaves more time to accumulate and shortens drawdown.",
+      rationale: `Pushing every still-accumulating retirement age out by ${n} year${n === 1 ? "" : "s"} would make the plan sustainable through your longevity target.`,
+      yearTriggered: firstUnsustainableYear.year,
+      impactScore: n,
+      impactLabel: ` year${n === 1 ? "" : "s"} deferral`,
+      impactFormat: "count",
     });
   }
 

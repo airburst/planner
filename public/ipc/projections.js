@@ -1,6 +1,8 @@
 const { eq } = require("drizzle-orm");
 const {
+  findDepletionYear,
   findGapToTarget,
+  findRetirementDeferralYears,
   findSafeAnnualSpend,
   generateRecommendations,
   runProjection,
@@ -299,6 +301,34 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
     );
 
+    // Depletion runway: compare baseline depletion year vs a re-run with
+    // 10% lower spending. Reduces both the flat target and any periods.
+    const baselineDepletion = findDepletionYear(
+      enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+      spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+    );
+    let depletionRunwayDelta = null;
+    if (baselineDepletion !== null) {
+      const reducedSpending = {
+        ...spending,
+        annualSpendingTarget: spending.annualSpendingTarget * 0.9,
+        periods: spending.periods?.map((p) => ({ ...p, annualAmount: p.annualAmount * 0.9 })),
+      };
+      const reducedDepletion = findDepletionYear(
+        enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+        reducedSpending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+      );
+      const yearsExtended = reducedDepletion === null
+        ? endYear - baselineDepletion
+        : reducedDepletion - baselineDepletion;
+      depletionRunwayDelta = { yearsExtended, reducedDepletionYear: reducedDepletion };
+    }
+
+    const retirementDeferralYears = findRetirementDeferralYears(
+      enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+      spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+    );
+
     return {
       planId,
       scenarioId: scenario?.id ?? null,
@@ -310,6 +340,8 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       recommendations: generateRecommendations(0, years, {
         targetSpending: spending.annualSpendingTarget,
         safeAnnualSpend,
+        depletionRunwayDelta,
+        retirementDeferralYears,
       }),
       retirementPotByPerson: computeRetirementPotByPerson(enginePeople, years, startYear),
       accumulationShortfall: findGapToTarget(
@@ -660,6 +692,34 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
     );
 
+    // Depletion runway: compare baseline depletion year vs a re-run with
+    // 10% lower spending. Reduces both the flat target and any periods.
+    const baselineDepletion = findDepletionYear(
+      enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+      spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+    );
+    let depletionRunwayDelta = null;
+    if (baselineDepletion !== null) {
+      const reducedSpending = {
+        ...spending,
+        annualSpendingTarget: spending.annualSpendingTarget * 0.9,
+        periods: spending.periods?.map((p) => ({ ...p, annualAmount: p.annualAmount * 0.9 })),
+      };
+      const reducedDepletion = findDepletionYear(
+        enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+        reducedSpending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+      );
+      const yearsExtended = reducedDepletion === null
+        ? endYear - baselineDepletion
+        : reducedDepletion - baselineDepletion;
+      depletionRunwayDelta = { yearsExtended, reducedDepletionYear: reducedDepletion };
+    }
+
+    const retirementDeferralYears = findRetirementDeferralYears(
+      enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+      spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+    );
+
     return {
       planId,
       scenarioId: scenario.id,
@@ -671,6 +731,8 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       recommendations: generateRecommendations(0, years, {
         targetSpending: spending.annualSpendingTarget,
         safeAnnualSpend,
+        depletionRunwayDelta,
+        retirementDeferralYears,
       }),
       retirementPotByPerson: computeRetirementPotByPerson(enginePeople, years, startYear),
       accumulationShortfall: findGapToTarget(

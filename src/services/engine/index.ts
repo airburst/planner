@@ -849,6 +849,83 @@ function isProjectionSustainable(years: HouseholdYearState[]): boolean {
 }
 
 /**
+ * The first year in which household assets reach zero having previously been
+ * positive AND the household can no longer cover spending. Returns null when
+ * the projection never depletes.
+ */
+export function findDepletionYear(
+  people: PersonContext[],
+  accounts: AccountContext[],
+  incomeStreams: IncomeStreamContext[],
+  assumptions: AssumptionSet,
+  spending: SpendingAssumption,
+  withdrawalStrategy: WithdrawalStrategy,
+  startYear: number,
+  endYear: number,
+  oneOffIncomes: OneOffIncomeContext[] = [],
+  oneOffExpenses: OneOffExpenseContext[] = []
+): number | null {
+  const years = runProjection(
+    people, accounts, incomeStreams, assumptions, spending, withdrawalStrategy,
+    startYear, endYear, oneOffIncomes, oneOffExpenses
+  );
+  let hadPositive = false;
+  for (const y of years) {
+    if (y.totalHouseholdAssets > 0) {
+      hadPositive = true;
+      continue;
+    }
+    if (hadPositive && y.totalHouseholdAssets === 0 && !y.canSustainSpending) {
+      return y.year;
+    }
+  }
+  return null;
+}
+
+/**
+ * Smallest number of years to shift the retirementYear of every still-accumulating
+ * person such that the projection becomes sustainable. Returns 0 if already
+ * sustainable, or null if a) everyone is already past retirement or b) no
+ * shift up to 10 years saves the plan.
+ */
+export function findRetirementDeferralYears(
+  people: PersonContext[],
+  accounts: AccountContext[],
+  incomeStreams: IncomeStreamContext[],
+  assumptions: AssumptionSet,
+  spending: SpendingAssumption,
+  withdrawalStrategy: WithdrawalStrategy,
+  startYear: number,
+  endYear: number,
+  oneOffIncomes: OneOffIncomeContext[] = [],
+  oneOffExpenses: OneOffExpenseContext[] = []
+): number | null {
+  const baseline = runProjection(
+    people, accounts, incomeStreams, assumptions, spending, withdrawalStrategy,
+    startYear, endYear, oneOffIncomes, oneOffExpenses
+  );
+  if (isProjectionSustainable(baseline)) return 0;
+
+  const anyAccumulating = people.some((p) => p.retirementYear > startYear);
+  if (!anyAccumulating) return null;
+
+  const MAX_SHIFT_YEARS = 10;
+  for (let shift = 1; shift <= MAX_SHIFT_YEARS; shift++) {
+    const shiftedPeople = people.map((p) =>
+      p.retirementYear > startYear
+        ? { ...p, retirementYear: p.retirementYear + shift }
+        : p
+    );
+    const shiftedYears = runProjection(
+      shiftedPeople, accounts, incomeStreams, assumptions, spending, withdrawalStrategy,
+      startYear, endYear, oneOffIncomes, oneOffExpenses
+    );
+    if (isProjectionSustainable(shiftedYears)) return shift;
+  }
+  return null;
+}
+
+/**
  * Find the highest annual spending target that keeps every year sustainable.
  * Binary searches over the spending target with the same accounts, streams,
  * and one-off events. Result rounded DOWN to the nearest £100 so the figure

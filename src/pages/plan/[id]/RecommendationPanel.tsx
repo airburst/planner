@@ -72,7 +72,8 @@ export function RecommendationPanel({ recommendations, accumulationShortfall }: 
               <p className="mt-2 font-medium">{rec.title}</p>
               {typeof rec.impactScore === "number" && rec.impactScore > 0 && (
                 <p className="mt-1 text-sm font-semibold text-sw-on-error-container">
-                  {fmt(rec.impactScore)}{rec.impactLabel ?? ""}
+                  {rec.impactFormat === "count" ? rec.impactScore : fmt(rec.impactScore)}
+                  {rec.impactLabel ?? ""}
                 </p>
               )}
               <p className="mt-1 text-sm text-muted-foreground">{rec.rationale}</p>
