@@ -40,7 +40,7 @@ export const defaultGoldenAssumptions: AssumptionSet = {
   higherRate: 0.4,
   additionalRate: 0.45,
   sippTaxFreePercentage: 0.25,
-  sippMinimumAgeAccess: 55,
+  sippMinimumAgeAccess: 55, marriageAllowanceTransfer: 0,
 };
 
 export const defaultGoldenWithdrawalStrategy: WithdrawalStrategy = {

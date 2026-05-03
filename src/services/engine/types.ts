@@ -70,6 +70,10 @@ export interface AssumptionSet {
   // SIPP assumptions
   sippTaxFreePercentage: number; // 0.25 for 25% tax-free lump sum
   sippMinimumAgeAccess: number; // 55 for current rules
+
+  // Marriage Allowance — fixed £1,260 transfer of personal allowance from a
+  // non-taxpaying partner to a basic-rate-payer spouse. Set to 0 to disable.
+  marriageAllowanceTransfer: number;
 }
 
 /**

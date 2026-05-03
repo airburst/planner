@@ -231,6 +231,82 @@ export function calculatePersonTaxResult(
 }
 
 /**
+ * Apply UK Marriage Allowance: a non-taxpaying partner can transfer £1,260 of
+ * their personal allowance to a basic-rate-payer spouse. Mutates the recipient's
+ * tax breakdown in-place to reflect a £252 saving and redistributes the saving
+ * back to that person's accounts pro-rata so closing balances stay coherent.
+ *
+ * Conditions:
+ *   - Exactly two people in the household
+ *   - One person's totalIncome is below (PA - transfer) → unused allowance available
+ *   - Other person's totalIncome is in the basic-rate band (above PA, ≤ basicRateBand)
+ */
+export function applyMarriageAllowance(
+  people: PersonContext[],
+  householdYear: HouseholdYearState,
+  assumptions: AssumptionSet
+): void {
+  if (people.length !== 2) return;
+  const transfer = assumptions.marriageAllowanceTransfer ?? 0;
+  if (transfer <= 0) return;
+
+  const personYears = Array.from(householdYear.people.values());
+  if (personYears.length !== 2) return;
+
+  const [a, b] = personYears;
+  const inBasicRate = (income: number) =>
+    income > assumptions.personalAllowance && income <= assumptions.basicRateBand;
+  const hasSpareAllowance = (income: number) =>
+    income < assumptions.personalAllowance - transfer;
+
+  let donor: PersonYearState | undefined;
+  let recipient: PersonYearState | undefined;
+  if (hasSpareAllowance(a.taxBreakdown.totalIncome) && inBasicRate(b.taxBreakdown.totalIncome)) {
+    donor = a;
+    recipient = b;
+  } else if (hasSpareAllowance(b.taxBreakdown.totalIncome) && inBasicRate(a.taxBreakdown.totalIncome)) {
+    donor = b;
+    recipient = a;
+  }
+  if (!donor || !recipient) return;
+
+  const saving = Math.round(transfer * assumptions.basicRate);
+  if (saving <= 0) return;
+
+  // Update recipient's tax breakdown for display + downstream aggregation.
+  const tb = recipient.taxBreakdown;
+  tb.personalAllowance += transfer;
+  tb.taxableIncome = Math.max(0, tb.taxableIncome - transfer);
+  tb.basicRateTax = Math.max(0, tb.basicRateTax - saving);
+  tb.totalTax = Math.max(0, tb.totalTax - saving);
+  tb.effectiveTaxRate = tb.totalIncome > 0 ? tb.totalTax / tb.totalIncome : 0;
+
+  recipient.taxDue = tb.totalTax;
+  recipient.effectiveTaxRate = tb.effectiveTaxRate;
+
+  // Add the saving back to the recipient's accounts pro-rata so closing balances
+  // (which were computed using the un-discounted tax) reflect the rebate.
+  let totalOpening = 0;
+  for (const v of recipient.openingBalances.values()) totalOpening += v;
+  if (totalOpening > 0) {
+    let remaining = saving;
+    const entries = Array.from(recipient.openingBalances.entries());
+    for (let i = 0; i < entries.length; i++) {
+      const [accountId, opening] = entries[i];
+      const share =
+        i === entries.length - 1
+          ? remaining
+          : Math.round((opening / totalOpening) * saving);
+      const current = recipient.closingBalances.get(accountId) ?? 0;
+      recipient.closingBalances.set(accountId, current + share);
+      remaining -= share;
+    }
+  }
+
+  householdYear.totalHouseholdAssets += saving;
+}
+
+/**
  * Aggregate person-level tax results into a household result.
  */
 export function calculateHouseholdTaxResult(
@@ -710,6 +786,11 @@ export function runProjection(
         }
       }
     }
+
+    // Apply Marriage Allowance after per-person tax is computed but before
+    // household aggregation, so the household total reflects the £252 saving
+    // and recipient account balances reflect the rebate.
+    applyMarriageAllowance(people, householdYear, assumptions);
 
     householdYear.taxBreakdown = calculateHouseholdTaxResult(year, householdYear.people);
     householdYear.totalHouseholdTax = householdYear.taxBreakdown.totalTax;

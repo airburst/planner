@@ -503,7 +503,18 @@ reproducible from stored rules.
 
 ---
 
-### G4-T3: Marriage Allowance
+### ~~G4-T3: Marriage Allowance~~ ✅ DONE
+`AssumptionSet.marriageAllowanceTransfer` (default £1,260, set 0 to disable).
+After per-person tax is computed each year, `applyMarriageAllowance` checks the
+two-person household: if one partner has unused allowance (income < PA −
+transfer) and the other is in basic rate (PA < income ≤ basicRateBand), it
+mutates the recipient's tax breakdown to reflect a £252 saving and adds the
+saving back to their accounts pro-rata so closing balances stay coherent.
+
+Three tests: applies, doesn't apply when both above PA, doesn't apply for
+higher-rate recipient.
+
+### G4-T3 (legacy spec):
 **Why**: A non-taxpaying partner can transfer £1,260 of personal allowance to a basic
 rate taxpayer spouse. For many couples with unequal income in retirement this is a
 material saving.
@@ -600,10 +611,38 @@ onboarding), ~~G3-T8~~ (already shipped with G3-T4)
 ~~G3-T2~~ (longevity setting), ~~G3-T7~~ (safe spending estimate),
 ~~G3-T3~~ partial (spending-shortfall quantified; depletion + defer-retirement deferred)
 
-### Sprint 8 — Stress testing
-~~G3-T6~~ (presets), G4-T3 (Marriage Allowance)
+### Sprint 8 — Stress testing ✅ COMPLETE
+~~G3-T6~~ (presets), ~~G4-T3~~ (Marriage Allowance)
+
+### Sprint 8.5 — Time-banded spending periods (new feature)
+**Why**: Today the engine uses a single `annualSpendingTarget` for the entire
+projection. In reality, retirement spending follows a curve — classically the
+"go-go / slow-go / no-go" model (active early years cost more, late years less).
+Some users want custom 5-year blocks instead. Without this, the projection
+is materially wrong for anyone whose spending shape isn't flat.
+
+**Approach**:
+- New schema table `spending_periods`: `planId`, `name`, `fromAge`, `toAge`
+  (or null for "until end"), `annualAmount`, `essentialFraction`, `inflationLinked`.
+  Anchor on the primary person's age so periods slide with retirement age.
+- Engine: replace the single `SpendingAssumption` with a resolver that, given
+  a year + primary's age, returns the active period's spending. Fall back to
+  the current `annualSpendingTarget` if no periods exist (back-compat).
+- IPC: load periods alongside expense profile; pass to engine.
+- UI: new `SpendingPeriodsPanel` replaces or complements the existing
+  `SpendingPanel`. Quick-add "go-go / slow-go / no-go" preset (e.g.
+  retirement→75 at £50k, 75→85 at £40k, 85→end at £30k) plus custom rows.
+- Onboarding: keep the single-target flow as today; advanced users can
+  edit periods on the plan page after creation.
+
+**DoD**: A user can define three periods (e.g. £50k retire→75, £40k 75→85,
+£30k 85→end). Engine respects them. Cash-flow chart shows the spending-target
+line stepping at the period boundaries. Existing single-target plans continue
+to work without migration pain.
 
 ### Sprint 9 — End-to-end tests (final sprint)
+
+### Sprint 9 — End-to-end tests (final sprint, was Sprint 9)
 **Why**: Unit + integration tests cover engine and IPC. There is no test that
 exercises the actual Electron app: onboarding flow → DB persistence → projection
 render → editing post-onboarding. The browser smoke this session proved that

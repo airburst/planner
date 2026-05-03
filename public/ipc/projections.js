@@ -54,6 +54,7 @@ function buildAssumptionSet(row) {
     additionalRate: taxPolicy.additionalRate ?? 0.45,
     sippTaxFreePercentage: taxPolicy.sippTaxFreePercentage ?? 0.25,
     sippMinimumAgeAccess: taxPolicy.sippMinimumAgeAccess ?? 55,
+    marriageAllowanceTransfer: taxPolicy.marriageAllowanceTransfer ?? 1260,
   };
 }
 

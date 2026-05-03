@@ -110,7 +110,7 @@ describe("Core Simulation Engine", () => {
       higherRate: 0.4,
       additionalRate: 0.45,
       sippTaxFreePercentage: 0.25,
-      sippMinimumAgeAccess: 55,
+      sippMinimumAgeAccess: 55, marriageAllowanceTransfer: 0,
     };
 
     // Setup spending assumption
@@ -706,7 +706,7 @@ describe("Accumulation phase (ACC-T1)", () => {
     higherRate: 0.4,
     additionalRate: 0.45,
     sippTaxFreePercentage: 0.25,
-    sippMinimumAgeAccess: 55,
+    sippMinimumAgeAccess: 55, marriageAllowanceTransfer: 0,
   };
 
   const baseSpending: SpendingAssumption = {
@@ -1033,7 +1033,7 @@ describe("Household-level drawdown", () => {
     personalAllowance: 12570, personalSavingsAllowance: 1000,
     basicRateBand: 50270, higherRateBand: 125140,
     basicRate: 0.2, higherRate: 0.4, additionalRate: 0.45,
-    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55,
+    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55, marriageAllowanceTransfer: 0,
   };
   const strategy: WithdrawalStrategy = {
     accountTypeOrder: ["cash", "isa", "sipp", "other"],
@@ -1294,7 +1294,7 @@ describe("Gap-to-target (ACC-T6)", () => {
     personalAllowance: 12570, personalSavingsAllowance: 1000,
     basicRateBand: 50270, higherRateBand: 125140,
     basicRate: 0.2, higherRate: 0.4, additionalRate: 0.45,
-    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55,
+    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55, marriageAllowanceTransfer: 0,
   };
   const baseStrategy: WithdrawalStrategy = {
     accountTypeOrder: ["cash", "isa", "sipp", "other"],
@@ -1407,7 +1407,7 @@ describe("One-off events (G2-T7, G2-T8)", () => {
     personalAllowance: 12570, personalSavingsAllowance: 1000,
     basicRateBand: 50270, higherRateBand: 125140,
     basicRate: 0.2, higherRate: 0.4, additionalRate: 0.45,
-    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55,
+    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55, marriageAllowanceTransfer: 0,
   };
   const baseStrategy: WithdrawalStrategy = {
     accountTypeOrder: ["cash", "isa", "sipp", "other"],
@@ -1601,5 +1601,112 @@ describe("One-off events (G2-T7, G2-T8)", () => {
     for (let i = 0; i < baseline.length; i++) {
       expect(withOld[i].totalHouseholdWithdrawals).toBe(baseline[i].totalHouseholdWithdrawals);
     }
+  });
+});
+
+describe("Marriage Allowance (G4-T3)", () => {
+  const baseAssumptions: AssumptionSet = {
+    id: 1, planId: 1, name: "Base",
+    inflationRate: 0, investmentReturn: 0,
+    personalAllowance: 12570, personalSavingsAllowance: 1000,
+    basicRateBand: 50270, higherRateBand: 125140,
+    basicRate: 0.2, higherRate: 0.4, additionalRate: 0.45,
+    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55,
+    marriageAllowanceTransfer: 1260,
+  };
+  const strategy: WithdrawalStrategy = {
+    accountTypeOrder: ["cash", "isa", "sipp", "other"],
+    optimizeForTaxEfficiency: true, sippWithdrawalApproach: "flexible",
+  };
+
+  it("transfers £1,260 PA from a non-taxpaying partner to a basic-rate spouse", () => {
+    // Non-earning partner (£0 income), basic-rate primary (£25k DB pension).
+    // Without MA: primary tax = (25000 - 12570) × 0.2 = £2,486
+    // With MA: primary tax = (25000 - 13830) × 0.2 = £2,234. Saving = £252.
+    const primary: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "P",
+      dateOfBirth: new Date("1960-01-01"), retirementYear: 2020,
+    };
+    const partner: PersonContext = {
+      id: 2, planId: 1, role: "partner", name: "Q",
+      dateOfBirth: new Date("1962-01-01"), retirementYear: 2020,
+    };
+    const streams: IncomeStreamContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "DB", type: "db_pension",
+        activationAge: 60, annualAmount: 25000, isIndexed: false },
+    ];
+    const accounts: AccountContext[] = [
+      { id: 10, planId: 1, personId: 1, name: "P-ISA", type: "isa",
+        openingBalance: 200000, annualContribution: 0, employerContribution: 0 },
+      { id: 11, planId: 1, personId: 2, name: "Q-ISA", type: "isa",
+        openingBalance: 100000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const spending: SpendingAssumption = {
+      id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
+    };
+
+    const [year] = runProjection(
+      [primary, partner], accounts, streams, baseAssumptions, spending, strategy, 2026, 2026
+    );
+
+    const expectedTaxWithoutMA = Math.round((25000 - 12570) * 0.2);
+    const expectedTaxWithMA = Math.round((25000 - (12570 + 1260)) * 0.2);
+    expect(year.totalHouseholdTax).toBe(expectedTaxWithMA);
+    expect(year.totalHouseholdTax).toBeLessThan(expectedTaxWithoutMA);
+  });
+
+  it("does not apply MA if neither partner has unused allowance", () => {
+    // Both primary and partner above PA — no MA.
+    const a: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "A",
+      dateOfBirth: new Date("1960-01-01"), retirementYear: 2020,
+    };
+    const b: PersonContext = {
+      id: 2, planId: 1, role: "partner", name: "B",
+      dateOfBirth: new Date("1962-01-01"), retirementYear: 2020,
+    };
+    const streams: IncomeStreamContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "A-DB", type: "db_pension",
+        activationAge: 60, annualAmount: 25000, isIndexed: false },
+      { id: 2, planId: 1, personId: 2, name: "B-DB", type: "db_pension",
+        activationAge: 60, annualAmount: 20000, isIndexed: false },
+    ];
+    const spending: SpendingAssumption = {
+      id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
+    };
+
+    const [year] = runProjection(
+      [a, b], [], streams, baseAssumptions, spending, strategy, 2026, 2026
+    );
+
+    const aTax = Math.round((25000 - 12570) * 0.2);
+    const bTax = Math.round((20000 - 12570) * 0.2);
+    expect(year.totalHouseholdTax).toBe(aTax + bTax);
+  });
+
+  it("does not apply MA if recipient is a higher-rate taxpayer", () => {
+    // Primary is higher rate (£60k), partner is non-earner. MA isn't available.
+    const primary: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "P",
+      dateOfBirth: new Date("1960-01-01"), retirementYear: 2020,
+    };
+    const partner: PersonContext = {
+      id: 2, planId: 1, role: "partner", name: "Q",
+      dateOfBirth: new Date("1962-01-01"), retirementYear: 2020,
+    };
+    const streams: IncomeStreamContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "DB", type: "db_pension",
+        activationAge: 60, annualAmount: 60000, isIndexed: false },
+    ];
+    const spending: SpendingAssumption = {
+      id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
+    };
+
+    const [year] = runProjection(
+      [primary, partner], [], streams, baseAssumptions, spending, strategy, 2026, 2026
+    );
+
+    const expectedTax = Math.round((50270 - 12570) * 0.2 + (60000 - 50270) * 0.4);
+    expect(year.totalHouseholdTax).toBe(expectedTax);
   });
 });
