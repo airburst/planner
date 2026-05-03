@@ -393,6 +393,50 @@ describe("projections IPC", () => {
       expect(result.scenarioId).toBeNull();
     });
 
+    it("runForScenario actually changes results when retirementAge is overridden", async () => {
+      // Regression for path-traversal bug: people.0.retirementAge was being
+      // written to people.retirementAge (on the array), so the override
+      // silently no-op'd. Now scenario projection should differ from base.
+      const planId = await seedPlan(invoke);
+      await invoke("people:create", {
+        planId,
+        role: "primary",
+        firstName: "P",
+        dateOfBirth: "1965-01-01",
+        retirementAge: 65,
+        statePensionAge: 67,
+      });
+      await invoke("accounts:create", {
+        planId,
+        personId: 1,
+        name: "ISA",
+        wrapperType: "isa",
+        currentBalance: 200000,
+        annualContribution: 0,
+      });
+      await testDb.db.insert(testDb.schema.expenseProfiles).values({
+        planId, name: "Spend", essentialAnnual: 30000, discretionaryAnnual: 0, inflationLinked: false,
+      }).run();
+
+      const [scenario] = await testDb.db
+        .insert(testDb.schema.scenarios)
+        .values({ planId, name: "Retire earlier", assumptionSetId: null, expenseProfileId: null })
+        .returning();
+      await testDb.db.insert(testDb.schema.scenarioOverrides).values({
+        scenarioId: scenario.id,
+        fieldPath: "people.0.retirementAge",
+        valueJson: JSON.stringify(60),
+      }).run();
+
+      const base = await invoke<ProjectionResult>("projections:runForPlan", planId, { startYear: 2026, endYear: 2035 });
+      const scn = await invoke<ProjectionResult>("projections:runForScenario", scenario.id, { startYear: 2026, endYear: 2035 });
+
+      // Earlier retirement → more years of drawdown → strictly less assets at end.
+      const baseEnd = base.years[base.years.length - 1].totalHouseholdAssets;
+      const scnEnd = scn.years[scn.years.length - 1].totalHouseholdAssets;
+      expect(scnEnd).toBeLessThan(baseEnd);
+    });
+
     it("runForScenario applies retirementAge override and preserves dateOfBirth", async () => {
       // Regression: structuredClone preserves Date; engine reads retirementYear
       // so we re-derive it after applying overrides on retirementAge.

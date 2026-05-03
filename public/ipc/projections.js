@@ -95,8 +95,9 @@ function applyOverridesToEngineData(engineData, overrides) {
       const index = parseInt(path[i + 1], 10);
 
       if (!isNaN(index)) {
-        current = current[key];
-        i++; // Skip the index
+        // Navigate into the array element, not just the array.
+        current = current[key][index];
+        i++; // Skip the consumed index segment in the next iteration.
       } else {
         if (!current[key]) {
           current[key] = {};
@@ -112,10 +113,17 @@ function applyOverridesToEngineData(engineData, overrides) {
   // Re-derive engine-only fields that depend on overridden values. The scenario
   // modal writes `people.X.retirementAge` (the DB field name) but the engine
   // reads `retirementYear`. Without this step the override silently no-ops.
+  // Note: structuredClone preserves Date instances under Node, but vitest's
+  // mocked environment may already coerce Date to string. Be permissive.
   if (Array.isArray(data.people)) {
     for (const person of data.people) {
-      if (typeof person.retirementAge === "number" && person.dateOfBirth instanceof Date) {
-        person.retirementYear = person.dateOfBirth.getFullYear() + person.retirementAge;
+      if (typeof person.retirementAge === "number" && person.dateOfBirth) {
+        const dob =
+          person.dateOfBirth instanceof Date
+            ? person.dateOfBirth
+            : new Date(person.dateOfBirth);
+        person.dateOfBirth = dob;
+        person.retirementYear = dob.getFullYear() + person.retirementAge;
       }
     }
   }

@@ -20,12 +20,16 @@ function computeMetrics(years: HouseholdYearState[]) {
   }
 
   const totalTax = years.reduce((sum, y) => sum + y.totalHouseholdTax, 0);
-  const totalDrawdown = years.reduce((sum, y) => {
-    const income = y.totalHouseholdIncome || 0;
-    const withdrawals = y.totalHouseholdWithdrawals || 0;
-    return sum + Math.max(0, withdrawals - income);
-  }, 0);
-  const avgDrawdown = totalDrawdown / years.length;
+  // Total amount drawn from accounts across the projection. (Earlier code
+  // reported "withdrawals - income" which masked normal drawdown as £0.)
+  const totalDrawdown = years.reduce(
+    (sum, y) => sum + (y.totalHouseholdWithdrawals || 0),
+    0
+  );
+  // Average over the years that include any drawdown only — gives a more
+  // representative figure than dividing by the full plan length.
+  const drawdownYears = years.filter((y) => (y.totalHouseholdWithdrawals || 0) > 0).length;
+  const avgDrawdown = drawdownYears > 0 ? totalDrawdown / drawdownYears : 0;
   const endAssets = years[years.length - 1]?.totalHouseholdAssets ?? 0;
   const hasShortfall = years.some((y) => !y.canSustainSpending);
 
