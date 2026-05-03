@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, session } = require("electron");
 const path = require("node:path");
 const { setupDatabase, schema } = require("./db");
 const registerPlansHandlers = require("./ipc/plans");
@@ -57,6 +57,35 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Set a Content-Security-Policy header on every response. Dev relaxes for
+  // Vite HMR (inline + eval, WS to localhost). Prod is strict — only own
+  // origin for scripts, no eval. Without this Electron prints an
+  // "Insecure Content-Security-Policy" warning in DevTools.
+  const cspDev = [
+    "default-src 'self' 'unsafe-inline' data: blob:",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: blob:",
+    "connect-src 'self' ws://localhost:* http://localhost:*",
+  ].join("; ");
+  const cspProd = [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data:",
+    "connect-src 'self'",
+  ].join("; ");
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [isDev ? cspDev : cspProd],
+      },
+    });
+  });
+
   const { db } = setupDatabase();
   registerPlansHandlers(ipcMain, db, schema);
   registerPeopleHandlers(ipcMain, db, schema);

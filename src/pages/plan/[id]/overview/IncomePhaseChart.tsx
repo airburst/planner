@@ -353,7 +353,9 @@ export function IncomePhaseChart({ years, incomeStreams, oneOffIncomes = [] }: I
       </div>
 
       <div className="h-96 w-full rounded-md border bg-background/40 p-2">
-        <ResponsiveContainer width="100%" height="100%">
+        {/* debounce + minHeight silence recharts' first-frame -1×-1 warning
+            when this route is mounted from a lazy-loaded chunk. */}
+        <ResponsiveContainer width="100%" height="100%" minHeight={1} debounce={50}>
           <ComposedChart
             data={dataWithTopmost}
             barCategoryGap={0}
