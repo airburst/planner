@@ -1710,3 +1710,108 @@ describe("Marriage Allowance (G4-T3)", () => {
     expect(year.totalHouseholdTax).toBe(expectedTax);
   });
 });
+
+describe("Spending periods (Sprint 8.5)", () => {
+  const baseAssumptions: AssumptionSet = {
+    id: 1, planId: 1, name: "Base",
+    inflationRate: 0, investmentReturn: 0,
+    personalAllowance: 12570, personalSavingsAllowance: 1000,
+    basicRateBand: 50270, higherRateBand: 125140,
+    basicRate: 0.2, higherRate: 0.4, additionalRate: 0.45,
+    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55,
+    marriageAllowanceTransfer: 0,
+  };
+  const strategy: WithdrawalStrategy = {
+    accountTypeOrder: ["cash", "isa", "sipp", "other"],
+    optimizeForTaxEfficiency: true, sippWithdrawalApproach: "flexible",
+  };
+  const retiree: PersonContext = {
+    id: 1, planId: 1, role: "primary", name: "P",
+    dateOfBirth: new Date("1960-01-01"), retirementYear: 2020,
+  };
+  const accounts: AccountContext[] = [
+    { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+      openingBalance: 1_000_000, annualContribution: 0, employerContribution: 0 },
+  ];
+
+  it("uses the active period's amount, stepping at age boundaries", () => {
+    // 1960-01-01 → age = year - 1960. Periods anchored on this age.
+    const spending: SpendingAssumption = {
+      id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
+      periods: [
+        { fromAge: 66, toAge: 75, annualAmount: 50000, inflationLinked: false },
+        { fromAge: 75, toAge: 85, annualAmount: 40000, inflationLinked: false },
+        { fromAge: 85, toAge: null, annualAmount: 30000, inflationLinked: false },
+      ],
+    };
+
+    const years = runProjection(
+      [retiree], accounts, [], baseAssumptions, spending, strategy, 2026, 2050
+    );
+    const drawdownByAge = (age: number) => {
+      const year = 1960 + age;
+      const row = years.find((y) => y.year === year);
+      return row?.totalHouseholdWithdrawals ?? -1;
+    };
+
+    expect(drawdownByAge(66)).toBe(50000); // start of go-go
+    expect(drawdownByAge(74)).toBe(50000); // last go-go year
+    expect(drawdownByAge(75)).toBe(40000); // step to slow-go
+    expect(drawdownByAge(84)).toBe(40000);
+    expect(drawdownByAge(85)).toBe(30000); // step to no-go
+    expect(drawdownByAge(89)).toBe(30000);
+  });
+
+  it("falls back to annualSpendingTarget when periods is empty", () => {
+    const spending: SpendingAssumption = {
+      id: 1, planId: 1, annualSpendingTarget: 25000, isIndexed: false,
+    };
+
+    const [year] = runProjection(
+      [retiree], accounts, [], baseAssumptions, spending, strategy, 2026, 2026
+    );
+
+    expect(year.totalHouseholdWithdrawals).toBe(25000);
+  });
+
+  it("inflates a period amount when inflationLinked is true", () => {
+    const inflation: AssumptionSet = { ...baseAssumptions, inflationRate: 0.03 };
+    const spending: SpendingAssumption = {
+      id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
+      periods: [
+        { fromAge: 66, toAge: null, annualAmount: 50000, inflationLinked: true },
+      ],
+    };
+
+    const years = runProjection(
+      [retiree], accounts, [], inflation, spending, strategy, 2026, 2028
+    );
+
+    // Year 2026 (age 66): £50,000 in baseline (startYear) terms.
+    // Year 2027: £50,000 × 1.03.
+    // Year 2028: £50,000 × 1.03^2.
+    expect(years[0].totalHouseholdWithdrawals).toBe(50000);
+    expect(years[1].totalHouseholdWithdrawals).toBe(Math.round(50000 * 1.03));
+    expect(years[2].totalHouseholdWithdrawals).toBe(Math.round(50000 * 1.03 * 1.03));
+  });
+
+  it("returns 0 spending in years with no covering period", () => {
+    // Period covers ages 70+, but plan starts at age 66.
+    const spending: SpendingAssumption = {
+      id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
+      periods: [
+        { fromAge: 70, toAge: null, annualAmount: 50000, inflationLinked: false },
+      ],
+    };
+
+    const years = runProjection(
+      [retiree], accounts, [], baseAssumptions, spending, strategy, 2026, 2030
+    );
+
+    // Years 2026-2029 (ages 66-69): no period, no spending, no drawdown.
+    expect(years[0].totalHouseholdWithdrawals).toBe(0);
+    expect(years[3].totalHouseholdWithdrawals).toBe(0);
+    // Year 2030 (age 70): period kicks in.
+    expect(years[4].totalHouseholdWithdrawals).toBe(50000);
+  });
+});

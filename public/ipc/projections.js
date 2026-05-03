@@ -164,6 +164,11 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       .from(schema.oneOffExpenses)
       .where(eq(schema.oneOffExpenses.planId, planId));
 
+    const spendingPeriods = await db
+      .select()
+      .from(schema.spendingPeriods)
+      .where(eq(schema.spendingPeriods.planId, planId));
+
     const scenarios = await db
       .select()
       .from(schema.scenarios)
@@ -256,12 +261,19 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
     }));
 
     const engineAssumptions = buildAssumptionSet(assumptionSet);
+    const enginePeriods = (spendingPeriods ?? []).map((p) => ({
+      fromAge: p.fromAge,
+      toAge: p.toAge,
+      annualAmount: p.annualAmount,
+      inflationLinked: p.inflationLinked,
+    }));
     const spending = {
       id: expenseProfile?.id ?? 0,
       planId,
       annualSpendingTarget:
         (expenseProfile?.essentialAnnual ?? 0) + (expenseProfile?.discretionaryAnnual ?? 0),
       isIndexed: expenseProfile?.inflationLinked ?? true,
+      periods: enginePeriods.length > 0 ? enginePeriods : undefined,
     };
     const withdrawalStrategy = {
       accountTypeOrder: ["cash", "isa", "sipp", "other"],
@@ -322,6 +334,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
     const incomeStreams = await db.select().from(schema.incomeStreams).where(eq(schema.incomeStreams.planId, planId));
     const oneOffIncomes = await db.select().from(schema.oneOffIncomes).where(eq(schema.oneOffIncomes.planId, planId));
     const oneOffExpenses = await db.select().from(schema.oneOffExpenses).where(eq(schema.oneOffExpenses.planId, planId));
+    const spendingPeriods = await db.select().from(schema.spendingPeriods).where(eq(schema.spendingPeriods.planId, planId));
     const assumptionSet = (await db.select().from(schema.assumptionSets).where(eq(schema.assumptionSets.planId, planId)))[0] || null;
     const expenseProfile = (await db.select().from(schema.expenseProfiles).where(eq(schema.expenseProfiles.planId, planId)))[0] || null;
 
@@ -368,11 +381,18 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       isIndexed: s.inflationLinked,
     }));
     let engineAssumptions = buildAssumptionSet(assumptionSet);
+    const enginePeriods = (spendingPeriods ?? []).map((p) => ({
+      fromAge: p.fromAge,
+      toAge: p.toAge,
+      annualAmount: p.annualAmount,
+      inflationLinked: p.inflationLinked,
+    }));
     const spending = {
       id: expenseProfile?.id ?? 0,
       planId,
       annualSpendingTarget: (expenseProfile?.essentialAnnual ?? 0) + (expenseProfile?.discretionaryAnnual ?? 0),
       isIndexed: expenseProfile?.inflationLinked ?? true,
+      periods: enginePeriods.length > 0 ? enginePeriods : undefined,
     };
     const withdrawalStrategy = {
       accountTypeOrder: ["cash", "isa", "sipp", "other"],
@@ -461,6 +481,11 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       .select()
       .from(schema.oneOffExpenses)
       .where(eq(schema.oneOffExpenses.planId, planId));
+
+    const spendingPeriods = await db
+      .select()
+      .from(schema.spendingPeriods)
+      .where(eq(schema.spendingPeriods.planId, planId));
 
     const assumptionSet = scenario.assumptionSetId
       ? (
@@ -564,12 +589,19 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
     }
 
     const engineAssumptions = buildAssumptionSet(assumptionSet);
+    const enginePeriods = (spendingPeriods ?? []).map((p) => ({
+      fromAge: p.fromAge,
+      toAge: p.toAge,
+      annualAmount: p.annualAmount,
+      inflationLinked: p.inflationLinked,
+    }));
     const spending = {
       id: expenseProfile?.id ?? 0,
       planId,
       annualSpendingTarget:
         (expenseProfile?.essentialAnnual ?? 0) + (expenseProfile?.discretionaryAnnual ?? 0),
       isIndexed: expenseProfile?.inflationLinked ?? true,
+      periods: enginePeriods.length > 0 ? enginePeriods : undefined,
     };
     const withdrawalStrategy = {
       accountTypeOrder: ["cash", "isa", "sipp", "other"],

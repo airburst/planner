@@ -105,13 +105,29 @@ export interface OneOffExpenseContext {
 }
 
 /**
- * Spending goal
+ * A single period of an age-banded spending profile (go-go / slow-go / no-go
+ * style). Anchored on the primary person's age.
+ *
+ * Period covers ages [fromAge, toAge). `toAge: null` means "until end of plan".
+ */
+export interface SpendingPeriod {
+  fromAge: number;
+  toAge: number | null;
+  annualAmount: number;
+  inflationLinked: boolean;
+}
+
+/**
+ * Spending goal. If `periods` is populated, the engine resolves spending per
+ * year from the period covering the primary's age. Otherwise the engine uses
+ * the flat `annualSpendingTarget` for every year (back-compat).
  */
 export interface SpendingAssumption {
   id: number;
   planId: number;
   annualSpendingTarget: number; // GBP per year
   isIndexed: boolean;
+  periods?: SpendingPeriod[];
 }
 
 /**

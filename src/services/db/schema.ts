@@ -94,6 +94,28 @@ export const incomeStreams = sqliteTable(
   })
 );
 
+export const spendingPeriods = sqliteTable(
+  "spending_periods",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    planId: integer("plan_id")
+      .notNull()
+      .references(() => householdPlans.id),
+    name: text("name").notNull(),
+    fromAge: integer("from_age").notNull(),
+    toAge: integer("to_age"),
+    annualAmount: real("annual_amount").notNull(),
+    inflationLinked: integer("inflation_linked", { mode: "boolean" })
+      .notNull()
+      .default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`)
+  },
+  (table) => ({
+    spendingPeriodsPlanIdx: index("spending_periods_plan_id_idx").on(table.planId)
+  })
+);
+
 export const oneOffIncomes = sqliteTable(
   "one_off_incomes",
   {

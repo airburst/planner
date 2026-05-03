@@ -11,6 +11,7 @@ const registerScenarioHandlers = require("./ipc/scenarios");
 const registerAssumptionSetsHandlers = require("./ipc/assumption-sets");
 const registerOneOffIncomesHandlers = require("./ipc/one-off-incomes");
 const registerOneOffExpensesHandlers = require("./ipc/one-off-expenses");
+const registerSpendingPeriodsHandlers = require("./ipc/spending-periods");
 
 const isDev = !app.isPackaged;
 let mainWindow;
@@ -67,6 +68,7 @@ app.whenReady().then(() => {
   registerAssumptionSetsHandlers(ipcMain, db, schema);
   registerOneOffIncomesHandlers(ipcMain, db, schema);
   registerOneOffExpensesHandlers(ipcMain, db, schema);
+  registerSpendingPeriodsHandlers(ipcMain, db, schema);
 
   createWindow();
 

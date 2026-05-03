@@ -33,5 +33,8 @@ export const queryKeys = {
   },
   oneOffExpenses: {
     byPlan: (planId: number) => ["one-off-expenses", "plan", planId] as const
+  },
+  spendingPeriods: {
+    byPlan: (planId: number) => ["spending-periods", "plan", planId] as const
   }
 };

@@ -17,8 +17,42 @@ import {
     PersonTaxResult,
     PersonYearState,
     SpendingAssumption,
+    SpendingPeriod,
     WithdrawalStrategy
 } from "./types";
+
+/**
+ * Resolve the household's annual spending target for a given year. If the
+ * spending assumption has age-banded periods, the period covering the primary
+ * person's age in this year wins. Otherwise the flat `annualSpendingTarget`
+ * is used (back-compat).
+ *
+ * Inflation is applied from `startYear` regardless of which period is active.
+ */
+export function resolveAnnualSpending(
+  spending: SpendingAssumption,
+  primary: PersonContext | undefined,
+  year: number,
+  startYear: number,
+  inflationRate: number
+): number {
+  const yearsFromBase = year - startYear;
+  const periods = spending.periods;
+  if (periods && periods.length > 0 && primary) {
+    const primaryAge = year - primary.dateOfBirth.getFullYear();
+    const active = periods.find(
+      (p: SpendingPeriod) =>
+        primaryAge >= p.fromAge && (p.toAge == null || primaryAge < p.toAge)
+    );
+    if (!active) return 0;
+    return active.inflationLinked
+      ? Math.round(active.annualAmount * Math.pow(1 + inflationRate, yearsFromBase))
+      : active.annualAmount;
+  }
+  return spending.isIndexed
+    ? Math.round(spending.annualSpendingTarget * Math.pow(1 + inflationRate, yearsFromBase))
+    : spending.annualSpendingTarget;
+}
 
 /**
  * Calculate age in a given year
@@ -701,9 +735,10 @@ export function runProjection(
     // For people fully past retirement, factor = 1 (full year of drawdown).
     // For someone in their retirementYear, factor < 1 by birth month.
     const drawdownFactor = householdDrawdownFactor(people, year);
-    const adjustedSpending = (spending.isIndexed
-      ? Math.round(spending.annualSpendingTarget * Math.pow(1 + assumptions.inflationRate, year - startYear))
-      : spending.annualSpendingTarget) + oneOffExpenseTotal;
+    const primary = people.find((p) => p.role === "primary") ?? people[0];
+    const adjustedSpending =
+      resolveAnnualSpending(spending, primary, year, startYear, assumptions.inflationRate) +
+      oneOffExpenseTotal;
     // Spending shortfall before windfall = (spending - stream income) pro-rated by
     // drawdown factor. Windfalls then cover this shortfall up to their amount;
     // any unused portion gets credited back to a savings account at year close.

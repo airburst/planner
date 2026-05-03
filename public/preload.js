@@ -95,4 +95,15 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("one-off-expenses:update", id, data),
   deleteOneOffExpense: (id) =>
     ipcRenderer.invoke("one-off-expenses:delete", id),
+
+  getSpendingPeriodsByPlan: (planId) =>
+    ipcRenderer.invoke("spending-periods:getByPlan", planId),
+  createSpendingPeriod: (data) =>
+    ipcRenderer.invoke("spending-periods:create", data),
+  updateSpendingPeriod: (id, data) =>
+    ipcRenderer.invoke("spending-periods:update", id, data),
+  deleteSpendingPeriod: (id) =>
+    ipcRenderer.invoke("spending-periods:delete", id),
+  replaceSpendingPeriods: (planId, periods) =>
+    ipcRenderer.invoke("spending-periods:replaceAll", planId, periods),
 });

@@ -11,7 +11,8 @@ export {};
         oneOffIncomes,
         people,
         scenarioOverrides,
-        scenarios
+        scenarios,
+        spendingPeriods
     } from "../services/db/schema";
     import type { HouseholdYearState, Recommendation } from "../services/engine/types";
 
@@ -35,6 +36,8 @@ type OneOffIncome = InferSelectModel<typeof oneOffIncomes>;
 type NewOneOffIncome = InferInsertModel<typeof oneOffIncomes>;
 type OneOffExpense = InferSelectModel<typeof oneOffExpenses>;
 type NewOneOffExpense = InferInsertModel<typeof oneOffExpenses>;
+type SpendingPeriod = InferSelectModel<typeof spendingPeriods>;
+type NewSpendingPeriod = InferInsertModel<typeof spendingPeriods>;
 type RetirementPotEntry = {
   pot: number;
   year: number;
@@ -136,6 +139,12 @@ declare global {
       createOneOffExpense: (data: NewOneOffExpense) => Promise<OneOffExpense | null>;
       updateOneOffExpense: (id: number, data: Partial<NewOneOffExpense>) => Promise<OneOffExpense | null>;
       deleteOneOffExpense: (id: number) => Promise<{ success: boolean }>;
+
+      getSpendingPeriodsByPlan: (planId: number) => Promise<SpendingPeriod[]>;
+      createSpendingPeriod: (data: NewSpendingPeriod) => Promise<SpendingPeriod | null>;
+      updateSpendingPeriod: (id: number, data: Partial<NewSpendingPeriod>) => Promise<SpendingPeriod | null>;
+      deleteSpendingPeriod: (id: number) => Promise<{ success: boolean }>;
+      replaceSpendingPeriods: (planId: number, periods: NewSpendingPeriod[]) => Promise<SpendingPeriod[]>;
 
       runProjectionForPlan: (
         planId: number,

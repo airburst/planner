@@ -614,7 +614,25 @@ onboarding), ~~G3-T8~~ (already shipped with G3-T4)
 ### Sprint 8 — Stress testing ✅ COMPLETE
 ~~G3-T6~~ (presets), ~~G4-T3~~ (Marriage Allowance)
 
-### Sprint 8.5 — Time-banded spending periods (new feature)
+### Sprint 8.5 — Time-banded spending periods ✅ DONE
+`spending_periods` table (migration 0004): id, planId, name, fromAge, toAge
+(nullable), annualAmount, inflationLinked, sortOrder. Anchored on the primary
+person's age. Period covers `[fromAge, toAge)`; toAge=null = until end.
+
+Engine: `resolveAnnualSpending(spending, primary, year, startYear, inflationRate)`
+returns the active period's amount (inflated from startYear if linked) or
+falls back to `annualSpendingTarget` for back-compat. Years not covered by
+any period get £0 spending.
+
+IPC + hooks + `SpendingPeriodsPanel` rendered after `SpendingPanel`. The
+panel shows existing periods, inline add/edit/delete, and a "Use go-go preset"
+button that seeds three periods (retirement→75 at 100%, 75→85 at 80%,
+85→end at 60% of the current expense-profile total).
+
+Four engine tests: stepping at age boundaries, fallback to flat target,
+inflation-linked period, gap years return 0.
+
+### Sprint 8.5 (legacy spec):
 **Why**: Today the engine uses a single `annualSpendingTarget` for the entire
 projection. In reality, retirement spending follows a curve — classically the
 "go-go / slow-go / no-go" model (active early years cost more, late years less).

@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { useAccountsByPlan } from "@/hooks/use-accounts";
+import { useExpenseProfileByPlan } from "@/hooks/use-expense-profiles";
 import { useIncomeStreamsByPlan } from "@/hooks/use-income-streams";
 import { useOneOffExpensesByPlan } from "@/hooks/use-one-off-expenses";
 import { useOneOffIncomesByPlan } from "@/hooks/use-one-off-incomes";
 import { usePeopleByPlan } from "@/hooks/use-people";
 import { usePlans } from "@/hooks/use-plans";
+import { useSpendingPeriodsByPlan } from "@/hooks/use-spending-periods";
 import { useProjection } from "@/hooks/use-projection";
 import { useScenarioProjection } from "@/hooks/use-scenarios";
 import { useNavigate, useParams } from "@tanstack/react-router";
@@ -24,6 +26,7 @@ import { ScenarioComparison } from "./ScenarioComparison";
 import { ScenarioModal } from "./ScenarioModal";
 import { ScenarioSelector } from "./ScenarioSelector";
 import { SpendingPanel } from "./SpendingPanel";
+import { SpendingPeriodsPanel } from "./SpendingPeriodsPanel";
 import { StressTestPanel } from "./StressTestPanel";
 
 export function PlanDetailPage() {
@@ -39,6 +42,8 @@ export function PlanDetailPage() {
   const incomeStreamsQuery = useIncomeStreamsByPlan(planId);
   const oneOffIncomesQuery = useOneOffIncomesByPlan(planId);
   const oneOffExpensesQuery = useOneOffExpensesByPlan(planId);
+  const spendingPeriodsQuery = useSpendingPeriodsByPlan(planId);
+  const expenseProfileQuery = useExpenseProfileByPlan(planId);
   const projectionQuery = useProjection(planId);
   const scenarioProjectionQuery = useScenarioProjection(selectedScenarioId);
 
@@ -55,6 +60,9 @@ export function PlanDetailPage() {
   const incomeStreams = incomeStreamsQuery.data ?? [];
   const oneOffIncomes = oneOffIncomesQuery.data ?? [];
   const oneOffExpenses = oneOffExpensesQuery.data ?? [];
+  const spendingPeriods = spendingPeriodsQuery.data ?? [];
+  const expenseProfile = expenseProfileQuery.data ?? null;
+  const fallbackAnnualSpending = (expenseProfile?.essentialAnnual ?? 0) + (expenseProfile?.discretionaryAnnual ?? 0);
 
   if (!selectedPlan) {
     return (
@@ -109,6 +117,12 @@ export function PlanDetailPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <PeoplePanel people={people} />
           <SpendingPanel planId={planId} />
+          <SpendingPeriodsPanel
+            planId={planId}
+            periods={spendingPeriods}
+            people={people}
+            fallbackAnnual={fallbackAnnualSpending}
+          />
           <AccountsPanel planId={planId} accounts={accounts} people={people} />
           <IncomeStreamsPanel planId={planId} incomeStreams={incomeStreams} people={people} />
           <OneOffIncomesPanel planId={planId} oneOffIncomes={oneOffIncomes} people={people} />
