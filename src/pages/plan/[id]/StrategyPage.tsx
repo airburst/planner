@@ -4,6 +4,7 @@ import { useScenarioProjection } from "@/hooks/use-scenarios";
 import { MonteCarloPanel } from "./MonteCarloPanel";
 import { ProjectionTable } from "./ProjectionTable";
 import { ScenarioComparison } from "./ScenarioComparison";
+import { StrategyPresetToggle } from "./StrategyPresetToggle";
 import { StressTestPanel } from "./StressTestPanel";
 
 export function StrategyPage() {
@@ -43,6 +44,7 @@ export function StrategyPage() {
           tax-efficient and resilient drawdown strategy.
         </p>
       </div>
+      <StrategyPresetToggle planId={planId} />
       <ScenarioComparison planId={planId} selectedScenarioId={selectedScenarioId} />
       <StressTestPanel
         planId={planId}
