@@ -38,7 +38,7 @@ export function StatCard({
         <p
           className={cn(
             "mt-1 text-xs",
-            deltaTone === "positive" && "text-green-600",
+            deltaTone === "positive" && "text-green-600 dark:text-green-400",
             deltaTone === "negative" && "text-destructive",
             deltaTone === "neutral" && "text-muted-foreground"
           )}

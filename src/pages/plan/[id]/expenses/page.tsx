@@ -66,7 +66,7 @@ export function ExpensesPage() {
         </div>
 
         {/* Sustainability score side card */}
-        <aside className="rounded-lg border bg-sw-on-surface p-5 text-white shadow-md">
+        <aside className="rounded-lg border bg-sw-on-surface p-5 text-white shadow-md dark:border-border dark:bg-sw-inverse-surface">
           <p className="text-xs font-medium uppercase tracking-wider opacity-70">
             Sustainability score
           </p>

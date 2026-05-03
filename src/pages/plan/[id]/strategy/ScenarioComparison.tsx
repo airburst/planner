@@ -60,7 +60,7 @@ function MetricCard({
       <p className="mt-1 text-lg font-semibold">{value}</p>
       {delta && (
         <p
-          className={`mt-1 text-xs ${isDeltaBad ? "text-red-600" : "text-green-600"
+          className={`mt-1 text-xs ${isDeltaBad ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"
             }`}
         >
           {delta}

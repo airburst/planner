@@ -47,7 +47,7 @@ export function MonteCarloPanel({ planId, scenarioId }: Props) {
   const successPct = result ? Math.round(result.successProbability * 100) : null;
   const last = result ? result.byYear[result.byYear.length - 1] : null;
   const successColor = (pct: number) =>
-    pct >= 90 ? "text-green-600" : pct >= 75 ? "text-amber-600" : "text-sw-on-error-container";
+    pct >= 90 ? "text-green-600 dark:text-green-400" : pct >= 75 ? "text-amber-600 dark:text-amber-400" : "text-sw-on-error-container dark:text-red-300";
 
   return (
     <section className="rounded-lg border bg-card p-5 text-card-foreground">

@@ -53,7 +53,7 @@ function deltaCell(base: number, stress: number, isNegativeBetter = false) {
   const sign = diff > 0 ? "+" : "";
   const isBad = isNegativeBetter ? diff > 0 : diff < 0;
   return (
-    <p className={`mt-1 text-xs ${isBad ? "text-sw-on-error-container" : "text-green-600"}`}>
+    <p className={`mt-1 text-xs ${isBad ? "text-sw-on-error-container dark:text-red-300" : "text-green-600 dark:text-green-400"}`}>
       {sign}{fmt(diff)}
     </p>
   );
@@ -155,7 +155,7 @@ export function StressTestPanel({ planId, scenarioId, baseSummary }: Props) {
             </div>
             <div className="rounded-md border p-3 col-span-2 md:col-span-4">
               <p className="text-xs text-muted-foreground">Status</p>
-              <p className={`mt-1 text-sm font-semibold ${stressSummary.hasShortfall ? "text-sw-on-error-container" : "text-green-600"}`}>
+              <p className={`mt-1 text-sm font-semibold ${stressSummary.hasShortfall ? "text-sw-on-error-container dark:text-red-300" : "text-green-600 dark:text-green-400"}`}>
                 {stressSummary.hasShortfall ? "⚠ Shortfall under stress" : "✓ Plan still sustainable"}
               </p>
             </div>

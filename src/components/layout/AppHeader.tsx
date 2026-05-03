@@ -7,10 +7,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTheme } from "@/contexts/ThemeContext";
 import { usePlans } from "@/hooks/use-plans";
 import { useScenariosByPlan } from "@/hooks/use-scenarios";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Bell, ChevronDown, Plus, User } from "lucide-react";
+import { ChevronDown, Moon, Plus, Sun } from "lucide-react";
 
 interface AppHeaderProps {
   planId: number | null;
@@ -50,6 +51,7 @@ export function AppHeader({
   const plansQuery = usePlans();
   const scenariosQuery = useScenariosByPlan(planId ?? 0);
   const routerState = useRouterState();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const plans = plansQuery.data ?? [];
   const scenarios = scenariosQuery.data ?? [];
@@ -170,18 +172,11 @@ export function AppHeader({
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Notifications"
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            onClick={toggleTheme}
             className="text-muted-foreground"
           >
-            <Bell className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Profile"
-            className="text-muted-foreground"
-          >
-            <User className="h-4 w-4" />
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
         </div>
       </div>
