@@ -81,8 +81,9 @@ function computeRetirementPotByPerson(enginePeople, years, startYear) {
 }
 
 function applyOverridesToEngineData(engineData, overrides) {
-  // Create a deep copy to avoid mutating the original
-  const data = JSON.parse(JSON.stringify(engineData));
+  // structuredClone preserves Date instances (JSON.stringify+parse turns them
+  // into strings and breaks engine.calculateAgeInYear).
+  const data = structuredClone(engineData);
 
   for (const override of overrides) {
     const path = override.fieldPath.split(".");
@@ -106,6 +107,17 @@ function applyOverridesToEngineData(engineData, overrides) {
 
     const lastKey = path[path.length - 1];
     current[lastKey] = value;
+  }
+
+  // Re-derive engine-only fields that depend on overridden values. The scenario
+  // modal writes `people.X.retirementAge` (the DB field name) but the engine
+  // reads `retirementYear`. Without this step the override silently no-ops.
+  if (Array.isArray(data.people)) {
+    for (const person of data.people) {
+      if (typeof person.retirementAge === "number" && person.dateOfBirth instanceof Date) {
+        person.retirementYear = person.dateOfBirth.getFullYear() + person.retirementAge;
+      }
+    }
   }
 
   return data;

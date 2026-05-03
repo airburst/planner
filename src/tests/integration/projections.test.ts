@@ -392,6 +392,46 @@ describe("projections IPC", () => {
       expect(result.assumptionSetId).toBe(assumptionSetRow.id);
       expect(result.scenarioId).toBeNull();
     });
+
+    it("runForScenario applies retirementAge override and preserves dateOfBirth", async () => {
+      // Regression: structuredClone preserves Date; engine reads retirementYear
+      // so we re-derive it after applying overrides on retirementAge.
+      const planId = await seedPlan(invoke);
+      const person = await invoke<{ id: number }>("people:create", {
+        planId,
+        role: "primary",
+        firstName: "P",
+        dateOfBirth: "1965-01-01",
+        retirementAge: 65,
+        statePensionAge: 67,
+      });
+
+      const [scenario] = await testDb.db
+        .insert(testDb.schema.scenarios)
+        .values({ planId, name: "Retire earlier", assumptionSetId: null, expenseProfileId: null })
+        .returning();
+
+      await testDb.db
+        .insert(testDb.schema.scenarioOverrides)
+        .values({
+          scenarioId: scenario.id,
+          fieldPath: `people.0.retirementAge`,
+          valueJson: JSON.stringify(63),
+        })
+        .run();
+
+      // Should run without throwing — was crashing on dateOfBirth.getFullYear.
+      const result = await invoke<ProjectionResult>(
+        "projections:runForScenario",
+        scenario.id,
+        { startYear: 2026, endYear: 2030 }
+      );
+
+      expect(result.scenarioId).toBe(scenario.id);
+      // 5-year window starting 2026 — projection should produce 5 rows.
+      expect(result.years.length).toBe(5);
+      void person;
+    });
   });
 
   describe("projections:runForPlan — recommendations", () => {
