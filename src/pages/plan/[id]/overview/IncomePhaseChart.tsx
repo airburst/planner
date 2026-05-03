@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { fmt } from "./utils";
+import { fmt } from "../_shared/utils";
 
 type IncomeStreamRow = Awaited<ReturnType<Window["api"]["getIncomeStreamsByPlan"]>>[number];
 type OneOffIncomeRow = Awaited<ReturnType<Window["api"]["getOneOffIncomesByPlan"]>>[number];

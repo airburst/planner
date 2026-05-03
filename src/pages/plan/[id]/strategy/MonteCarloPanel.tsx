@@ -9,7 +9,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { fmt } from "./utils";
+import { fmt } from "../_shared/utils";
 
 interface Props {
   planId: number;

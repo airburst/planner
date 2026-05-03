@@ -1,11 +1,11 @@
 import { PlanLayout } from "@/components/layout/PlanLayout";
 import { HomePage } from "@/pages";
 import { OnboardingPage } from "@/pages/onboarding";
-import { AssetsPage } from "@/pages/plan/[id]/AssetsPage";
-import { ExpensesPage } from "@/pages/plan/[id]/ExpensesPage";
-import { OverviewPage } from "@/pages/plan/[id]/OverviewPage";
-import { SettingsPage } from "@/pages/plan/[id]/SettingsPage";
-import { StrategyPage } from "@/pages/plan/[id]/StrategyPage";
+import { AssetsPage } from "@/pages/plan/[id]/assets/page";
+import { ExpensesPage } from "@/pages/plan/[id]/expenses/page";
+import { OverviewPage } from "@/pages/plan/[id]/overview/page";
+import { SettingsPage } from "@/pages/plan/[id]/settings/page";
+import { StrategyPage } from "@/pages/plan/[id]/strategy/page";
 import {
   Outlet,
   RouterProvider,

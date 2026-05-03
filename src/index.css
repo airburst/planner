@@ -28,11 +28,12 @@
   --sw-outline:         #76777d;
   --sw-outline-variant: #c6c6cd;
 
-  /* Brand — teal is the primary action / "growth" colour */
-  --sw-teal:           #006b5f;
-  --sw-teal-container: #6df5e1;
+  /* Brand — teal is the primary action / "growth" colour. Tuned to match
+     the SerenityPlan mockups (Tailwind teal-600). */
+  --sw-teal:           #0d9488;
+  --sw-teal-container: #99f6e4;
   --sw-on-teal:        #ffffff;
-  --sw-on-teal-container: #006f64;
+  --sw-on-teal-container: #115e59;
 
   /* Semantic */
   --sw-error:              #ba1a1a;
@@ -51,7 +52,7 @@
   --popover-foreground:  #0b1c30;
 
   /* Primary = teal (action / CTA colour) */
-  --primary:             #006b5f;
+  --primary:             #0d9488;
   --primary-foreground:  #ffffff;
 
   /* Secondary = soft blue-tinted surface */
@@ -73,7 +74,7 @@
   /* Chrome */
   --border:  #c6c6cd;
   --input:   #c6c6cd;
-  --ring:    #006b5f;
+  --ring:    #0d9488;
 
   /* Border radius — 8px base rhythm */
   --radius-sm:   0.25rem;   /* 4px  */
@@ -322,7 +323,7 @@
     border-radius: var(--radius-full);
     background: var(--primary);
     border: 3px solid var(--sw-surface-container-lowest);
-    box-shadow: 0 1px 4px rgba(0, 107, 95, 0.35);
+    box-shadow: 0 1px 4px rgba(13, 148, 136, 0.35);
     cursor: pointer;
     transition: transform 120ms ease, box-shadow 120ms ease;
   }
@@ -333,7 +334,7 @@
     border-radius: var(--radius-full);
     background: var(--primary);
     border: 3px solid var(--sw-surface-container-lowest);
-    box-shadow: 0 1px 4px rgba(0, 107, 95, 0.35);
+    box-shadow: 0 1px 4px rgba(13, 148, 136, 0.35);
     cursor: pointer;
     transition: transform 120ms ease, box-shadow 120ms ease;
   }

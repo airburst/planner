@@ -9,7 +9,7 @@ import { Banknote, PiggyBank, TrendingUp } from "lucide-react";
 import { AccountsPanel } from "./AccountsPanel";
 import { IncomeStreamsPanel } from "./IncomeStreamsPanel";
 import { OneOffIncomesPanel } from "./OneOffIncomesPanel";
-import { fmt } from "./utils";
+import { fmt } from "../_shared/utils";
 
 export function AssetsPage() {
   const { planId } = usePlanContext();

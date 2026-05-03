@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { PlanProvider } from "@/contexts/PlanContext";
 import { usePlans } from "@/hooks/use-plans";
-import { ScenarioModal } from "@/pages/plan/[id]/ScenarioModal";
+import { ScenarioModal } from "@/pages/plan/[id]/_shared/ScenarioModal";
 import { Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppHeader } from "./AppHeader";

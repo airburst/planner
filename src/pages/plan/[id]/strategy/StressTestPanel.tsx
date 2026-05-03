@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { fmt } from "./utils";
+import { fmt } from "../_shared/utils";
 
 type StressPreset = "high-inflation" | "lower-returns" | "early-death" | "market-crash";
 

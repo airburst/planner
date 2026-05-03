@@ -8,7 +8,7 @@ import { useSpendingPeriodsByPlan } from "@/hooks/use-spending-periods";
 import { OneOffExpensesPanel } from "./OneOffExpensesPanel";
 import { RetirementAgeSliders } from "./RetirementAgeSliders";
 import { SpendingPanel } from "./SpendingPanel";
-import { fmt } from "./utils";
+import { fmt } from "../_shared/utils";
 
 export function ExpensesPage() {
   const { planId, selectedScenarioId } = usePlanContext();

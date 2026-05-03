@@ -11,7 +11,7 @@ import { AssetAllocationCard } from "./AssetAllocationCard";
 import { IncomePhaseChart } from "./IncomePhaseChart";
 import { ProjectionError } from "./ProjectionError";
 import { RecommendationPanel } from "./RecommendationPanel";
-import { fmt } from "./utils";
+import { fmt } from "../_shared/utils";
 
 export function OverviewPage() {
   const { planId, selectedScenarioId } = usePlanContext();

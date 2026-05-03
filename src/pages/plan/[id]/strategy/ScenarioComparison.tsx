@@ -1,7 +1,7 @@
 import { useProjection } from "@/hooks/use-projection";
 import { useScenarioProjection } from "@/hooks/use-scenarios";
 import { HouseholdYearState } from "@/services/engine/types";
-import { formatCurrency } from "./utils";
+import { formatCurrency } from "../_shared/utils";
 
 interface ScenarioComparisonProps {
   planId: number;

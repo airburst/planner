@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import type { Recommendation } from "@/services/engine/types";
-import { fmt } from "./utils";
+import { fmt } from "../_shared/utils";
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
