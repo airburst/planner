@@ -3,6 +3,7 @@
 ## Vite Module Resolution Errors ("Failed to resolve import")
 
 If you see errors like:
+
 ```
 Failed to resolve import "../../components/ui/button" from "src/pages/index.tsx". Does the file exist?
 ```
@@ -50,6 +51,7 @@ When running `bun run start` in development, you may see harmless warnings in th
 ### What's happening
 
 These are **internal Chromium DevTools protocol warnings** that occur because:
+
 - Electron bundles a specific version of Chromium
 - The DevTools in that version attempts to enable Autofill protocol features
 - Those features aren't available in the bundled Chromium version
@@ -57,6 +59,7 @@ These are **internal Chromium DevTools protocol warnings** that occur because:
 ### Impact
 
 **None.** These are purely cosmetic warnings that:
+
 - Do not affect app functionality
 - Do not prevent the app from running
 - Do not impact user experience
@@ -65,6 +68,7 @@ These are **internal Chromium DevTools protocol warnings** that occur because:
 ### Why they can't be easily suppressed
 
 Suppressing these warnings requires either:
+
 - Patching Chromium itself
 - Using undocumented internal APIs
 - Complex workarounds that may cause other issues
