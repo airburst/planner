@@ -3,6 +3,7 @@ import { HomePage } from "@/pages";
 import {
   Outlet,
   RouterProvider,
+  createHashHistory,
   createRootRoute,
   createRoute,
   createRouter,
@@ -131,14 +132,14 @@ const routeTree = rootRoute.addChildren([
   ]),
 ]);
 
+// Hash history is required for Electron's file:// URLs. Browser history reads
+// window.location.pathname, which in production is the full filesystem path
+// (e.g. /Applications/Planner.app/.../index.html) — no route matches it.
+// Hash history uses the fragment (#/path) so routing works correctly.
 export const router = createRouter({
   routeTree,
-  // Cross-fade between routes via the View Transitions API (Chromium-based,
-  // which Electron is). Combined with React's startTransition this avoids
-  // the Suspense fallback flicker on every nav.
+  history: createHashHistory(),
   defaultViewTransition: true,
-  // Preload route chunks + loaders on link hover/focus so the next click
-  // is effectively instant.
   defaultPreload: "intent",
   defaultPreloadDelay: 50,
 });
