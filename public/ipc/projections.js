@@ -115,9 +115,14 @@ function applyOverridesToEngineData(engineData, overrides) {
   // reads `retirementYear`. Without this step the override silently no-ops.
   // Note: structuredClone preserves Date instances under Node, but vitest's
   // mocked environment may already coerce Date to string. Be permissive.
+  // Reject impossible retirementAge values (e.g. legacy scenarios that stored
+  // a delta like -2 instead of an absolute age) — keep the original retirementYear.
   if (Array.isArray(data.people)) {
     for (const person of data.people) {
       if (typeof person.retirementAge === "number" && person.dateOfBirth) {
+        if (person.retirementAge < 18 || person.retirementAge > 100) {
+          continue;
+        }
         const dob =
           person.dateOfBirth instanceof Date
             ? person.dateOfBirth
