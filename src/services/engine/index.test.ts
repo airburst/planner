@@ -1521,6 +1521,64 @@ describe("One-off events (G2-T7, G2-T8)", () => {
     expect(safeSpend).toBe(0);
   });
 
+  it("credits unused one-off income to savings during accumulation", () => {
+    // 45yo retiring at 65 (year 2046). Single ISA £100k, no contributions,
+    // zero growth. £30k windfall in 2030 — fully accumulation year.
+    // Expected: by 2046 retirement, pot = 100k + 30k = 130k.
+    const accumulator: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "Pre",
+      dateOfBirth: new Date("1981-01-01"), retirementYear: 2046,
+    };
+    const isa: AccountContext = {
+      id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+      openingBalance: 100000, annualContribution: 0, employerContribution: 0,
+    };
+    const windfall: OneOffIncomeContext = {
+      id: 1, planId: 1, personId: 1, name: "Inheritance",
+      year: 2030, amount: 30000, taxable: false,
+    };
+    const noGrowth: AssumptionSet = { ...baseAssumptions, inflationRate: 0, investmentReturn: 0 };
+
+    const years = runProjection(
+      [accumulator], [isa], [], noGrowth,
+      { id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false },
+      baseStrategy, 2026, 2046, [windfall], []
+    );
+
+    // Closing balance at the year before retirement should reflect the windfall.
+    const lastAccumulationYear = years[years.length - 2]; // 2045
+    expect(lastAccumulationYear.totalHouseholdAssets).toBe(130000);
+  });
+
+  it("credits only the unused portion of a one-off in a drawdown year", () => {
+    // Retired person, £30k spending, no streams, £60k windfall.
+    // Spending gap = 30k. Windfall covers it; surplus = 30k → ISA bumps by 30k.
+    const retiree: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "R",
+      dateOfBirth: new Date("1955-01-01"), retirementYear: 2020,
+    };
+    const isa: AccountContext = {
+      id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+      openingBalance: 100000, annualContribution: 0, employerContribution: 0,
+    };
+    const noGrowth: AssumptionSet = { ...baseAssumptions, inflationRate: 0, investmentReturn: 0 };
+    const surplusWindfall: OneOffIncomeContext = {
+      id: 1, planId: 1, personId: 1, name: "Big inheritance",
+      year: 2026, amount: 60000, taxable: false,
+    };
+
+    const [year] = runProjection(
+      [retiree], [isa], [], noGrowth,
+      { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: false },
+      baseStrategy, 2026, 2026, [surplusWindfall], []
+    );
+
+    // Spending gap = 30k. Windfall = 60k. Used = 30k. Surplus = 30k.
+    // ISA opening 100k → closing = 100k + 30k = 130k.
+    expect(year.totalHouseholdAssets).toBe(130000);
+    expect(year.totalHouseholdWithdrawals).toBe(0);
+  });
+
   it("ignores one-off events outside the projection window", () => {
     const accounts: AccountContext[] = [
       { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",

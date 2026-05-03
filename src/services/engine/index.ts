@@ -628,10 +628,15 @@ export function runProjection(
     const adjustedSpending = (spending.isIndexed
       ? Math.round(spending.annualSpendingTarget * Math.pow(1 + assumptions.inflationRate, year - startYear))
       : spending.annualSpendingTarget) + oneOffExpenseTotal;
-    // One-off inflows (taxable + non-taxable) reduce the deficit just like stream income.
-    const householdDeficit = drawdownFactor > 0
-      ? Math.max(0, Math.round((adjustedSpending - householdStreamIncome - oneOffHouseholdCash) * drawdownFactor))
+    // Spending shortfall before windfall = (spending - stream income) pro-rated by
+    // drawdown factor. Windfalls then cover this shortfall up to their amount;
+    // any unused portion gets credited back to a savings account at year close.
+    const grossSpendingShortfall = drawdownFactor > 0
+      ? Math.max(0, Math.round((adjustedSpending - householdStreamIncome) * drawdownFactor))
       : 0;
+    const windfallUsed = Math.min(grossSpendingShortfall, oneOffHouseholdCash);
+    const windfallSurplus = oneOffHouseholdCash - windfallUsed;
+    const householdDeficit = grossSpendingShortfall - windfallUsed;
     void oneOffNonTaxableHousehold;
 
     // Pass 3: allocate withdrawals across drawable accounts in strategy order.
@@ -678,6 +683,31 @@ export function runProjection(
       balancesByPerson.set(person.id, personYear.closingBalances);
       for (const balance of personYear.closingBalances.values()) {
         householdYear.totalHouseholdAssets += balance;
+      }
+    }
+
+    // Pass 5: credit any windfall surplus (one-off cash not used for spending)
+    // to the primary person's preferred savings account. SIPP > ISA > first.
+    if (windfallSurplus > 0) {
+      const primary = people.find((p) => p.role === "primary") ?? people[0];
+      if (primary) {
+        const preferredAccount =
+          accounts.find((a) => a.personId === primary.id && a.type === "sipp") ??
+          accounts.find((a) => a.personId === primary.id && a.type === "isa") ??
+          accounts.find((a) => a.personId === primary.id);
+        if (preferredAccount) {
+          const balances = balancesByPerson.get(primary.id);
+          const currentBalance = balances?.get(preferredAccount.id) ?? 0;
+          const newBalance = currentBalance + windfallSurplus;
+          balances?.set(preferredAccount.id, newBalance);
+          // Mirror onto the per-person closing balance so the chart and table
+          // see the credit immediately, not just the next year's opening.
+          const personYearState = householdYear.people.get(primary.id);
+          if (personYearState) {
+            personYearState.closingBalances.set(preferredAccount.id, newBalance);
+          }
+          householdYear.totalHouseholdAssets += windfallSurplus;
+        }
       }
     }
 
