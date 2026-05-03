@@ -186,8 +186,8 @@ flowchart LR
         RP[runProjection]
     end
 
-    Y["HouseholdYearState[]<br/>per-year breakdown"]
-    R[Recommendation[]]
+    Y["HouseholdYearState[] — per-year breakdown"]
+    R["Recommendation[]"]
     SAFE["safeAnnualSpend()"]
     MC["runMonteCarlo()"]
     OPT["findOptimalCrystallisationStrategy()"]

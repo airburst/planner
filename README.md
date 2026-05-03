@@ -20,12 +20,12 @@ Most retirement calculators are spreadsheets, simplified web tools, or financial
 
 ## Screenshots
 
-| Overview | Strategy |
-|---|---|
+| Overview                              | Strategy                              |
+| ------------------------------------- | ------------------------------------- |
 | ![Overview](docs/images/overview.png) | ![Strategy](docs/images/strategy.png) |
 
-| Assets | Expenses |
-|---|---|
+| Assets                            | Expenses                              |
+| --------------------------------- | ------------------------------------- |
 | ![Assets](docs/images/assets.png) | ![Expenses](docs/images/expenses.png) |
 
 > Captured via `bash scripts/screenshots.sh` — builds the renderer, runs Electron in screenshot mode, navigates each tab and writes the four PNGs to `docs/images/`.
@@ -39,7 +39,7 @@ Most retirement calculators are spreadsheets, simplified web tools, or financial
 - **Household-level projection** with per-person UK income tax (Personal Allowance taper, basic / higher / additional bands).
 - **Marriage Allowance** transfer between spouses where eligible.
 - **Accumulation phase** with personal + employer pension contributions and pro-rata for birth-month-aware retirement years.
-- **Drawdown phase** anchored on the *primary earner's* retirement: birth-month timing controls when household drawdown actually starts.
+- **Drawdown phase** anchored on the _primary earner's_ retirement: birth-month timing controls when household drawdown actually starts.
 - **SIPP strategies** — UFPLS (25%/75% on every withdrawal) or PCLS-upfront (crystallise the whole pot at retirement; remaining 75% fully taxable). The engine recommends whichever produces lower lifetime tax.
 - **Time-banded spending** — go-go / slow-go / no-go periods, inflation-linked. The earliest period auto-extends back to cover early retirement.
 - **One-off events** — windfalls (inheritances, lump sums), planned expenses (renovation, car, gifts).
@@ -150,14 +150,14 @@ planner/
 │   └── router.tsx           # TanStack route tree
 │
 ├── .ai/                     # design artifacts, planning docs, research
-└── ARCHITECTURE.md          # system design + diagrams
+└── docs/                    # ARCHITECTURE, FEATURES, NEW-USER-GUIDE, TROUBLESHOOTING, images/
 ```
 
 ---
 
 ## Documentation
 
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** — process model, data flow, engine internals, route tree, with diagrams.
+- **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — process model, data flow, engine internals, route tree, with diagrams.
 - **[CHANGELOG.md](./CHANGELOG.md)** — release history.
 - **[AGENTS.md](./AGENTS.md)** — instructions for AI agents working on the codebase.
 
