@@ -41,6 +41,10 @@ function RouteFallback() {
 }
 
 function RootLayout() {
+  // Suspense fallback only fires for the very first chunk. Subsequent route
+  // changes are wrapped in startTransition + the View Transitions API (see
+  // router options below) so they cross-fade in place instead of unmounting
+  // to a loading state.
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Suspense fallback={<RouteFallback />}>
@@ -127,7 +131,17 @@ const routeTree = rootRoute.addChildren([
   ]),
 ]);
 
-export const router = createRouter({ routeTree });
+export const router = createRouter({
+  routeTree,
+  // Cross-fade between routes via the View Transitions API (Chromium-based,
+  // which Electron is). Combined with React's startTransition this avoids
+  // the Suspense fallback flicker on every nav.
+  defaultViewTransition: true,
+  // Preload route chunks + loaders on link hover/focus so the next click
+  // is effectively instant.
+  defaultPreload: "intent",
+  defaultPreloadDelay: 50,
+});
 
 declare module "@tanstack/react-router" {
   interface Register {

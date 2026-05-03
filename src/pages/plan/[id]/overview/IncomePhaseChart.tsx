@@ -292,65 +292,77 @@ export function IncomePhaseChart({ years, incomeStreams, oneOffIncomes = [] }: I
         </div>
       </div>
 
-      {/* Legend / toggles */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        {series.map((s) => {
+      {/* Legend / toggles — grouped by series type. Visual separator between
+          groups replaces per-chip "drawdown" / "windfall" labels. */}
+      {(() => {
+        const incomeSeries = series.filter((s) => s.group === "income");
+        const oneOffSeries = series.filter((s) => s.group === "oneoff");
+        const drawdownSeries = series.filter((s) => s.group === "drawdown");
+        const groups = [incomeSeries, oneOffSeries, drawdownSeries].filter(
+          (g) => g.length > 0
+        );
+        const targetHidden = hiddenKeys.has(SPENDING_TARGET_KEY);
+
+        const renderChip = (s: SeriesMeta) => {
           const isHidden = hiddenKeys.has(s.key);
           return (
             <button
               key={s.key}
               type="button"
               onClick={() => toggle(s.key)}
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors ${
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
                 isHidden
                   ? "border-border text-muted-foreground"
-                  : "border-foreground/20 bg-muted/40 text-foreground"
+                  : "border-foreground/15 bg-muted/40 text-foreground"
               }`}
             >
               <span
-                className="h-2.5 w-2.5 rounded-full"
+                className="h-2 w-2 rounded-full"
                 style={{ backgroundColor: s.color, opacity: isHidden ? 0.3 : 1 }}
               />
               <span>{s.label}</span>
-              {s.group === "drawdown" && (
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">drawdown</span>
-              )}
-              {s.group === "oneoff" && (
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">windfall</span>
-              )}
             </button>
           );
-        })}
-        {(() => {
-          const isHidden = hiddenKeys.has(SPENDING_TARGET_KEY);
-          return (
+        };
+
+        return (
+          <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+            {groups.map((group, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-1.5">
+                {group.map(renderChip)}
+                {i < groups.length - 1 && (
+                  <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+                )}
+              </div>
+            ))}
+            <span className="mx-1 h-4 w-px bg-border" aria-hidden />
             <button
               type="button"
               onClick={() => toggle(SPENDING_TARGET_KEY)}
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors ${
-                isHidden
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                targetHidden
                   ? "border-border text-muted-foreground"
-                  : "border-foreground/20 bg-muted/40 text-foreground"
+                  : "border-foreground/15 bg-muted/40 text-foreground"
               }`}
             >
               <span
-                className="h-0.5 w-4 rounded-full"
-                style={{ backgroundColor: SPENDING_TARGET_COLOR, opacity: isHidden ? 0.3 : 1 }}
+                className="h-0.5 w-3 rounded-full"
+                style={{ backgroundColor: SPENDING_TARGET_COLOR, opacity: targetHidden ? 0.3 : 1 }}
               />
               <span>Spending target</span>
             </button>
-          );
-        })()}
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 px-2 text-xs"
-          onClick={resetHidden}
-          disabled={hiddenKeys.size === 0}
-        >
-          Reset
-        </Button>
-      </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto h-7 px-2 text-xs"
+              onClick={resetHidden}
+              disabled={hiddenKeys.size === 0}
+            >
+              Reset
+            </Button>
+          </div>
+        );
+      })()}
 
       <div className="h-96 w-full rounded-md border bg-background/40 p-2">
         {/* debounce + minHeight silence recharts' first-frame -1×-1 warning

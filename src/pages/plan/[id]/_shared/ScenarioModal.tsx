@@ -110,7 +110,7 @@ export function ScenarioModal({
               placeholder="e.g. Retire at 63"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
@@ -123,7 +123,7 @@ export function ScenarioModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
@@ -143,7 +143,7 @@ export function ScenarioModal({
                 placeholder="e.g. 61"
                 value={retirementAge}
                 onChange={(e) => setRetirementAge(e.target.value)}
-                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
@@ -156,7 +156,7 @@ export function ScenarioModal({
                 placeholder="Leave blank for no change"
                 value={spendingTarget}
                 onChange={(e) => setSpendingTarget(e.target.value)}
-                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
@@ -170,7 +170,7 @@ export function ScenarioModal({
                 step="0.01"
                 value={growthRate}
                 onChange={(e) => setGrowthRate(e.target.value)}
-                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
           </div>

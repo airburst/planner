@@ -16,7 +16,8 @@
     "postinstall": "electron-rebuild -f -w better-sqlite3",
     "db:migrate": "drizzle-kit generate --config drizzle.config.ts",
     "changeset": "changeset",
-    "version": "changeset version"
+    "version": "changeset version",
+    "release": "bash scripts/release.sh"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

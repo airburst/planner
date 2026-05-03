@@ -40,7 +40,7 @@ export function RecommendationPanel({ recommendations, accumulationShortfall }: 
     <section className="rounded-lg border bg-card p-5 text-card-foreground">
       <h3 className="mb-4 text-lg font-semibold">Recommendations</h3>
       {showShortfall && (
-        <div className="mb-4 rounded-md border border-sw-error/40 bg-sw-error-container/40 p-4">
+        <div className="mb-4 rounded-md border border-sw-error/40 bg-sw-error-container/40 p-4 dark:border-destructive/40 dark:bg-destructive/10">
           <div className="flex items-center gap-2">
             <Badge variant="high">SAVE MORE</Badge>
             <span className="text-xs text-muted-foreground">
@@ -61,7 +61,7 @@ export function RecommendationPanel({ recommendations, accumulationShortfall }: 
       {sorted.length > 0 && (
         <ul className="space-y-3">
           {sorted.map((rec) => (
-            <li key={rec.id} className="rounded-md border p-4">
+            <li key={rec.id} className="rounded-md border bg-background/40 p-4 transition-colors hover:bg-muted/40">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={rec.priority as "high" | "medium" | "low"}>
                   {rec.priority.toUpperCase()}
