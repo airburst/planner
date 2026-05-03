@@ -121,7 +121,7 @@ describe("Recommendation Engine", () => {
     expect(taxRecommendation?.priority).toBe("medium");
   });
 
-  it("creates a withdrawal recommendation when taxable withdrawals appear", () => {
+  it("recommends PCLS upfront when crystallisation comparison shows a meaningful saving", () => {
     const personTax = createTaxBreakdown({ year: 2030, totalIncome: 30000, totalTax: 3486, effectiveTaxRate: 3486 / 30000 });
     const personYear = createPersonYearState(personTax, {
       totalWithdrawals: 15000,
@@ -147,11 +147,60 @@ describe("Recommendation Engine", () => {
           effectiveRate: personTax.effectiveTaxRate,
         },
       }),
-    ]);
+    ], {
+      crystallisationComparison: {
+        recommended: "pcls-upfront",
+        ufplsLifetimeTax: 5000,
+        pclsLifetimeTax: 2000,
+        taxSaving: 3000,
+        pclsLumpSum: 100000,
+      },
+    });
 
-    const withdrawalRecommendation = recommendations.find((item) => item.title.includes("withdrawal sequencing"));
-    expect(withdrawalRecommendation?.category).toBe("withdrawal");
-    expect(withdrawalRecommendation?.priority).toBe("medium");
+    const pclsRec = recommendations.find((item) => item.title.includes("tax-free upfront"));
+    expect(pclsRec?.category).toBe("tax");
+    expect(pclsRec?.priority).toBe("medium");
+    expect(pclsRec?.impactScore).toBe(3000);
+  });
+
+  it("does not emit a PCLS recommendation when the saving is negligible", () => {
+    const personTax = createTaxBreakdown({ year: 2030, totalIncome: 30000, totalTax: 3486, effectiveTaxRate: 3486 / 30000 });
+    const personYear = createPersonYearState(personTax, {
+      totalWithdrawals: 15000,
+      withdrawalDetails: [
+        {
+          accountId: 1,
+          accountType: "sipp",
+          amountWithdrawn: 15000,
+          taxableComponent: 12000,
+          taxFreeComponent: 3000,
+        },
+      ],
+    });
+    const recommendations = generateRecommendations(99, [
+      createHouseholdYearState({
+        year: 2030,
+        people: new Map([[1, personYear]]),
+        totalHouseholdWithdrawals: 15000,
+        taxBreakdown: {
+          year: 2030,
+          people: new Map([[1, personTax]]),
+          totalTax: personTax.totalTax,
+          effectiveRate: personTax.effectiveTaxRate,
+        },
+      }),
+    ], {
+      crystallisationComparison: {
+        recommended: "pcls-upfront",
+        ufplsLifetimeTax: 5000,
+        pclsLifetimeTax: 4900,
+        taxSaving: 100, // below £500 threshold
+        pclsLumpSum: 100000,
+      },
+    });
+
+    const pclsRec = recommendations.find((item) => item.title.includes("tax-free upfront"));
+    expect(pclsRec).toBeUndefined();
   });
 
   it("returns deterministic recommendations for the same projection years", () => {

@@ -5,6 +5,7 @@ export {
   calculatePersonTaxResult,
   findDepletionYear,
   findGapToTarget,
+  findOptimalCrystallisationStrategy,
   findRetirementDeferralYears,
   findSafeAnnualSpend,
   projectPersonYear,

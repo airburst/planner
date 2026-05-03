@@ -71,6 +71,16 @@ export interface AssumptionSet {
   sippTaxFreePercentage: number; // 0.25 for 25% tax-free lump sum
   sippMinimumAgeAccess: number; // 55 for current rules
 
+  // SIPP drawdown strategy:
+  //   "ufpls": every withdrawal split 25% tax-free / 75% taxable. The 25%
+  //     entitlement remains alive on future growth as it's withdrawn.
+  //   "pcls-upfront": at the SIPP owner's retirement year, crystallise the
+  //     full pot. 25% paid out as Pension Commencement Lump Sum (credited to
+  //     ISA/cash). The remaining 75% stays in the SIPP but is fully taxable
+  //     on every subsequent withdrawal.
+  // Default is "ufpls" — preserves existing behaviour.
+  sippDrawdownStrategy?: "ufpls" | "pcls-upfront";
+
   // Marriage Allowance — fixed £1,260 transfer of personal allowance from a
   // non-taxpaying partner to a basic-rate-payer spouse. Set to 0 to disable.
   marriageAllowanceTransfer: number;

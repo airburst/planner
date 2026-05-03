@@ -110,7 +110,9 @@ export function StressTestPanel({ planId, scenarioId, baseSummary }: Props) {
             >
               <div className="flex flex-col items-start">
                 <span className="text-sm font-medium">{p.label}</span>
-                <span className="text-[11px] text-muted-foreground">{p.blurb}</span>
+                <span className={`text-[11px] ${isActive ? "text-primary-foreground/90" : "text-muted-foreground"}`}>
+                  {p.blurb}
+                </span>
               </div>
             </Button>
           );

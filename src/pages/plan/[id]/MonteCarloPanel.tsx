@@ -1,4 +1,12 @@
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { fmt } from "./utils";
@@ -56,28 +64,32 @@ export function MonteCarloPanel({ planId, scenarioId }: Props) {
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Iterations</label>
-          <select
+          <Select
             value={iterations}
-            onChange={(e) => setIterations(Number(e.target.value))}
-            className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            onValueChange={(v) => setIterations(Number(v))}
           >
-            {ITERATION_OPTIONS.map((n) => (
-              <option key={n} value={n}>{n.toLocaleString("en-GB")}</option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ITERATION_OPTIONS.map((n) => (
+                <SelectItem key={n} value={n}>
+                  {n.toLocaleString("en-GB")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground">
             Return volatility (std dev): {volatilityPct}%
           </label>
-          <input
-            type="range"
+          <Slider
+            value={volatilityPct}
+            onValueChange={(v) => setVolatilityPct(v)}
             min={0}
             max={25}
             step={1}
-            value={volatilityPct}
-            onChange={(e) => setVolatilityPct(Number(e.target.value))}
-            className="w-full"
           />
           <p className="text-[11px] text-muted-foreground">
             Equity-heavy ~15%, balanced ~10%, conservative ~5%.

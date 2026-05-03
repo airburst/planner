@@ -2,6 +2,7 @@ const { eq } = require("drizzle-orm");
 const {
   findDepletionYear,
   findGapToTarget,
+  findOptimalCrystallisationStrategy,
   findRetirementDeferralYears,
   findSafeAnnualSpend,
   generateRecommendations,
@@ -57,6 +58,7 @@ function buildAssumptionSet(row) {
     additionalRate: taxPolicy.additionalRate ?? 0.45,
     sippTaxFreePercentage: taxPolicy.sippTaxFreePercentage ?? 0.25,
     sippMinimumAgeAccess: taxPolicy.sippMinimumAgeAccess ?? 55,
+    sippDrawdownStrategy: taxPolicy.sippDrawdownStrategy ?? "ufpls",
     marriageAllowanceTransfer: taxPolicy.marriageAllowanceTransfer ?? 1260,
   };
 }
@@ -330,6 +332,11 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
     );
 
+    const crystallisationComparison = findOptimalCrystallisationStrategy(
+      enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+      spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+    );
+
     return {
       planId,
       scenarioId: scenario?.id ?? null,
@@ -343,6 +350,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
         safeAnnualSpend,
         depletionRunwayDelta,
         retirementDeferralYears,
+        crystallisationComparison,
       }),
       retirementPotByPerson: computeRetirementPotByPerson(enginePeople, years, startYear),
       accumulationShortfall: findGapToTarget(
@@ -810,6 +818,11 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
       spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
     );
 
+    const crystallisationComparison = findOptimalCrystallisationStrategy(
+      enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+      spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+    );
+
     return {
       planId,
       scenarioId: scenario.id,
@@ -823,6 +836,7 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
         safeAnnualSpend,
         depletionRunwayDelta,
         retirementDeferralYears,
+        crystallisationComparison,
       }),
       retirementPotByPerson: computeRetirementPotByPerson(enginePeople, years, startYear),
       accumulationShortfall: findGapToTarget(

@@ -1,5 +1,12 @@
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   useAssumptionSetByPlan,
   useCreateAssumptionSet,
   useDeleteAssumptionSet,
@@ -11,6 +18,8 @@ interface Props {
   planId: number;
 }
 
+type SippDrawdownStrategy = "ufpls" | "pcls-upfront";
+
 interface TaxPolicy {
   personalAllowance: number;
   basicRateBand: number;
@@ -19,6 +28,7 @@ interface TaxPolicy {
   higherRate: number;
   additionalRate: number;
   sippMinimumAgeAccess: number;
+  sippDrawdownStrategy: SippDrawdownStrategy;
 }
 
 interface DraftAssumptions {
@@ -36,6 +46,7 @@ const UK_2026_DEFAULTS: TaxPolicy = {
   higherRate: 0.4,
   additionalRate: 0.45,
   sippMinimumAgeAccess: 57,
+  sippDrawdownStrategy: "ufpls",
 };
 
 const BLANK_DRAFT: DraftAssumptions = {
@@ -210,6 +221,31 @@ export function AssumptionsPanel({ planId }: Props) {
                 />
               </div>
 
+              <div className="space-y-1 col-span-2">
+                <label className="text-xs font-medium text-muted-foreground">SIPP drawdown strategy</label>
+                <Select
+                  value={draft.taxPolicy.sippDrawdownStrategy}
+                  onValueChange={(v) =>
+                    setDraft((d) => ({
+                      ...d,
+                      taxPolicy: { ...d.taxPolicy, sippDrawdownStrategy: v as SippDrawdownStrategy },
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ufpls">UFPLS (25% / 75% on every withdrawal)</SelectItem>
+                    <SelectItem value="pcls-upfront">PCLS upfront (full crystallisation at retirement)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  UFPLS keeps the 25% tax-free entitlement alive on future SIPP growth.
+                  PCLS upfront pays the 25% lump sum at retirement; subsequent withdrawals are fully taxable.
+                </p>
+              </div>
+
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Basic Rate (%)</label>
                 <input
@@ -313,6 +349,14 @@ export function AssumptionsPanel({ planId }: Props) {
               <p className="text-xs text-muted-foreground">Rates</p>
               <p className="font-medium">
                 {pct(taxPolicy.basicRate)} / {pct(taxPolicy.higherRate)} / {pct(taxPolicy.additionalRate)}
+              </p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-xs text-muted-foreground">SIPP drawdown</p>
+              <p className="font-medium">
+                {taxPolicy.sippDrawdownStrategy === "pcls-upfront"
+                  ? "PCLS upfront (crystallise at retirement)"
+                  : "UFPLS (25% / 75% on every withdrawal)"}
               </p>
             </div>
           </div>

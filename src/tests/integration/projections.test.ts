@@ -537,11 +537,12 @@ describe("projections IPC", () => {
       expect(highPriority.length).toBeGreaterThan(0);
     });
 
-    it("raises a withdrawal recommendation when taxable SIPP withdrawals are needed", async () => {
+    it("emits a SIPP crystallisation recommendation comparing UFPLS to PCLS-upfront", async () => {
       const planId = await seedPlan(invoke);
       const personId = await seedPerson(invoke, planId, "1960-01-01");
 
-      // SIPP only — withdrawals will be taxable
+      // SIPP only — withdrawals will be taxable, so the comparison helper has
+      // a non-trivial answer.
       await invoke("accounts:create", {
         planId,
         personId,
@@ -562,14 +563,16 @@ describe("projections IPC", () => {
       const result = await invoke<ProjectionResult>(
         "projections:runForPlan",
         planId,
-        { startYear: 2026, endYear: 2027 }
+        { startYear: 2026, endYear: 2030 }
       );
 
-      const withdrawalRec = result.recommendations.find(
-        (r) => r.category === "withdrawal" && r.title.includes("withdrawal sequencing")
+      const taxRec = result.recommendations.find(
+        (r) => r.category === "tax" &&
+          (r.title.includes("tax-free upfront") || r.title.includes("phased SIPP withdrawals"))
       );
-      expect(withdrawalRec).toBeDefined();
-      expect(withdrawalRec?.priority).toBe("medium");
+      // Either recommendation is acceptable — depends on which strategy wins
+      // for this particular fixture. We just assert the comparison fired.
+      expect(taxRec).toBeDefined();
     });
   });
 

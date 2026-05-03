@@ -458,7 +458,10 @@ function computePersonStreamIncome(
  * Allocate a household-level deficit across drawable accounts, in strategy order.
  *
  * Only accounts owned by people in drawdown (year >= retirementYear) are touched.
- * SIPP withdrawals split into 25% tax-free / 75% taxable (UFPLS approximation).
+ * SIPP withdrawals split into 25% tax-free / 75% taxable (UFPLS approximation),
+ * UNLESS the SIPP has been crystallised (PCLS-upfront strategy) in which case
+ * the entire withdrawal is fully taxable.
+ *
  * Returns withdrawals indexed by account ID and per-person details for tax attribution.
  */
 function allocateHouseholdWithdrawals(
@@ -468,7 +471,8 @@ function allocateHouseholdWithdrawals(
   withdrawalStrategy: WithdrawalStrategy,
   assumptions: AssumptionSet,
   year: number,
-  deficit: number
+  deficit: number,
+  crystallisedSippIds: ReadonlySet<number> = new Set()
 ): {
   withdrawalsByAccount: Map<number, number>;
   withdrawalDetailsByPerson: Map<number, { accountId: number; accountType: AccountContext["type"]; amountWithdrawn: number; taxableComponent: number; taxFreeComponent: number; }[]>;
@@ -508,8 +512,13 @@ function allocateHouseholdWithdrawals(
       let taxFreeComponent = 0;
       let taxableComponent = 0;
       if (account.type === "sipp") {
-        taxFreeComponent = Math.round(draw * assumptions.sippTaxFreePercentage);
-        taxableComponent = draw - taxFreeComponent;
+        if (crystallisedSippIds.has(account.id)) {
+          // Already crystallised under PCLS-upfront — full draw is taxable.
+          taxableComponent = draw;
+        } else {
+          taxFreeComponent = Math.round(draw * assumptions.sippTaxFreePercentage);
+          taxableComponent = draw - taxFreeComponent;
+        }
       } else if (account.type === "isa") {
         taxFreeComponent = draw;
       } else if (account.type === "cash") {
@@ -679,6 +688,36 @@ export function runProjection(
 ): HouseholdYearState[] {
   const years: HouseholdYearState[] = [];
 
+  // Coerce the earliest spending period back to the household's *latest*
+  // retirement age. Until the last earner retires, their salary (often not
+  // modelled as an income stream) covers household spending — so we don't
+  // want spending to activate any earlier. Once the late retiree retires,
+  // the household has no salary cover, and the earliest period extends back
+  // to that point so users who set go-go to start at 65 don't silently see
+  // £0 spending if their last retirement is at 63.
+  const effectiveSpending: SpendingAssumption = (() => {
+    if (!spending.periods || spending.periods.length === 0 || people.length === 0) {
+      return spending;
+    }
+    const primary = people.find((p) => p.role === "primary") ?? people[0];
+    const latestRetirementYear = Math.max(...people.map((p) => p.retirementYear));
+    const primaryAgeAtLatestRetirement =
+      latestRetirementYear - primary.dateOfBirth.getFullYear();
+    const sortedPeriods = [...spending.periods].sort((a, b) => a.fromAge - b.fromAge);
+    if (primaryAgeAtLatestRetirement < sortedPeriods[0].fromAge) {
+      sortedPeriods[0] = {
+        ...sortedPeriods[0],
+        fromAge: primaryAgeAtLatestRetirement,
+      };
+      return { ...spending, periods: sortedPeriods };
+    }
+    return spending;
+  })();
+
+  // Set of SIPP account IDs that have been crystallised (PCLS taken). Once a
+  // SIPP is in this set, future withdrawals are 100% taxable instead of 25/75.
+  const crystallisedSippIds = new Set<number>();
+
   const balancesByPerson = new Map<number, Map<number, number>>();
   for (const person of people) {
     const personBalances = new Map<number, number>();
@@ -710,6 +749,48 @@ export function runProjection(
       deficitOrSurplus: 0,
       spendingCoverage: 0,
     };
+
+    // Pass 0: PCLS crystallisation event. If the strategy is "pcls-upfront"
+    // and this is a person's retirement year, crystallise all of their SIPPs:
+    //   - 25% paid as Pension Commencement Lump Sum, credited to ISA (or cash,
+    //     or first non-SIPP account they own).
+    //   - The remaining 75% stays in the SIPP, but is now flagged so future
+    //     withdrawals are 100% taxable.
+    if (assumptions.sippDrawdownStrategy === "pcls-upfront") {
+      const pclsRate = assumptions.sippTaxFreePercentage;
+      for (const person of people) {
+        // Crystallise at retirementYear, OR at startYear if the person is
+        // already retired by the time the projection begins.
+        const effectiveCrystallisationYear = Math.max(person.retirementYear, startYear);
+        if (year !== effectiveCrystallisationYear) continue;
+        const personBalances = balancesByPerson.get(person.id);
+        if (!personBalances) continue;
+        // Find a destination account for the PCLS lump sum: ISA > cash >
+        // first non-SIPP. If none exists we leave the cash in the SIPP,
+        // which simply means no crystallisation effect for this person.
+        const target =
+          accounts.find((a) => a.personId === person.id && a.type === "isa") ??
+          accounts.find((a) => a.personId === person.id && a.type === "cash") ??
+          accounts.find((a) => a.personId === person.id && a.type !== "sipp");
+        for (const account of accounts) {
+          if (account.personId !== person.id) continue;
+          if (account.type !== "sipp") continue;
+          if (crystallisedSippIds.has(account.id)) continue;
+          const sippBalance = personBalances.get(account.id) ?? 0;
+          if (sippBalance <= 0) {
+            crystallisedSippIds.add(account.id);
+            continue;
+          }
+          const lumpSum = Math.round(sippBalance * pclsRate);
+          personBalances.set(account.id, sippBalance - lumpSum);
+          if (target) {
+            const targetBalance = personBalances.get(target.id) ?? 0;
+            personBalances.set(target.id, targetBalance + lumpSum);
+          }
+          crystallisedSippIds.add(account.id);
+        }
+      }
+    }
 
     // Pass 1: stream income for every person, summed to household income.
     let householdStreamIncome = 0;
@@ -746,7 +827,7 @@ export function runProjection(
     const drawdownFactor = householdDrawdownFactor(people, year);
     const primary = people.find((p) => p.role === "primary") ?? people[0];
     const adjustedSpending =
-      resolveAnnualSpending(spending, primary, year, startYear, assumptions.inflationRate) +
+      resolveAnnualSpending(effectiveSpending, primary, year, startYear, assumptions.inflationRate) +
       oneOffExpenseTotal;
     // Spending shortfall before windfall = (spending - stream income) pro-rated by
     // drawdown factor. Windfalls then cover this shortfall up to their amount;
@@ -767,7 +848,8 @@ export function runProjection(
       withdrawalStrategy,
       assumptions,
       year,
-      householdDeficit
+      householdDeficit,
+      crystallisedSippIds
     );
 
     // Pass 4: per-person year state (tax, growth, contributions, closing balances).
@@ -1069,7 +1151,15 @@ export function findSafeAnnualSpend(
   oneOffExpenses: OneOffExpenseContext[] = []
 ): number {
   const runWithSpend = (target: number): boolean => {
-    const trial: SpendingAssumption = { ...spending, annualSpendingTarget: target };
+    // Strip time-banded periods when probing — otherwise the engine prefers
+    // periods over annualSpendingTarget and the binary search becomes a no-op.
+    // The "safe annual spend" answer is a single flat figure across retirement
+    // by definition.
+    const trial: SpendingAssumption = {
+      ...spending,
+      annualSpendingTarget: target,
+      periods: undefined,
+    };
     const years = runProjection(
       people, accounts, incomeStreams, assumptions, trial, withdrawalStrategy,
       startYear, endYear, oneOffIncomes, oneOffExpenses
@@ -1192,5 +1282,80 @@ export function findGapToTarget(
     isSustainable: false,
     additionalAnnualContribution: Math.ceil(hi / 100) * 100,
     yearsToRetirement,
+  };
+}
+
+export interface CrystallisationComparison {
+  recommended: "ufpls" | "pcls-upfront";
+  ufplsLifetimeTax: number;
+  pclsLifetimeTax: number;
+  taxSaving: number; // Absolute difference between the two strategies
+  pclsLumpSum: number; // What the PCLS-upfront route would pay out tax-free
+}
+
+/**
+ * Compare UFPLS vs PCLS-upfront for the given plan and recommend whichever
+ * produces lower total lifetime tax. Both strategies are simulated under
+ * otherwise-identical inputs.
+ *
+ * The PCLS lump sum reported is the household's total 25% tax-free entitlement
+ * across all SIPPs, computed at each owner's retirement year. This is the
+ * figure to surface in the recommendation.
+ */
+export function findOptimalCrystallisationStrategy(
+  people: PersonContext[],
+  accounts: AccountContext[],
+  incomeStreams: IncomeStreamContext[],
+  assumptions: AssumptionSet,
+  spending: SpendingAssumption,
+  withdrawalStrategy: WithdrawalStrategy,
+  startYear: number,
+  endYear: number,
+  oneOffIncomes: OneOffIncomeContext[] = [],
+  oneOffExpenses: OneOffExpenseContext[] = []
+): CrystallisationComparison {
+  const sumLifetimeTax = (years: HouseholdYearState[]): number =>
+    years.reduce((sum, y) => sum + y.totalHouseholdTax, 0);
+
+  const ufplsYears = runProjection(
+    people, accounts, incomeStreams,
+    { ...assumptions, sippDrawdownStrategy: "ufpls" },
+    spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+  );
+  const pclsYears = runProjection(
+    people, accounts, incomeStreams,
+    { ...assumptions, sippDrawdownStrategy: "pcls-upfront" },
+    spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+  );
+
+  const ufplsLifetimeTax = sumLifetimeTax(ufplsYears);
+  const pclsLifetimeTax = sumLifetimeTax(pclsYears);
+
+  // Compute the PCLS lump sum the user would receive on day one. Read the
+  // SIPP opening balance from the UFPLS run at each owner's *effective*
+  // crystallisation year (max of retirementYear and startYear). Under UFPLS
+  // the SIPP is untouched by crystallisation, so its opening balance at that
+  // year is the value the user would actually crystallise.
+  let pclsLumpSum = 0;
+  for (const person of people) {
+    const effectiveYear = Math.max(person.retirementYear, startYear);
+    const yearState = ufplsYears.find((y) => y.year === effectiveYear);
+    if (!yearState) continue;
+    const personState = yearState.people.get(person.id);
+    if (!personState) continue;
+    for (const account of accounts) {
+      if (account.personId !== person.id) continue;
+      if (account.type !== "sipp") continue;
+      const opening = personState.openingBalances.get(account.id) ?? 0;
+      pclsLumpSum += Math.round(opening * assumptions.sippTaxFreePercentage);
+    }
+  }
+
+  return {
+    recommended: pclsLifetimeTax < ufplsLifetimeTax ? "pcls-upfront" : "ufpls",
+    ufplsLifetimeTax,
+    pclsLifetimeTax,
+    taxSaving: Math.abs(ufplsLifetimeTax - pclsLifetimeTax),
+    pclsLumpSum,
   };
 }

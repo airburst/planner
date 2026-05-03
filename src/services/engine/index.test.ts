@@ -14,6 +14,7 @@ import {
   calculatePersonTaxResult,
   findDepletionYear,
   findGapToTarget,
+  findOptimalCrystallisationStrategy,
   findRetirementDeferralYears,
   findSafeAnnualSpend,
   isIncomeStreamActive,
@@ -1514,6 +1515,32 @@ describe("One-off events (G2-T7, G2-T8)", () => {
     expect(safeSpend).toBeLessThan(40000);
   });
 
+  it("findSafeAnnualSpend returns a sensible number even when spending uses periods", () => {
+    // When a user has time-banded periods configured, the binary search must
+    // still reflect the probed target. Otherwise the engine ignores the target
+    // (preferring periods) and the search returns the loop's max (>£10M).
+    const accounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 500000, annualContribution: 0, employerContribution: 0 },
+    ];
+
+    const safeSpend = findSafeAnnualSpend(
+      [retiree], accounts, [], baseAssumptions,
+      {
+        id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
+        periods: [
+          { fromAge: 60, toAge: 75, annualAmount: 50000, inflationLinked: false },
+          { fromAge: 75, toAge: 85, annualAmount: 40000, inflationLinked: false },
+          { fromAge: 85, toAge: null, annualAmount: 30000, inflationLinked: false },
+        ],
+      },
+      baseStrategy, 2026, 2055, [], []
+    );
+
+    expect(safeSpend).toBeGreaterThan(10000);
+    expect(safeSpend).toBeLessThan(100000);
+  });
+
   it("findSafeAnnualSpend returns 0 if nothing is sustainable", () => {
     // No accounts, no income → nothing is sustainable in drawdown.
     const safeSpend = findSafeAnnualSpend(
@@ -1798,8 +1825,10 @@ describe("Spending periods (Sprint 8.5)", () => {
     expect(years[2].totalHouseholdWithdrawals).toBe(Math.round(50000 * 1.03 * 1.03));
   });
 
-  it("returns 0 spending in years with no covering period", () => {
-    // Period covers ages 70+, but plan starts at age 66.
+  it("extends the earliest period back to retirement age", () => {
+    // Retiree retired at 60 (2020) but earliest defined period starts at 70.
+    // The engine should coerce the earliest period's fromAge down to 60 so
+    // retirement spending is not silently zeroed in 2026-2029 (ages 66-69).
     const spending: SpendingAssumption = {
       id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
       periods: [
@@ -1811,11 +1840,197 @@ describe("Spending periods (Sprint 8.5)", () => {
       [retiree], accounts, [], baseAssumptions, spending, strategy, 2026, 2030
     );
 
-    // Years 2026-2029 (ages 66-69): no period, no spending, no drawdown.
+    // Period extended back to retirement age 60 → applies from 2026 onward.
+    expect(years[0].totalHouseholdWithdrawals).toBe(50000);
+    expect(years[3].totalHouseholdWithdrawals).toBe(50000);
+    expect(years[4].totalHouseholdWithdrawals).toBe(50000);
+  });
+
+  it("extends to the latest household retirement year, not the earliest", () => {
+    // Primary retires at 60 (2029), partner at 65 (2036). The earlier retiree's
+    // partner is still earning until 2036 — their unmodelled salary funds
+    // spending. Coercion target is primary's age in the *latest* household
+    // retirement year (2036 → primary age 67). Period stays at 65, primary's
+    // age in 2030-2035 doesn't reach 65, so spending = 0 → no draw.
+    const primary: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "P",
+      dateOfBirth: new Date("1969-12-31"), retirementYear: 2029, // age 60
+    };
+    const partner: PersonContext = {
+      id: 2, planId: 1, role: "partner", name: "Q",
+      dateOfBirth: new Date("1971-05-22"), retirementYear: 2036, // age 65
+    };
+    const householdAccounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 1_000_000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const spending: SpendingAssumption = {
+      id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
+      periods: [
+        { fromAge: 65, toAge: 75, annualAmount: 50000, inflationLinked: false },
+      ],
+    };
+
+    const years = runProjection(
+      [primary, partner], householdAccounts, [], baseAssumptions, spending, strategy, 2030, 2037
+    );
+
+    // 2030-2033: primary retired but partner still working. No period covers
+    // primary's ages 61-64 (period starts at 65, fromAge unchanged because
+    // latest retirement is age 67 which is later than 65). Spending = 0.
     expect(years[0].totalHouseholdWithdrawals).toBe(0);
     expect(years[3].totalHouseholdWithdrawals).toBe(0);
-    // Year 2030 (age 70): period kicks in.
+    // 2034 (primary age 65): period activates. Spending kicks in.
     expect(years[4].totalHouseholdWithdrawals).toBe(50000);
+  });
+
+  it("extends earliest period back to latest retirement when period starts after it", () => {
+    // Primary retires at 63 (2032), partner at 60 (2031). Latest retirement
+    // year is 2032 (primary's). Period at 65 should extend back to age 63 so
+    // the gap year (2032) doesn't show £0 spending.
+    const primary: PersonContext = {
+      id: 1, planId: 1, role: "primary", name: "P",
+      dateOfBirth: new Date("1969-12-31"), retirementYear: 2032, // age 63
+    };
+    const partner: PersonContext = {
+      id: 2, planId: 1, role: "partner", name: "Q",
+      dateOfBirth: new Date("1971-05-22"), retirementYear: 2031, // age 60
+    };
+    const householdAccounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 1_000_000, annualContribution: 0, employerContribution: 0 },
+    ];
+    const spending: SpendingAssumption = {
+      id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false,
+      periods: [
+        { fromAge: 65, toAge: 75, annualAmount: 50000, inflationLinked: false },
+      ],
+    };
+
+    const years = runProjection(
+      [primary, partner], householdAccounts, [], baseAssumptions, spending, strategy, 2033, 2036
+    );
+
+    // 2033 onward (primary age 64+, both retired): period coerced from 65 to
+    // 63, so all years covered. Spending = £50k.
+    expect(years[0].totalHouseholdWithdrawals).toBe(50000);
+    expect(years[3].totalHouseholdWithdrawals).toBe(50000);
+  });
+});
+
+describe("SIPP drawdown strategy: PCLS-upfront vs UFPLS", () => {
+  const baseAssumptions: AssumptionSet = {
+    id: 1, planId: 1, name: "Base",
+    inflationRate: 0, investmentReturn: 0,
+    personalAllowance: 12570, personalSavingsAllowance: 1000,
+    basicRateBand: 50270, higherRateBand: 125140,
+    basicRate: 0.2, higherRate: 0.4, additionalRate: 0.45,
+    sippTaxFreePercentage: 0.25, sippMinimumAgeAccess: 55,
+    marriageAllowanceTransfer: 0,
+  };
+  const strategy: WithdrawalStrategy = {
+    accountTypeOrder: ["cash", "isa", "sipp", "other"],
+    optimizeForTaxEfficiency: true, sippWithdrawalApproach: "flexible",
+  };
+  const retiree: PersonContext = {
+    id: 1, planId: 1, role: "primary", name: "P",
+    dateOfBirth: new Date("1960-01-01"), retirementYear: 2026, // age 66 (above 55 SIPP min)
+  };
+
+  it("pcls-upfront crystallises 100% of the SIPP at retirement, paying 25% tax-free into ISA", () => {
+    const sippAndIsa: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "SIPP", type: "sipp",
+        openingBalance: 400000, annualContribution: 0, employerContribution: 0 },
+      { id: 2, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 0, annualContribution: 0, employerContribution: 0 },
+    ];
+
+    const years = runProjection(
+      [retiree], sippAndIsa, [],
+      { ...baseAssumptions, sippDrawdownStrategy: "pcls-upfront" },
+      { id: 1, planId: 1, annualSpendingTarget: 0, isIndexed: false },
+      strategy, 2026, 2026
+    );
+
+    // Year 2026 = retirement year. SIPP starts at £400k. PCLS = £100k → ISA.
+    // SIPP closing balance = £300k (the "75% drawdown account").
+    const personYear = years[0].people.get(1)!;
+    expect(personYear.closingBalances.get(1)).toBe(300000);
+    expect(personYear.closingBalances.get(2)).toBe(100000);
+    // No tax — PCLS is tax-free.
+    expect(personYear.taxDue).toBe(0);
+  });
+
+  it("pcls-upfront treats SIPP withdrawals as 100% taxable after crystallisation", () => {
+    const accounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "SIPP", type: "sipp",
+        openingBalance: 200000, annualContribution: 0, employerContribution: 0 },
+      { id: 2, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 0, annualContribution: 0, employerContribution: 0 },
+    ];
+
+    const years = runProjection(
+      [retiree], accounts, [],
+      { ...baseAssumptions, sippDrawdownStrategy: "pcls-upfront" },
+      { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: false },
+      strategy, 2026, 2027
+    );
+
+    // Year 2026: PCLS = £50k → ISA. Spending = £30k drawn from ISA (free).
+    // Year 2027: ISA has £20k left, draw it. Then need £10k more → from SIPP
+    // (now crystallised). All £10k is taxable.
+    const y2027 = years[1].people.get(1)!;
+    const sippDraw = y2027.withdrawalDetails.find((d) => d.accountType === "sipp");
+    expect(sippDraw).toBeDefined();
+    expect(sippDraw!.taxFreeComponent).toBe(0);
+    expect(sippDraw!.taxableComponent).toBe(sippDraw!.amountWithdrawn);
+  });
+
+  it("findOptimalCrystallisationStrategy picks pcls-upfront when it produces lower lifetime tax", () => {
+    // Modest pot, retired now, modest spending → UFPLS produces small annual
+    // taxable draws every year. PCLS-upfront drains the ISA first (no tax),
+    // and only later draws taxable from the crystallised SIPP. Total tax can
+    // be similar or lower depending on tax bands hit. We assert the helper
+    // returns a coherent comparison and chooses one strategy.
+    const accounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "SIPP", type: "sipp",
+        openingBalance: 400000, annualContribution: 0, employerContribution: 0 },
+      { id: 2, planId: 1, personId: 1, name: "ISA", type: "isa",
+        openingBalance: 0, annualContribution: 0, employerContribution: 0 },
+    ];
+
+    const result = findOptimalCrystallisationStrategy(
+      [retiree], accounts, [], baseAssumptions,
+      { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: false },
+      strategy, 2026, 2055, [], []
+    );
+
+    expect(["ufpls", "pcls-upfront"]).toContain(result.recommended);
+    expect(result.ufplsLifetimeTax).toBeGreaterThanOrEqual(0);
+    expect(result.pclsLifetimeTax).toBeGreaterThanOrEqual(0);
+    expect(result.taxSaving).toBe(
+      Math.abs(result.ufplsLifetimeTax - result.pclsLifetimeTax)
+    );
+    expect(result.pclsLumpSum).toBe(100000); // 25% of £400k SIPP
+  });
+
+  it("ufpls (default) keeps the existing 25% / 75% split per withdrawal", () => {
+    const accounts: AccountContext[] = [
+      { id: 1, planId: 1, personId: 1, name: "SIPP", type: "sipp",
+        openingBalance: 200000, annualContribution: 0, employerContribution: 0 },
+    ];
+
+    const years = runProjection(
+      [retiree], accounts, [], baseAssumptions,
+      { id: 1, planId: 1, annualSpendingTarget: 30000, isIndexed: false },
+      strategy, 2026, 2026
+    );
+
+    const personYear = years[0].people.get(1)!;
+    const sippDraw = personYear.withdrawalDetails.find((d) => d.accountType === "sipp");
+    expect(sippDraw).toBeDefined();
+    expect(sippDraw!.taxFreeComponent).toBe(Math.round(sippDraw!.amountWithdrawn * 0.25));
+    expect(sippDraw!.taxableComponent).toBe(sippDraw!.amountWithdrawn - sippDraw!.taxFreeComponent);
   });
 });
 

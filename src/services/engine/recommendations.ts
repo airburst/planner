@@ -16,6 +16,18 @@ interface RecommendationContext {
    * the helper couldn't find one within its search bound.
    */
   retirementDeferralYears?: number | null;
+  /**
+   * Result of findOptimalCrystallisationStrategy — UFPLS vs PCLS-upfront tax
+   * comparison plus the would-be PCLS lump sum. When PCLS-upfront materially
+   * beats UFPLS, the recommendation surfaces the opportunity.
+   */
+  crystallisationComparison?: {
+    recommended: "ufpls" | "pcls-upfront";
+    ufplsLifetimeTax: number;
+    pclsLifetimeTax: number;
+    taxSaving: number;
+    pclsLumpSum: number;
+  };
 }
 
 function hasTaxTrapExposure(year: HouseholdYearState): boolean {
@@ -153,18 +165,39 @@ export function generateRecommendations(
     });
   }
 
+  // SIPP crystallisation strategy. Only fires when there's a meaningful
+  // saving from switching strategies (≥£500 lifetime), so we don't badger
+  // users when the two paths are roughly equivalent.
+  const comparison = context.crystallisationComparison;
   const firstTaxableWithdrawalYear = years.find(hasTaxableWithdrawals);
-  if (firstTaxableWithdrawalYear) {
-    recommendations.push({
-      id: nextId++,
-      projectionRunId,
-      priority: "medium",
-      category: "withdrawal",
-      title: "Review taxable withdrawal sequencing",
-      description: "The projection relies on taxable withdrawals in this year.",
-      rationale: `Taxable withdrawals appear in ${firstTaxableWithdrawalYear.year}, so the drawdown order may be creating avoidable tax drag.`,
-      yearTriggered: firstTaxableWithdrawalYear.year,
-    });
+  if (comparison && comparison.taxSaving >= 500 && firstTaxableWithdrawalYear) {
+    if (comparison.recommended === "pcls-upfront" && comparison.pclsLumpSum > 0) {
+      recommendations.push({
+        id: nextId++,
+        projectionRunId,
+        priority: "medium",
+        category: "tax",
+        title: `Take £${comparison.pclsLumpSum.toLocaleString("en-GB")} tax-free upfront`,
+        description: "Crystallising your SIPP at retirement and taking the 25% PCLS now is more tax-efficient than UFPLS.",
+        rationale: `Switching from UFPLS to a one-off Pension Commencement Lump Sum saves about £${Math.round(comparison.taxSaving).toLocaleString("en-GB")} in total tax across the projection. The remaining 75% stays invested in flexi-access drawdown.`,
+        yearTriggered: firstTaxableWithdrawalYear.year,
+        impactScore: comparison.taxSaving,
+        impactLabel: " in lifetime tax saved",
+      });
+    } else if (comparison.recommended === "ufpls") {
+      recommendations.push({
+        id: nextId++,
+        projectionRunId,
+        priority: "low",
+        category: "tax",
+        title: "Stick with phased SIPP withdrawals (UFPLS)",
+        description: "Keeping the 25% tax-free entitlement alive on future growth is more tax-efficient than crystallising upfront.",
+        rationale: `UFPLS saves about £${Math.round(comparison.taxSaving).toLocaleString("en-GB")} in total tax versus taking a £${comparison.pclsLumpSum.toLocaleString("en-GB")} PCLS upfront, because the tax-free 25% applies to the SIPP's future growth too.`,
+        yearTriggered: firstTaxableWithdrawalYear.year,
+        impactScore: comparison.taxSaving,
+        impactLabel: " in lifetime tax saved",
+      });
+    }
   }
 
   return recommendations;
