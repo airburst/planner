@@ -315,6 +315,115 @@ module.exports = function registerProjectionHandlers(ipcMain, db, schema) {
     };
   });
 
+  ipcMain.handle("projections:runStressTest", async (_, planId, preset, options = {}) => {
+    const people = await db.select().from(schema.people).where(eq(schema.people.planId, planId));
+    const accounts = await db.select().from(schema.accounts).where(eq(schema.accounts.planId, planId));
+    const incomeStreams = await db.select().from(schema.incomeStreams).where(eq(schema.incomeStreams.planId, planId));
+    const oneOffIncomes = await db.select().from(schema.oneOffIncomes).where(eq(schema.oneOffIncomes.planId, planId));
+    const oneOffExpenses = await db.select().from(schema.oneOffExpenses).where(eq(schema.oneOffExpenses.planId, planId));
+    const assumptionSet = (await db.select().from(schema.assumptionSets).where(eq(schema.assumptionSets.planId, planId)))[0] || null;
+    const expenseProfile = (await db.select().from(schema.expenseProfiles).where(eq(schema.expenseProfiles.planId, planId)))[0] || null;
+
+    const currentYear = new Date().getFullYear();
+    const startYear = options.startYear ?? currentYear;
+
+    // Apply preset adjustments to people, accounts, assumptions, and longevity.
+    let longevityShift = 0;
+    let enginePeople = people.map((person) => {
+      if (!person.dateOfBirth) {
+        throw new Error(`Person ${person.id} is missing dateOfBirth`);
+      }
+      const birthYear = new Date(person.dateOfBirth).getFullYear();
+      const retirementYear = person.retirementAge != null
+        ? birthYear + person.retirementAge
+        : startYear;
+      return {
+        id: person.id,
+        planId: person.planId,
+        role: person.role,
+        name: person.firstName,
+        dateOfBirth: new Date(person.dateOfBirth),
+        retirementYear,
+        longevityTargetAge: person.longevityTargetAge ?? 95,
+      };
+    });
+
+    let engineAccounts = accounts.map((a) => ({
+      id: a.id,
+      planId: a.planId,
+      personId: a.personId,
+      name: a.name,
+      type: mapWrapperType(a.wrapperType),
+      openingBalance: a.currentBalance,
+      annualContribution: a.annualContribution ?? 0,
+      employerContribution: a.employerContribution ?? 0,
+    }));
+    const engineIncomeStreams = incomeStreams.map((s) => ({
+      id: s.id, planId: s.planId, personId: s.personId, name: s.name,
+      type: mapIncomeStreamType(s.streamType),
+      activationAge: s.startAge,
+      endAge: s.endAge ?? undefined,
+      annualAmount: s.annualAmount,
+      isIndexed: s.inflationLinked,
+    }));
+    let engineAssumptions = buildAssumptionSet(assumptionSet);
+    const spending = {
+      id: expenseProfile?.id ?? 0,
+      planId,
+      annualSpendingTarget: (expenseProfile?.essentialAnnual ?? 0) + (expenseProfile?.discretionaryAnnual ?? 0),
+      isIndexed: expenseProfile?.inflationLinked ?? true,
+    };
+    const withdrawalStrategy = {
+      accountTypeOrder: ["cash", "isa", "sipp", "other"],
+      optimizeForTaxEfficiency: true,
+      sippWithdrawalApproach: "flexible",
+    };
+
+    switch (preset) {
+      case "high-inflation":
+        engineAssumptions = { ...engineAssumptions, inflationRate: engineAssumptions.inflationRate + 0.02 };
+        break;
+      case "lower-returns":
+        engineAssumptions = { ...engineAssumptions, investmentReturn: engineAssumptions.investmentReturn - 0.02 };
+        break;
+      case "early-death":
+        longevityShift = -10;
+        enginePeople = enginePeople.map((p) => ({ ...p, longevityTargetAge: p.longevityTargetAge + longevityShift }));
+        break;
+      case "market-crash":
+        // 30% one-time hit applied to current balances at year 0.
+        engineAccounts = engineAccounts.map((a) => ({ ...a, openingBalance: a.openingBalance * 0.7 }));
+        break;
+      default:
+        throw new Error(`Unknown stress preset: ${preset}`);
+    }
+
+    // Recompute endYear after any longevity shift.
+    const longevityEndYear = enginePeople.reduce((max, p) => {
+      const birthYear = p.dateOfBirth.getFullYear();
+      return Math.max(max, birthYear + p.longevityTargetAge);
+    }, 0);
+    const endYear = options.endYear ?? (longevityEndYear || startYear + 30);
+
+    const years = runProjection(
+      enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+      spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+    );
+    const safeAnnualSpend = findSafeAnnualSpend(
+      enginePeople, engineAccounts, engineIncomeStreams, engineAssumptions,
+      spending, withdrawalStrategy, startYear, endYear, oneOffIncomes, oneOffExpenses
+    );
+
+    return {
+      preset,
+      planId,
+      startYear,
+      endYear,
+      years,
+      safeAnnualSpend,
+    };
+  });
+
   ipcMain.handle("projections:runForScenario", async (_, scenarioId, options = {}) => {
     const scenario = await db
       .select()

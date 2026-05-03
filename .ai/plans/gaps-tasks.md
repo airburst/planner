@@ -396,7 +396,22 @@ Both accept `{ id, planId }` and invalidate the projection query on success.
 
 ---
 
-### G3-T6: Stress testing presets
+### ~~G3-T6: Stress testing presets~~ ✅ DONE
+New IPC `projections:runStressTest(planId, preset)` that loads the plan's data,
+applies a preset modifier in-memory (no DB writes), and runs the engine.
+
+Four presets:
+- **High inflation** — `inflationRate += 0.02`
+- **Lower returns** — `investmentReturn -= 0.02`
+- **Early death** — `longevityTargetAge -= 10` per person, `endYear` recomputed
+- **Market crash** — opening balances × 0.7 (one-time 30% hit)
+
+`StressTestPanel` rendered between Recommendations and ProjectionTable. Four
+preset buttons; clicking one runs the IPC and shows assets-at-end / total tax /
+total drawdown / safe annual spend / sustainability vs the base plan, with
+green/red deltas.
+
+### G3-T6 (legacy spec):
 **Why**: Deterministic projections show one path. Users need to know: "what if returns
 are 2% lower?" or "what if inflation hits 5%?".
 
@@ -586,7 +601,7 @@ onboarding), ~~G3-T8~~ (already shipped with G3-T4)
 ~~G3-T3~~ partial (spending-shortfall quantified; depletion + defer-retirement deferred)
 
 ### Sprint 8 — Stress testing
-G3-T6 (presets), G4-T3 (Marriage Allowance)
+~~G3-T6~~ (presets), G4-T3 (Marriage Allowance)
 
 ### Sprint 9 — End-to-end tests (final sprint)
 **Why**: Unit + integration tests cover engine and IPC. There is no test that

@@ -24,6 +24,7 @@ import { ScenarioComparison } from "./ScenarioComparison";
 import { ScenarioModal } from "./ScenarioModal";
 import { ScenarioSelector } from "./ScenarioSelector";
 import { SpendingPanel } from "./SpendingPanel";
+import { StressTestPanel } from "./StressTestPanel";
 
 export function PlanDetailPage() {
   const params = useParams({ from: "/plan/$planId" });
@@ -169,6 +170,16 @@ export function PlanDetailPage() {
           <RecommendationPanel
             recommendations={activeProjection.recommendations}
             accumulationShortfall={activeProjection.accumulationShortfall}
+          />
+          <StressTestPanel
+            planId={planId}
+            baseSummary={projectionQuery.data ? {
+              endAssets: projectionQuery.data.years[projectionQuery.data.years.length - 1]?.totalHouseholdAssets ?? 0,
+              totalTax: projectionQuery.data.years.reduce((s, y) => s + y.totalHouseholdTax, 0),
+              totalDrawdown: projectionQuery.data.years.reduce((s, y) => s + y.totalHouseholdWithdrawals, 0),
+              hasShortfall: projectionQuery.data.years.some((y) => !y.canSustainSpending),
+              safeAnnualSpend: projectionQuery.data.safeAnnualSpend,
+            } : null}
           />
           <ProjectionTable years={activeProjection.years} />
         </>
