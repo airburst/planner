@@ -83,7 +83,7 @@ export function OneOffIncomesPanel({ planId, oneOffIncomes, people }: Props) {
   const isSaving = createIncome.isPending || updateIncome.isPending;
 
   const renderForm = (existingId?: number) => (
-    <div className="rounded-lg border border-ring/40 bg-sw-surface-container-low p-4 space-y-3">
+    <div className="rounded-lg border border-ring/40 bg-secondary p-4 space-y-3">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
         {existingId ? "Edit income event" : "New income event"}
       </p>

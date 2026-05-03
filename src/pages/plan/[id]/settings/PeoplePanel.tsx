@@ -75,7 +75,7 @@ export function PeoplePanel({ people }: Props) {
       <div className="space-y-3">
         {people.map((person) =>
           editingId === person.id ? (
-            <div key={person.id} className="rounded-lg border border-ring/40 bg-sw-surface-container-low p-4 space-y-3">
+            <div key={person.id} className="rounded-lg border border-ring/40 bg-secondary p-4 space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{ROLE_LABEL[person.role]}</p>
 
               <div className="grid grid-cols-2 gap-3">

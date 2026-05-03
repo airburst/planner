@@ -160,7 +160,7 @@ export function SpendingPanel({ planId, periods, people }: Props) {
   const editTotal = essential + discretionary;
 
   const renderPeriodForm = (existingId?: number) => (
-    <div className="rounded-lg border border-ring/40 bg-sw-surface-container-low p-4 space-y-3">
+    <div className="rounded-lg border border-ring/40 bg-secondary p-4 space-y-3">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
         {existingId ? "Edit period" : "New period"}
       </p>
@@ -243,7 +243,7 @@ export function SpendingPanel({ planId, periods, people }: Props) {
         </div>
 
         {editingBaseline ? (
-          <div className="rounded-lg border border-ring/40 bg-sw-surface-container-low p-4 space-y-4">
+          <div className="rounded-lg border border-ring/40 bg-secondary p-4 space-y-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div>

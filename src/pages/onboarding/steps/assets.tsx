@@ -63,7 +63,7 @@ export function OnboardingAssetsStep({ state, onChange }: Props) {
 
       <div className="space-y-3">
         {accounts.map((account, idx) => (
-          <div key={idx} className="space-y-3 rounded-md border bg-sw-surface-container-low p-4">
+          <div key={idx} className="space-y-3 rounded-md border bg-secondary p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Account {idx + 1}

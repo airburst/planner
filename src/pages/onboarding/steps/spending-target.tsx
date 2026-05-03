@@ -74,7 +74,7 @@ export function OnboardingSpendingTargetStep({ state, onChange }: Props) {
         </div>
 
         {/* Split summary */}
-        <div className="rounded-md bg-sw-surface-container-low p-4 space-y-2">
+        <div className="rounded-md bg-secondary p-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Essential</span>
             <span className="font-medium">{fmt(essential)}</span>

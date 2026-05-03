@@ -118,7 +118,7 @@ export function IncomeStreamsPanel({ planId, incomeStreams, people }: Props) {
   const personName = (id: number) => people.find((p) => p.id === id)?.firstName ?? "Unknown";
 
   const renderForm = (existingId?: number) => (
-    <div className="rounded-lg border border-ring/40 bg-sw-surface-container-low p-4 space-y-3">
+    <div className="rounded-lg border border-ring/40 bg-secondary p-4 space-y-3">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
         {existingId ? "Edit Income Stream" : "New Income Stream"}
       </p>
