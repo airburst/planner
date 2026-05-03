@@ -14,10 +14,12 @@ import {
 import { fmt } from "./utils";
 
 type IncomeStreamRow = Awaited<ReturnType<Window["api"]["getIncomeStreamsByPlan"]>>[number];
+type OneOffIncomeRow = Awaited<ReturnType<Window["api"]["getOneOffIncomesByPlan"]>>[number];
 
 interface IncomePhaseChartProps {
   years: HouseholdYearState[];
   incomeStreams: IncomeStreamRow[];
+  oneOffIncomes?: OneOffIncomeRow[];
 }
 
 interface ChartRow {
@@ -31,8 +33,11 @@ interface SeriesMeta {
   key: string;
   label: string;
   color: string;
-  group: "income" | "drawdown";
+  group: "income" | "drawdown" | "oneoff";
 }
+
+const ONE_OFF_INCOME_KEY = "oneoff_income";
+const ONE_OFF_INCOME_COLOR = "#fbbf24"; // warm amber — distinct from streams + drawdowns
 
 const SEGMENT_GAP = 1;
 const TOP_RADIUS = 6;
@@ -113,7 +118,7 @@ const SPENDING_TARGET_COLOR = "var(--sw-error)";
 
 const SPENDING_TARGET_KEY = "spendingTarget";
 
-export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps) {
+export function IncomePhaseChart({ years, incomeStreams, oneOffIncomes = [] }: IncomePhaseChartProps) {
   const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(() => new Set([SPENDING_TARGET_KEY]));
 
   // Build per-stream metadata using a stable colour assignment.
@@ -129,10 +134,21 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
     return map;
   }, [incomeStreams]);
 
+  // Pre-bucket one-off income events by year for fast lookup.
+  const oneOffByYear = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const event of oneOffIncomes) {
+      if (event.amount <= 0) continue;
+      map.set(event.year, (map.get(event.year) ?? 0) + event.amount);
+    }
+    return map;
+  }, [oneOffIncomes]);
+
   // Compute per-year chart rows: each stream and each drawdown source as its own field.
-  const { data, activeStreamIds, activeDrawdownKeys } = useMemo(() => {
+  const { data, activeStreamIds, activeDrawdownKeys, hasOneOffIncome } = useMemo(() => {
     const usedStreamIds = new Set<number>();
     const usedDrawdownKeys = new Set<string>();
+    let oneOffSeen = false;
 
     const rows: ChartRow[] = years.map((year) => {
       const row: ChartRow = {
@@ -174,6 +190,14 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
         }
       });
 
+      // One-off income events (windfalls) — stack between stream income and drawdowns.
+      const oneOffAmount = oneOffByYear.get(year.year) ?? 0;
+      if (oneOffAmount > 0) {
+        row[ONE_OFF_INCOME_KEY] = oneOffAmount;
+        row.total += oneOffAmount;
+        oneOffSeen = true;
+      }
+
       return row;
     });
 
@@ -182,10 +206,13 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
       activeStreamIds: Array.from(usedStreamIds).sort((a, b) => a - b),
       activeDrawdownKeys: ["drawdown_cash", "drawdown_isa", "drawdown_sipp_tfls", "drawdown_sipp_taxable", "drawdown_other"]
         .filter((k) => usedDrawdownKeys.has(k)),
+      hasOneOffIncome: oneOffSeen,
     };
-  }, [years]);
+  }, [years, oneOffByYear]);
 
-  // Series metadata in stack order (bottom → top): streams, then drawdowns.
+  // Series metadata in stack order (bottom → top): streams, then one-off income,
+  // then drawdowns. One-off windfalls sit between recurring income and drawdown
+  // because they reduce drawdown need just like stream income does.
   const series: SeriesMeta[] = useMemo(() => {
     const list: SeriesMeta[] = [];
     activeStreamIds.forEach((id) => {
@@ -197,6 +224,14 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
         group: "income",
       });
     });
+    if (hasOneOffIncome) {
+      list.push({
+        key: ONE_OFF_INCOME_KEY,
+        label: "One-off income",
+        color: ONE_OFF_INCOME_COLOR,
+        group: "oneoff",
+      });
+    }
     activeDrawdownKeys.forEach((k) => {
       list.push({
         key: k,
@@ -206,7 +241,7 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
       });
     });
     return list;
-  }, [activeStreamIds, activeDrawdownKeys, streamMeta]);
+  }, [activeStreamIds, activeDrawdownKeys, streamMeta, hasOneOffIncome]);
 
   // Annotate each row with its currently-visible topmost stack key.
   // Recomputed when hiddenKeys changes so toggling visibility updates rounding.
@@ -279,6 +314,9 @@ export function IncomePhaseChart({ years, incomeStreams }: IncomePhaseChartProps
               <span>{s.label}</span>
               {s.group === "drawdown" && (
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground">drawdown</span>
+              )}
+              {s.group === "oneoff" && (
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">windfall</span>
               )}
             </button>
           );

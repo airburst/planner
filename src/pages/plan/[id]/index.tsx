@@ -164,6 +164,7 @@ export function PlanDetailPage() {
           <IncomePhaseChart
             years={activeProjection.years}
             incomeStreams={incomeStreams}
+            oneOffIncomes={oneOffIncomes}
           />
           <RecommendationPanel
             recommendations={activeProjection.recommendations}
