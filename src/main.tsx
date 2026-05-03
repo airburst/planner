@@ -1,3 +1,5 @@
+import { UpdateListener } from "@/components/UpdateListener";
+import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
@@ -18,6 +20,8 @@ createRoot(rootElement).render(
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <AppRouterProvider />
+        <UpdateListener />
+        <Toaster />
       </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>

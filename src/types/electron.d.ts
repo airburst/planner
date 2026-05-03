@@ -181,6 +181,14 @@ declare global {
         successProbability: number;
         byYear: Array<{ year: number; p10: number; p50: number; p90: number }>;
       }>;
+
+      // Auto-update + shell helpers
+      onUpdateAvailable: (callback: (version: string) => void) => void;
+      onUpdateDownloaded: (callback: (version: string) => void) => void;
+      onUpdateNotAvailable: (callback: () => void) => void;
+      checkForUpdates: () => Promise<void>;
+      restartToUpdate: () => void;
+      openExternal: (url: string) => Promise<void>;
     };
   }
 }

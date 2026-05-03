@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, session } = require("electron");
+const { app, BrowserWindow, ipcMain, session, shell } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const fs = require("node:fs");
 const path = require("node:path");
 const { setupDatabase, schema } = require("./db");
@@ -154,6 +155,53 @@ app.whenReady().then(() => {
   registerOneOffIncomesHandlers(ipcMain, db, schema);
   registerOneOffExpensesHandlers(ipcMain, db, schema);
   registerSpendingPeriodsHandlers(ipcMain, db, schema);
+
+  // Auto-update (production only). On macOS we can't sign installers, so
+  // the toast points at the GitHub releases page. On Windows we
+  // auto-download and prompt to restart.
+  if (!isDev) {
+    const isMac = process.platform === "darwin";
+    autoUpdater.autoDownload = !isMac;
+    autoUpdater.autoInstallOnAppQuit = !isMac;
+
+    let manualCheckPending = false;
+
+    autoUpdater.on("update-not-available", () => {
+      if (manualCheckPending) {
+        manualCheckPending = false;
+        mainWindow?.webContents.send("update-not-available");
+      }
+    });
+    autoUpdater.on("error", () => {
+      manualCheckPending = false;
+    });
+
+    if (isMac) {
+      autoUpdater.on("update-available", (info) => {
+        manualCheckPending = false;
+        mainWindow?.webContents.send("update-available", info.version);
+      });
+    } else {
+      autoUpdater.on("update-downloaded", (info) => {
+        manualCheckPending = false;
+        mainWindow?.webContents.send("update-downloaded", info.version);
+      });
+    }
+
+    autoUpdater.checkForUpdates().catch(() => {});
+
+    ipcMain.handle("updater:check", () => {
+      manualCheckPending = true;
+      return autoUpdater.checkForUpdates().catch(() => {
+        manualCheckPending = false;
+      });
+    });
+  } else {
+    ipcMain.handle("updater:check", () => {});
+  }
+
+  ipcMain.handle("shell:openExternal", (_, url) => shell.openExternal(url));
+  ipcMain.on("restart-to-update", () => autoUpdater.quitAndInstall());
 
   createWindow();
 

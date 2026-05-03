@@ -109,4 +109,18 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("spending-periods:delete", id),
   replaceSpendingPeriods: (planId, periods) =>
     ipcRenderer.invoke("spending-periods:replaceAll", planId, periods),
+
+  // Auto-update + shell helpers
+  onUpdateAvailable: (callback) => {
+    ipcRenderer.on("update-available", (_, version) => callback(version));
+  },
+  onUpdateDownloaded: (callback) => {
+    ipcRenderer.on("update-downloaded", (_, version) => callback(version));
+  },
+  onUpdateNotAvailable: (callback) => {
+    ipcRenderer.on("update-not-available", () => callback());
+  },
+  checkForUpdates: () => ipcRenderer.invoke("updater:check"),
+  restartToUpdate: () => ipcRenderer.send("restart-to-update"),
+  openExternal: (url) => ipcRenderer.invoke("shell:openExternal", url),
 });
