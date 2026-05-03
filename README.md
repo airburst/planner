@@ -20,15 +20,15 @@ Most retirement calculators are spreadsheets, simplified web tools, or financial
 
 ## Screenshots
 
-> Placeholders — drop real screenshots into `.ai/design/screenshots/` and update the paths.
-
 | Overview | Strategy |
 |---|---|
-| ![Overview](.ai/design/stitch_planner/dashboard_overview/screen.png) | ![Strategy](.ai/design/stitch_planner/drawdown_strategy/screen.png) |
+| ![Overview](docs/images/overview.png) | ![Strategy](docs/images/strategy.png) |
 
 | Assets | Expenses |
 |---|---|
-| ![Assets](.ai/design/stitch_planner/income_assets/screen.png) | ![Expenses](.ai/design/stitch_planner/expenditure_modeling/screen.png) |
+| ![Assets](docs/images/assets.png) | ![Expenses](docs/images/expenses.png) |
+
+> Captured via `bash scripts/screenshots.sh` — builds the renderer, runs Electron in screenshot mode, navigates each tab and writes the four PNGs to `docs/images/`.
 
 ---
 

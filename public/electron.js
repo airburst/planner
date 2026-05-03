@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, session } = require("electron");
+const fs = require("node:fs");
 const path = require("node:path");
 const { setupDatabase, schema } = require("./db");
 const registerPlansHandlers = require("./ipc/plans");
@@ -14,13 +15,15 @@ const registerOneOffExpensesHandlers = require("./ipc/one-off-expenses");
 const registerSpendingPeriodsHandlers = require("./ipc/spending-periods");
 
 const isDev = !app.isPackaged;
+const screenshotMode = process.env.PLANNER_SCREENSHOT_MODE === "1";
 let mainWindow;
 
 function createWindow() {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 1080,
+    // Fixed dimensions in screenshot mode for consistent docs output.
+    width: screenshotMode ? 1440 : 1440,
+    height: screenshotMode ? 900 : 1080,
     minWidth: 960,
     minHeight: 600,
     center: true,
@@ -41,19 +44,72 @@ function createWindow() {
     },
   });
 
-  mainWindow.loadURL(
-    isDev
+  // Dev: Vite HMR at :3000.
+  // Screenshot mode: Vite preview at :4173 (SPA fallback so router works).
+  // Production packaged: built file directly.
+  const screenshotUrl = process.env.PLANNER_SCREENSHOT_URL;
+  const url = screenshotMode && screenshotUrl
+    ? screenshotUrl
+    : isDev
       ? "http://localhost:3000"
-      : `file://${path.join(app.getAppPath(), "build/index.html")}`
-  );
+      : `file://${path.join(app.getAppPath(), "build/index.html")}`;
+  mainWindow.loadURL(url);
 
-  if (isDev) {
+  if (isDev && !screenshotMode) {
     mainWindow.webContents.openDevTools({ mode: "detach" });
   }
 
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+
+  if (screenshotMode) {
+    mainWindow.webContents.once("did-finish-load", () => captureScreenshots());
+  }
+}
+
+async function captureScreenshots() {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const outDir = path.resolve(__dirname, "..", "docs", "images");
+  fs.mkdirSync(outDir, { recursive: true });
+
+  const routes = ["overview", "assets", "expenses", "strategy"];
+
+  // Wait until the home redirect has landed us on a /plan/$id route. The
+  // redirect waits for `usePlans()` to settle, which can take a beat after
+  // the renderer first paints.
+  let planId = null;
+  for (let i = 0; i < 50; i++) {
+    planId = await mainWindow.webContents.executeJavaScript(
+      `(window.location.pathname.match(/\\/plan\\/(\\d+)/) || [])[1] || null`
+    );
+    if (planId) break;
+    await sleep(200);
+  }
+  if (!planId) {
+    console.error("[screenshots] could not detect plan id from URL — aborting");
+    app.quit();
+    return;
+  }
+
+  // Give the Overview's first projection a moment to render before we grab
+  // anything (charts and stat cards depend on it).
+  await sleep(1500);
+
+  for (const route of routes) {
+    await mainWindow.webContents.executeJavaScript(
+      `window.history.replaceState({}, "", "/plan/${planId}/${route}"); ` +
+        `window.dispatchEvent(new PopStateEvent("popstate"));`
+    );
+    // Recharts + view transitions need a moment to settle.
+    await sleep(1500);
+    const image = await mainWindow.webContents.capturePage();
+    const file = path.join(outDir, `${route}.png`);
+    fs.writeFileSync(file, image.toPNG());
+    console.log(`[screenshots] wrote ${path.relative(process.cwd(), file)}`);
+  }
+
+  setTimeout(() => app.quit(), 300);
 }
 
 app.whenReady().then(() => {
