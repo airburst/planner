@@ -1,11 +1,5 @@
 import { PlanLayout } from "@/components/layout/PlanLayout";
 import { HomePage } from "@/pages";
-import { OnboardingPage } from "@/pages/onboarding";
-import { AssetsPage } from "@/pages/plan/[id]/assets/page";
-import { ExpensesPage } from "@/pages/plan/[id]/expenses/page";
-import { OverviewPage } from "@/pages/plan/[id]/overview/page";
-import { SettingsPage } from "@/pages/plan/[id]/settings/page";
-import { StrategyPage } from "@/pages/plan/[id]/strategy/page";
 import {
   Outlet,
   RouterProvider,
@@ -14,11 +8,44 @@ import {
   createRouter,
   redirect,
 } from "@tanstack/react-router";
+import { Suspense, lazy } from "react";
+
+// Lazy-loaded route components keep the initial bundle small. Each route is
+// its own chunk; a Suspense boundary in RootLayout shows a thin loader while
+// the chunk arrives.
+const OnboardingPage = lazy(() =>
+  import("@/pages/onboarding").then((m) => ({ default: m.OnboardingPage }))
+);
+const OverviewPage = lazy(() =>
+  import("@/pages/plan/[id]/overview/page").then((m) => ({ default: m.OverviewPage }))
+);
+const AssetsPage = lazy(() =>
+  import("@/pages/plan/[id]/assets/page").then((m) => ({ default: m.AssetsPage }))
+);
+const ExpensesPage = lazy(() =>
+  import("@/pages/plan/[id]/expenses/page").then((m) => ({ default: m.ExpensesPage }))
+);
+const StrategyPage = lazy(() =>
+  import("@/pages/plan/[id]/strategy/page").then((m) => ({ default: m.StrategyPage }))
+);
+const SettingsPage = lazy(() =>
+  import("@/pages/plan/[id]/settings/page").then((m) => ({ default: m.SettingsPage }))
+);
+
+function RouteFallback() {
+  return (
+    <div className="mx-auto max-w-screen-2xl p-6">
+      <p className="animate-pulse text-sm text-muted-foreground">Loading…</p>
+    </div>
+  );
+}
 
 function RootLayout() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Outlet />
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
     </div>
   );
 }

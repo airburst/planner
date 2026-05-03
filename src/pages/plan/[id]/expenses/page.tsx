@@ -5,10 +5,11 @@ import { usePeopleByPlan } from "@/hooks/use-people";
 import { useProjection } from "@/hooks/use-projection";
 import { useScenarioProjection } from "@/hooks/use-scenarios";
 import { useSpendingPeriodsByPlan } from "@/hooks/use-spending-periods";
+import { SavingsBurndownChart } from "../_shared/SavingsBurndownChart";
+import { fmt } from "../_shared/utils";
 import { OneOffExpensesPanel } from "./OneOffExpensesPanel";
 import { RetirementAgeSliders } from "./RetirementAgeSliders";
 import { SpendingPanel } from "./SpendingPanel";
-import { fmt } from "../_shared/utils";
 
 export function ExpensesPage() {
   const { planId, selectedScenarioId } = usePlanContext();
@@ -53,6 +54,10 @@ export function ExpensesPage() {
       </div>
 
       <RetirementAgeSliders people={people} />
+
+      {activeProjection && activeProjection.years.length > 0 && (
+        <SavingsBurndownChart years={activeProjection.years} people={people} />
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">

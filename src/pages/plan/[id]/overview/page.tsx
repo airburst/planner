@@ -7,11 +7,12 @@ import { usePeopleByPlan } from "@/hooks/use-people";
 import { useProjection } from "@/hooks/use-projection";
 import { useScenarioProjection } from "@/hooks/use-scenarios";
 import { Banknote, CalendarClock, Coins, Target } from "lucide-react";
+import { SavingsBurndownChart } from "../_shared/SavingsBurndownChart";
+import { fmt } from "../_shared/utils";
 import { AssetAllocationCard } from "./AssetAllocationCard";
 import { IncomePhaseChart } from "./IncomePhaseChart";
 import { ProjectionError } from "./ProjectionError";
 import { RecommendationPanel } from "./RecommendationPanel";
-import { fmt } from "../_shared/utils";
 
 export function OverviewPage() {
   const { planId, selectedScenarioId } = usePlanContext();
@@ -141,7 +142,10 @@ export function OverviewPage() {
         />
       </div>
 
-      {/* Wealth projection chart */}
+      {/* Wealth burndown — household assets over time */}
+      <SavingsBurndownChart years={activeProjection.years} people={people} />
+
+      {/* Income & drawdown phasing */}
       <IncomePhaseChart
         years={activeProjection.years}
         incomeStreams={incomeStreams}
